@@ -1,23 +1,23 @@
+
 "use client";
 
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { LogOutIcon, LeafIcon, MenuIcon } from "lucide-react";
-import { useSidebar } from "@/components/ui/sidebar"; // Assuming you have a useSidebar hook from shadcn
+import { useSidebar } from "@/components/ui/sidebar";
 
 export function Header() {
   const { teacherName, logout } = useAuth();
-  const { toggleSidebar, isMobile } = useSidebar();
+  const { toggleSidebar } = useSidebar(); // Removed isMobile as the button will always be visible
 
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background/80 backdrop-blur-sm px-4 md:px-6 shadow-sm">
-      {isMobile && (
-         <Button variant="outline" size="icon" onClick={toggleSidebar} className="md:hidden">
-           <MenuIcon className="h-5 w-5" />
-           <span className="sr-only">Abrir menu</span>
-         </Button>
-      )}
+      {/* Button to toggle sidebar, now always visible */}
+      <Button variant="outline" size="icon" onClick={toggleSidebar}>
+        <MenuIcon className="h-5 w-5" />
+        <span className="sr-only">Abrir/Fechar menu</span>
+      </Button>
       <div className="flex items-center gap-2">
         <LeafIcon className="h-7 w-7 text-primary" />
         <h1 className="text-xl font-semibold text-primary">Moedas Narciso</h1>

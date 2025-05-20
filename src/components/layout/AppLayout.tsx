@@ -4,8 +4,8 @@ console.log("DEBUG: /src/components/layout/AppLayout.tsx - FILE PARSED");
 import type { ReactNode } from 'react';
 import { Header } from './Header';
 import { AuthGuard } from '@/components/auth/AuthGuard';
-import { SidebarProvider, Sidebar, SidebarInset } from '@/components/ui/sidebar'; // Re-import Sidebar components
-import { SidebarNav } from '@/components/layout/SidebarNav'; // Corrected import path
+import { SidebarProvider, Sidebar, SidebarInset } from '@/components/ui/sidebar';
+import { SidebarNav } from '@/components/layout/SidebarNav';
 
 export function AppLayout({ children }: { children: ReactNode }) {
   console.log("DEBUG: /src/components/layout/AppLayout.tsx - AppLayout FUNCTION CALLED (Restoring Full Structure)");
@@ -13,7 +13,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
     <AuthGuard>
       <SidebarProvider> {/* SidebarProvider wraps components that use useSidebar */}
         <div className="flex h-screen overflow-hidden bg-background">
-          <Sidebar className="hidden md:flex md:flex-col md:border-r bg-sidebar text-sidebar-foreground"> {/* Apply sidebar theme colors */}
+          <Sidebar 
+            collapsible="icon" 
+            className="hidden md:flex md:flex-col md:border-r bg-sidebar text-sidebar-foreground"
+          > {/* Apply sidebar theme colors and set collapsible to icon */}
             <SidebarNav />
           </Sidebar>
           <SidebarInset className="flex flex-1 flex-col overflow-hidden"> {/* SidebarInset handles main content area */}
