@@ -27,6 +27,7 @@ const AUTH_STORAGE_KEY = 'moedasNarcisoAuth';
 const STUDENTS_STORAGE_KEY = 'moedasNarcisoStudents';
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  console.log("AuthProvider rendering");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [teacherName, setTeacherName] = useState<string | null | undefined>(undefined); // Initialize as undefined
   const [students, setStudents] = useState<Student[]>([]);
@@ -34,6 +35,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const router = useRouter();
 
   useEffect(() => {
+    console.log("AuthProvider: useEffect for localStorage");
     // Load auth state from localStorage
     const storedAuth = localStorage.getItem(AUTH_STORAGE_KEY);
     if (storedAuth) {
@@ -41,14 +43,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const authData = JSON.parse(storedAuth);
         setIsAuthenticated(authData.isAuthenticated || false);
         setTeacherName(authData.teacherName || null); // Ensure string or null
+        console.log("AuthProvider: Loaded auth from localStorage", authData);
       } catch (error) {
-        console.error("Failed to parse auth data from localStorage", error);
+        console.error("AuthProvider: Failed to parse auth data from localStorage", error);
         setIsAuthenticated(false);
         setTeacherName(null); // Signal loading complete, unauthenticated
         localStorage.removeItem(AUTH_STORAGE_KEY); // Clean up corrupted data
       }
     } else {
       // No stored auth, explicitly set teacherName to null to indicate loading is complete
+      console.log("AuthProvider: No auth data in localStorage");
       setIsAuthenticated(false);
       setTeacherName(null);
     }
@@ -58,16 +62,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (storedStudents) {
       try {
         setStudents(JSON.parse(storedStudents));
+        console.log("AuthProvider: Loaded students from localStorage");
       } catch (error) {
-        console.error("Failed to parse students data from localStorage", error);
+        console.error("AuthProvider: Failed to parse students data from localStorage", error);
         const initialStudents = generateInitialStudents();
         setStudents(initialStudents);
         localStorage.setItem(STUDENTS_STORAGE_KEY, JSON.stringify(initialStudents));
+        console.log("AuthProvider: Initialized students and saved to localStorage");
       }
     } else {
       const initialStudents = generateInitialStudents();
       setStudents(initialStudents);
       localStorage.setItem(STUDENTS_STORAGE_KEY, JSON.stringify(initialStudents));
+      console.log("AuthProvider: Initialized students and saved to localStorage (no prior data)");
     }
   }, []);
 
@@ -76,6 +83,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const login = (name: string) => {
+    console.log("AuthProvider: login called", name);
     setIsAuthenticated(true);
     setTeacherName(name);
     localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ isAuthenticated: true, teacherName: name }));
@@ -83,6 +91,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = () => {
+    console.log("AuthProvider: logout called");
     setIsAuthenticated(false);
     setTeacherName(null); // Set to null on logout
     localStorage.removeItem(AUTH_STORAGE_KEY);
@@ -154,7 +163,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return { totalLids, totalCans, totalOil, totalCoins };
   }, [students]);
 
-
+  console.log("AuthProvider: context value", { isAuthenticated, teacherName: teacherName, studentsCount: students.length });
   return (
     <AuthContext.Provider value={{ isAuthenticated, teacherName, students, classes, login, logout, addStudent, updateStudent, deleteStudent, addContribution, getOverallStats }}>
       {children}

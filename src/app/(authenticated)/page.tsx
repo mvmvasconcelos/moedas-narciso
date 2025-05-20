@@ -1,3 +1,4 @@
+
 "use client";
 
 import { StatCard } from "@/components/dashboard/StatCard";
@@ -21,15 +22,20 @@ interface Stats {
 }
 
 export default function DashboardPage() {
+  console.log("DashboardPage rendering");
   const { teacherName, getOverallStats } = useAuth();
   const [stats, setStats] = useState<Stats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    console.log("DashboardPage: useEffect for stats triggered", { teacherName });
     if (teacherName) { // Ensure auth context is loaded
         const currentStats = getOverallStats();
         setStats(currentStats);
         setIsLoading(false);
+        console.log("DashboardPage: Stats loaded", currentStats);
+    } else {
+        console.log("DashboardPage: teacherName not available yet for stats");
     }
   }, [teacherName, getOverallStats]);
 

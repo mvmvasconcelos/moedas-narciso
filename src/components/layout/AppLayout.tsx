@@ -6,6 +6,7 @@ import { AuthGuard } from '@/components/auth/AuthGuard';
 // Removed SidebarProvider, Sidebar, SidebarNav, SidebarInset for debugging
 
 export function AppLayout({ children }: { children: ReactNode }) {
+  console.log("AppLayout rendering (debug version)");
   return (
     <AuthGuard>
       <div className="flex flex-col min-h-screen bg-purple-700 text-white border-8 border-pink-500 p-4"> {/* Wrapper with visible debug style */}
