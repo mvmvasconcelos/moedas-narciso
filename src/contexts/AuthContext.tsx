@@ -9,7 +9,7 @@ import { MOCK_CLASSES, generateInitialStudents, calculateStudentCoins, MATERIAL_
 
 interface AuthContextType {
   isAuthenticated: boolean;
-  teacherName: string | null;
+  teacherName: string | null | undefined; // Allow undefined for loading state
   students: Student[];
   classes: Class[];
   login: (name: string) => void;
@@ -28,7 +28,7 @@ const STUDENTS_STORAGE_KEY = 'moedasNarcisoStudents';
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [teacherName, setTeacherName] = useState<string | null>(null);
+  const [teacherName, setTeacherName] = useState<string | null | undefined>(undefined); // Initialize as undefined
   const [students, setStudents] = useState<Student[]>([]);
   const classes = MOCK_CLASSES; // Classes are static for this demo
   const router = useRouter();
@@ -37,15 +37,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Load auth state from localStorage
     const storedAuth = localStorage.getItem(AUTH_STORAGE_KEY);
     if (storedAuth) {
-      const authData = JSON.parse(storedAuth);
-      setIsAuthenticated(authData.isAuthenticated);
-      setTeacherName(authData.teacherName);
+      try {
+        const authData = JSON.parse(storedAuth);
+        setIsAuthenticated(authData.isAuthenticated || false);
+        setTeacherName(authData.teacherName || null); // Ensure string or null
+      } catch (error) {
+        console.error("Failed to parse auth data from localStorage", error);
+        setIsAuthenticated(false);
+        setTeacherName(null); // Signal loading complete, unauthenticated
+        localStorage.removeItem(AUTH_STORAGE_KEY); // Clean up corrupted data
+      }
+    } else {
+      // No stored auth, explicitly set teacherName to null to indicate loading is complete
+      setIsAuthenticated(false);
+      setTeacherName(null);
     }
 
     // Load students from localStorage or initialize
     const storedStudents = localStorage.getItem(STUDENTS_STORAGE_KEY);
     if (storedStudents) {
-      setStudents(JSON.parse(storedStudents));
+      try {
+        setStudents(JSON.parse(storedStudents));
+      } catch (error) {
+        console.error("Failed to parse students data from localStorage", error);
+        const initialStudents = generateInitialStudents();
+        setStudents(initialStudents);
+        localStorage.setItem(STUDENTS_STORAGE_KEY, JSON.stringify(initialStudents));
+      }
     } else {
       const initialStudents = generateInitialStudents();
       setStudents(initialStudents);
@@ -66,11 +84,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = () => {
     setIsAuthenticated(false);
-    setTeacherName(null);
+    setTeacherName(null); // Set to null on logout
     localStorage.removeItem(AUTH_STORAGE_KEY);
-    // Optionally clear student data on logout or keep it for demo
-    // localStorage.removeItem(STUDENTS_STORAGE_KEY); 
-    // setStudents(generateInitialStudents());
     router.push('/login');
   };
 
@@ -78,7 +93,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setStudents(prevStudents => {
       const newStudent: Student = {
         ...studentData,
-        id: `s${Date.now()}`, // Simple unique ID
+        id: `s${Date.now()}`, 
         contributions: { tampas: 0, latas: 0, oleo: 0 },
         narcisoCoins: 0,
       };
@@ -131,10 +146,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     let totalCoins = 0;
 
     students.forEach(student => {
-      totalLids += student.contributions[MATERIAL_TYPES.LIDS];
-      totalCans += student.contributions[MATERIAL_TYPES.CANS];
-      totalOil += student.contributions[MATERIAL_TYPES.OIL];
-      totalCoins += student.narcisoCoins;
+      totalLids += student.contributions[MATERIAL_TYPES.LIDS] || 0;
+      totalCans += student.contributions[MATERIAL_TYPES.CANS] || 0;
+      totalOil += student.contributions[MATERIAL_TYPES.OIL] || 0;
+      totalCoins += student.narcisoCoins || 0;
     });
     return { totalLids, totalCans, totalOil, totalCoins };
   }, [students]);
@@ -146,14 +161,3 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     </AuthContext.Provider>
   );
 };
-
-// This hook is also defined in src/hooks/use-auth.ts, which is fine.
-// For clarity, it's common to define the hook alongside the context provider,
-// or in a dedicated hooks file as you've done.
-// const useAuthInternal = () => {
-//   const context = React.useContext(AuthContext);
-//   if (context === undefined) {
-//     throw new Error('useAuthInternal must be used within an AuthProvider');
-//   }
-//   return context;
-// };

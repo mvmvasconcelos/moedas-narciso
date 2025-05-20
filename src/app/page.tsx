@@ -1,15 +1,3 @@
-// This page will be rendered within the (authenticated)/layout.tsx if the user is authenticated.
-// The actual dashboard content is in src/app/(authenticated)/page.tsx
-// This file can be minimal or redirect logic if not using route groups for auth boundary
-
-// For simplicity with the current structure, (authenticated)/page.tsx is the true dashboard.
-// This src/app/page.tsx could redirect or be a landing page if there was one.
-// Since we are using (authenticated) group, this file effectively becomes part of the public routes
-// if not handled by middleware or a top-level guard.
-// However, our AuthGuard is in (authenticated)/layout.tsx, so this page won't be hit directly for authenticated users.
-// If a user lands here unauthenticated, they would typically be redirected by a global guard or see a public page.
-// Let's assume this page might be hit if the route structure or auth guard changes.
-// For now, it's best to redirect to login if not authenticated or show a loader.
 
 "use client";
 import { useEffect } from 'react';
@@ -21,24 +9,32 @@ export default function HomePage() {
   const router = useRouter();
 
   useEffect(() => {
-    // Check if auth state is determined
-    if (typeof teacherName !== 'undefined') { // context has loaded
-      if (isAuthenticated) {
-        router.replace('/'); // This should already be handled by AuthGuard if it's the dashboard itself.
-                             // If this `page.tsx` is intended as the actual `/` path for authenticated users.
-                             // It means it should be inside the `(authenticated)` group.
-                             // Current setup has `(authenticated)/page.tsx` as dashboard.
-                             // This outer `page.tsx` will redirect to `/login` if not authed.
-      } else {
+    // Check if auth state is determined (teacherName is not undefined)
+    if (teacherName !== undefined) { 
+      if (!isAuthenticated) {
         router.replace('/login');
       }
+      // If authenticated, do nothing. 
+      // The Next.js router will render the content from (authenticated)/page.tsx for the '/' path,
+      // as AuthGuard within (authenticated)/layout.tsx will permit access.
     }
   }, [isAuthenticated, teacherName, router]);
 
-  // Show loading or minimal content while redirecting
-  return (
+  // If AuthContext is still loading its initial state (teacherName is undefined)
+  if (teacherName === undefined) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p>Carregando...</p>
+      </div>
+    );
+  }
+
+  // If AuthContext has loaded:
+  // If authenticated, this component yields to (authenticated)/page.tsx. Returning null is appropriate.
+  // If not authenticated, the useEffect above should have redirected. This is a fallback.
+  return isAuthenticated ? null : (
     <div className="flex items-center justify-center min-h-screen">
-      <p>Carregando...</p>
+      <p>Redirecionando para o login...</p>
     </div>
   );
 }

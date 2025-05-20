@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { ReactNode } from 'react';
@@ -7,22 +8,19 @@ import { useAuth } from '@/hooks/use-auth';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export function AuthGuard({ children }: { children: ReactNode }) {
-  const { isAuthenticated, teacherName } = useAuth(); // teacherName check if context is loading
+  const { isAuthenticated, teacherName } = useAuth(); 
   const router = useRouter();
-  const [isLoading, setIsLoading] = React.useState(true);
 
   useEffect(() => {
-    // Check if auth state is determined (teacherName will be null initially, then set)
-    if (teacherName !== undefined) { // Check if context has initialized
-        if (!isAuthenticated) {
-            router.replace('/login');
-        } else {
-            setIsLoading(false);
-        }
+    // Only redirect if auth state is determined (teacherName is not undefined) 
+    // and user is not authenticated.
+    if (teacherName !== undefined && !isAuthenticated) {
+        router.replace('/login');
     }
   }, [isAuthenticated, teacherName, router]);
 
-  if (isLoading && teacherName === undefined) { // Context not yet initialized
+  // If auth state is still loading (teacherName is undefined), show skeleton
+  if (teacherName === undefined) { 
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-4">
         <Skeleton className="h-12 w-12 rounded-full mb-4" />
@@ -32,14 +30,17 @@ export function AuthGuard({ children }: { children: ReactNode }) {
     );
   }
   
-  if (!isAuthenticated) { // Handles the case where not authenticated after context load
-    return (
-         <div className="flex flex-col items-center justify-center min-h-screen p-4">
-            <p>Redirecionando para o login...</p>
-         </div>
-    );
+  // If auth state is determined AND user is authenticated, render children
+  if (isAuthenticated) {
+    return <>{children}</>;
   }
 
-
-  return <>{children}</>;
+  // If auth state is determined BUT user is not authenticated,
+  // useEffect should have initiated a redirect. Show a fallback message.
+  // This state should be transient.
+  return (
+     <div className="flex flex-col items-center justify-center min-h-screen p-4">
+        <p>Redirecionando para o login...</p>
+     </div>
+  );
 }
