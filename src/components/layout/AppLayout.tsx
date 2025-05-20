@@ -7,7 +7,7 @@ import {
   SidebarProvider, 
   Sidebar, 
   SidebarInset,
-  SidebarTrigger // For manual toggle if needed elsewhere, not primary for this layout
+  SidebarTrigger
 } from '@/components/ui/sidebar';
 
 export function AppLayout({ children }: { children: ReactNode }) {
@@ -17,12 +17,11 @@ export function AppLayout({ children }: { children: ReactNode }) {
         <Sidebar variant="sidebar" side="left">
           <SidebarNav />
         </Sidebar>
-        <SidebarInset>
-          <div className="flex flex-col min-h-screen">
-            <Header />
-            <main className="flex-1 p-4 sm:p-6 md:p-8 bg-background">
-              {children}
-            </main>
+        <SidebarInset> {/* This component renders a <main> tag which is flex flex-col */}
+          <Header />
+          {/* This div will be the main content area, taking remaining space */}
+          <div className="flex-1 p-4 sm:p-6 md:p-8 bg-background overflow-y-auto">
+            {children}
           </div>
         </SidebarInset>
       </SidebarProvider>
