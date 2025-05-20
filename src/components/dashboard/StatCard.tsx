@@ -16,13 +16,13 @@ export function StatCard({ title, value, icon: Icon, isLoading = false }: StatCa
         <CardTitle className="text-sm font-medium text-muted-foreground">
           {title}
         </CardTitle>
-        <Icon className="h-5 w-5 text-muted-foreground" />
+        <Icon className="h-4 w-4 text-muted-foreground" /> {/* Reduced icon size */}
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <Skeleton className="h-8 w-3/4" />
+          <Skeleton className="h-7 w-3/4" /> /* Adjusted skeleton height for smaller text */
         ) : (
-          <div className="text-3xl font-bold text-primary">
+          <div className="text-2xl font-bold text-primary"> {/* Reduced value font size */}
             {value}
           </div>
         )}

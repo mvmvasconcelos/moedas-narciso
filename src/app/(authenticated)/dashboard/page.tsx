@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react"; // Import useState and useEffect
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { CoinsIcon, PackageIcon, ArchiveIcon, DropletIcon, LayoutDashboardIcon } from "lucide-react";
 import { MATERIAL_LABELS, MATERIAL_TYPES } from "@/lib/constants";
-import type { Metadata } from 'next';
+// import type { Metadata } from 'next'; // Cannot export metadata from client component
 
-// Cannot export metadata from client component.
 // export const metadata: Metadata = {
 //   title: 'Painel de Estatísticas - Moedas Narciso',
 // };
@@ -41,25 +40,27 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          title={`Total de ${MATERIAL_LABELS[MATERIAL_TYPES.LIDS]}`}
-          value={stats.totalLids}
-          icon={PackageIcon}
-          isLoading={isLoading}
-        />
-        <StatCard
-          title={`Total de ${MATERIAL_LABELS[MATERIAL_TYPES.CANS]}`}
-          value={stats.totalCans}
-          icon={ArchiveIcon}
-          isLoading={isLoading}
-        />
-        <StatCard
-          title={`Total de ${MATERIAL_LABELS[MATERIAL_TYPES.OIL]} (unidades)`}
-          value={stats.totalOil}
-          icon={DropletIcon}
-          isLoading={isLoading}
-        />
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          <StatCard
+            title={`Total de ${MATERIAL_LABELS[MATERIAL_TYPES.LIDS]}`}
+            value={stats.totalLids}
+            icon={PackageIcon}
+            isLoading={isLoading}
+          />
+          <StatCard
+            title={`Total de ${MATERIAL_LABELS[MATERIAL_TYPES.CANS]}`}
+            value={stats.totalCans}
+            icon={ArchiveIcon}
+            isLoading={isLoading}
+          />
+          <StatCard
+            title={`Total de ${MATERIAL_LABELS[MATERIAL_TYPES.OIL]} (unidades)`}
+            value={stats.totalOil}
+            icon={DropletIcon}
+            isLoading={isLoading}
+          />
+        </div>
         <StatCard
           title="Total de Moedas Narciso"
           value={stats.totalCoins}
