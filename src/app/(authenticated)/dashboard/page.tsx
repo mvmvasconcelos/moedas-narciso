@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -41,7 +42,7 @@ export default function DashboardPage() {
       </div>
 
       <div className="space-y-6">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        <div className="grid grid-cols-3 gap-6"> {/* Alterado de grid-cols-1 sm:grid-cols-3 */}
           <StatCard
             title={`Total de ${MATERIAL_LABELS[MATERIAL_TYPES.LIDS]}`}
             value={stats.totalLids}
@@ -73,3 +74,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+
