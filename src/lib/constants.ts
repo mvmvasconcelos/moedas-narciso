@@ -1,3 +1,4 @@
+
 export const MATERIAL_TYPES = {
   LIDS: 'tampas',
   CANS: 'latas',
@@ -38,24 +39,25 @@ export interface Class {
 }
 
 export const MOCK_CLASSES: Class[] = [
-  { id: '1', name: 'Turma 1A' },
-  { id: '2', name: 'Turma 1B' },
-  { id: '3', name: 'Turma 2A' },
-  { id: '4', name: 'Turma 2B' },
-  { id: '5', name: 'Turma 3A' },
+  { id: '1', name: 'Pré Manhã' },
+  { id: '2', name: 'Pré Tarde' },
+  { id: '3', name: '1º Ano Tarde' },
+  { id: '4', name: '1º e 2º Ano Manhã' },
+  { id: '5', name: '3º Ano' },
+  { id: '6', name: '4º e 5º Anos' },
 ];
 
 export const MOCK_STUDENTS_INITIAL: Omit<Student, 'narcisoCoins' | 'id'>[] = [
-  { name: 'Ana Beatriz Costa', className: 'Turma 1A', contributions: { tampas: 25, latas: 5, oleo: 2 } },
-  { name: 'Bruno Alves Dias', className: 'Turma 1A', contributions: { tampas: 15, latas: 3, oleo: 1 } },
-  { name: 'Carla Moreira Lima', className: 'Turma 1B', contributions: { tampas: 30, latas: 6, oleo: 0 } },
-  { name: 'Daniel Farias Gomes', className: 'Turma 1B', contributions: { tampas: 10, latas: 2, oleo: 3 } },
-  { name: 'Eduarda Pires Nobre', className: 'Turma 2A', contributions: { tampas: 50, latas: 10, oleo: 5 } },
-  { name: 'Felipe Santos Rocha', className: 'Turma 2A', contributions: { tampas: 5, latas: 1, oleo: 0 } },
-  { name: 'Gabriela Vieira Pinto', className: 'Turma 2B', contributions: { tampas: 40, latas: 8, oleo: 4 } },
-  { name: 'Henrique Barros Melo', className: 'Turma 2B', contributions: { tampas: 22, latas: 4, oleo: 1 } },
-  { name: 'Isabela Castro Cunha', className: 'Turma 3A', contributions: { tampas: 33, latas: 7, oleo: 2 } },
-  { name: 'Lucas Azevedo Sousa', className: 'Turma 3A', contributions: { tampas: 18, latas: 3, oleo: 1 } },
+  { name: 'Ana Beatriz Costa', className: 'Pré Manhã', contributions: { tampas: 25, latas: 5, oleo: 2 } },
+  { name: 'Bruno Alves Dias', className: 'Pré Manhã', contributions: { tampas: 15, latas: 3, oleo: 1 } },
+  { name: 'Carla Moreira Lima', className: 'Pré Tarde', contributions: { tampas: 30, latas: 6, oleo: 0 } },
+  { name: 'Daniel Farias Gomes', className: 'Pré Tarde', contributions: { tampas: 10, latas: 2, oleo: 3 } },
+  { name: 'Eduarda Pires Nobre', className: '1º Ano Tarde', contributions: { tampas: 50, latas: 10, oleo: 5 } },
+  { name: 'Felipe Santos Rocha', className: '1º Ano Tarde', contributions: { tampas: 5, latas: 1, oleo: 0 } },
+  { name: 'Gabriela Vieira Pinto', className: '1º e 2º Ano Manhã', contributions: { tampas: 40, latas: 8, oleo: 4 } },
+  { name: 'Henrique Barros Melo', className: '1º e 2º Ano Manhã', contributions: { tampas: 22, latas: 4, oleo: 1 } },
+  { name: 'Isabela Castro Cunha', className: '3º Ano', contributions: { tampas: 33, latas: 7, oleo: 2 } },
+  { name: 'Lucas Azevedo Sousa', className: '4º e 5º Anos', contributions: { tampas: 18, latas: 3, oleo: 1 } },
 ];
 
 export const calculateStudentCoins = (student: Omit<Student, 'narcisoCoins'>): number => {
