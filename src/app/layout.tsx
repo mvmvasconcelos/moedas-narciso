@@ -1,13 +1,14 @@
+
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google'; // Changed from GeistSans
+// Removed Inter font import
 import './globals.css';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { Toaster } from '@/components/ui/toaster';
 
-const inter = Inter({ // Changed from GeistSans
-  variable: '--font-inter', // Changed CSS variable name
-  subsets: ['latin'],
-});
+// const inter = Inter({ // Changed from GeistSans
+//   variable: '--font-inter', // Changed CSS variable name
+//   subsets: ['latin'],
+// });
 
 export const metadata: Metadata = {
   title: 'Moedas Narciso',
@@ -21,7 +22,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR" suppressHydrationWarning>
-      <body className={`${inter.variable} font-sans antialiased`} suppressHydrationWarning> {/* Updated to use inter.variable */}
+      {/* Removed inter.variable */}
+      <body className="font-sans antialiased" suppressHydrationWarning>
         <AuthProvider>
           {children}
           <Toaster />
