@@ -1,3 +1,4 @@
+
 import type { LucideIcon } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from '@/components/ui/skeleton';
@@ -11,23 +12,21 @@ interface StatCardProps {
 
 export function StatCard({ title, value, icon: Icon, isLoading = false }: StatCardProps) {
   return (
-    <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+    <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col justify-center items-center text-center p-4">
+      <CardHeader className="p-0 flex flex-col items-center space-y-1 pb-2"> {/* Padding e layout ajustados */}
+        <Icon className="h-5 w-5 text-muted-foreground" /> {/* Tamanho do ícone ajustado */}
         <CardTitle className="text-sm font-medium text-muted-foreground">
           {title}
         </CardTitle>
-        <Icon className="h-4 w-4 text-muted-foreground" /> {/* Reduced icon size */}
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-0 pt-2"> {/* Padding ajustado */}
         {isLoading ? (
-          <Skeleton className="h-7 w-3/4" /> /* Adjusted skeleton height for smaller text */
+          <Skeleton className="h-7 w-3/4 mx-auto" /> {/* Garante que o skeleton seja centralizado */}
         ) : (
-          <div className="text-2xl font-bold text-primary"> {/* Reduced value font size */}
+          <div className="text-2xl font-bold text-primary">
             {value}
           </div>
         )}
-        {/* Additional description or comparison can go here */}
-        {/* <p className="text-xs text-muted-foreground">+20.1% from last month</p> */}
       </CardContent>
     </Card>
   );
