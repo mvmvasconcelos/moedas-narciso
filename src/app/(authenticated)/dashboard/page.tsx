@@ -1,6 +1,6 @@
-
 "use client";
 
+import { useState, useEffect } from "react"; // Import useState and useEffect
 import { useAuth } from "@/hooks/use-auth";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { CoinsIcon, PackageIcon, ArchiveIcon, DropletIcon, LayoutDashboardIcon } from "lucide-react";
@@ -15,10 +15,10 @@ import type { Metadata } from 'next';
 export default function DashboardPage() {
   console.log("DEBUG: /src/app/(authenticated)/dashboard/page.tsx - DashboardPage FUNCTION CALLED (Restoring Content)");
   const { getOverallStats, teacherName } = useAuth();
-  const [stats, setStats] = React.useState({ totalLids: 0, totalCans: 0, totalOil: 0, totalCoins: 0 });
-  const [isLoading, setIsLoading] = React.useState(true);
+  const [stats, setStats] = useState({ totalLids: 0, totalCans: 0, totalOil: 0, totalCoins: 0 });
+  const [isLoading, setIsLoading] = useState(true);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (teacherName !== undefined) { // Ensure auth state is resolved
         const currentStats = getOverallStats();
         setStats(currentStats);
