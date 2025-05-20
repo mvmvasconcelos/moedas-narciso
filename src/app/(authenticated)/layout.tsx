@@ -1,14 +1,14 @@
 
-import type { ReactNode } from 'react';
-
+// Kept super simplified for debugging
 console.log("DEBUG: /src/app/(authenticated)/layout.tsx - FILE PARSED");
 
+import type { ReactNode } from 'react';
+
 export default function AuthenticatedLayout({ children }: { children: ReactNode }) {
-  console.log("DEBUG: /src/app/(authenticated)/layout.tsx - AuthenticatedLayout FUNCTION CALLED");
+  console.log("DEBUG: /src/app/(authenticated)/layout.tsx - AuthenticatedLayout FUNCTION CALLED (SUPER SIMPLIFIED VERSION)");
   return (
-    <div style={{ border: '10px solid limegreen', padding: '20px', backgroundColor: 'lightgoldenrodyellow', minHeight: '100vh' }}>
-      <h1 style={{ color: 'green', fontSize: '2em' }}>DEBUG: AUTHENTICATED LAYOUT MINIMAL</h1>
-      <p style={{ color: 'green' }}>Este é o layout autenticado ultra simplificado.</p>
+    <div style={{ border: '20px solid red', padding: '30px', backgroundColor: 'lightyellow', minHeight: '100vh' }}>
+      <h1 style={{ color: 'darkred', fontSize: '3em' }}>DEBUG: AUTHENTICATED LAYOUT SUPER SIMPLIFIED</h1>
       {children}
     </div>
   );

@@ -4,32 +4,30 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 
+console.log("DEBUG: src/app/page.tsx - FILE PARSED");
+
 export default function HomePage() {
-  console.log("HomePage rendering");
+  console.log("DEBUG: src/app/page.tsx - HomePage rendering");
   const { isAuthenticated, teacherName } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    console.log("HomePage: useEffect triggered", { isAuthenticated, teacherName });
-    // Check if auth state is determined (teacherName is not undefined)
-    if (teacherName !== undefined) { 
+    console.log("DEBUG: src/app/page.tsx - useEffect triggered", { isAuthenticated, teacherName });
+    if (teacherName !== undefined) {
       if (!isAuthenticated) {
-        console.log("HomePage: Not authenticated, redirecting to /login");
+        console.log("DEBUG: src/app/page.tsx - Not authenticated, redirecting to /login");
         router.replace('/login');
       } else {
-        console.log("HomePage: Authenticated, should yield to (authenticated)/page.tsx");
+        console.log("DEBUG: src/app/page.tsx - Authenticated, redirecting to /dashboard");
+        router.replace('/dashboard'); // Redirect to /dashboard when authenticated
       }
-      // If authenticated, do nothing. 
-      // The Next.js router will render the content from (authenticated)/page.tsx for the '/' path,
-      // as AuthGuard within (authenticated)/layout.tsx will permit access.
     } else {
-      console.log("HomePage: Auth state not determined yet (teacherName is undefined)");
+      console.log("DEBUG: src/app/page.tsx - Auth state not determined yet (teacherName is undefined)");
     }
   }, [isAuthenticated, teacherName, router]);
 
-  // If AuthContext is still loading its initial state (teacherName is undefined)
   if (teacherName === undefined) {
-    console.log("HomePage: Rendering 'Carregando...' because teacherName is undefined");
+    console.log("DEBUG: src/app/page.tsx - Rendering 'Carregando...' because teacherName is undefined");
     return (
       <div className="flex items-center justify-center min-h-screen">
         <p>Carregando...</p>
@@ -37,13 +35,12 @@ export default function HomePage() {
     );
   }
 
-  // If AuthContext has loaded:
-  // If authenticated, this component yields to (authenticated)/page.tsx. Returning null is appropriate.
-  // If not authenticated, the useEffect above should have redirected. This is a fallback.
-  console.log("HomePage: Rendering based on authentication state", { isAuthenticated });
-  return isAuthenticated ? null : (
+  // If auth state is determined, useEffect will handle redirection.
+  // Show a generic message while redirecting.
+  console.log("DEBUG: src/app/page.tsx - Rendering redirect or loading message based on auth state", { isAuthenticated });
+  return (
     <div className="flex items-center justify-center min-h-screen">
-      <p>Redirecionando para o login...</p>
+      <p>{isAuthenticated ? 'Redirecionando para o painel...' : 'Redirecionando para o login...'}</p>
     </div>
   );
 }

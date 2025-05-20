@@ -7,6 +7,8 @@ import { useRouter } from 'next/navigation';
 import type { Student, Class, MaterialType } from '@/lib/constants';
 import { MOCK_CLASSES, generateInitialStudents, calculateStudentCoins, MATERIAL_TYPES } from '@/lib/constants';
 
+console.log("DEBUG: src/contexts/AuthContext.tsx - FILE PARSED");
+
 interface AuthContextType {
   isAuthenticated: boolean;
   teacherName: string | null | undefined; // Allow undefined for loading state
@@ -27,54 +29,50 @@ const AUTH_STORAGE_KEY = 'moedasNarcisoAuth';
 const STUDENTS_STORAGE_KEY = 'moedasNarcisoStudents';
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  console.log("AuthProvider rendering");
+  console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider rendering");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [teacherName, setTeacherName] = useState<string | null | undefined>(undefined); // Initialize as undefined
+  const [teacherName, setTeacherName] = useState<string | null | undefined>(undefined);
   const [students, setStudents] = useState<Student[]>([]);
-  const classes = MOCK_CLASSES; // Classes are static for this demo
+  const classes = MOCK_CLASSES;
   const router = useRouter();
 
   useEffect(() => {
-    console.log("AuthProvider: useEffect for localStorage");
-    // Load auth state from localStorage
-    const storedAuth = localStorage.getItem(AUTH_STORAGE_KEY);
-    if (storedAuth) {
-      try {
+    console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: useEffect for localStorage");
+    try {
+      const storedAuth = localStorage.getItem(AUTH_STORAGE_KEY);
+      if (storedAuth) {
         const authData = JSON.parse(storedAuth);
         setIsAuthenticated(authData.isAuthenticated || false);
-        setTeacherName(authData.teacherName || null); // Ensure string or null
-        console.log("AuthProvider: Loaded auth from localStorage", authData);
-      } catch (error) {
-        console.error("AuthProvider: Failed to parse auth data from localStorage", error);
+        setTeacherName(authData.teacherName || null);
+        console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: Loaded auth from localStorage", authData);
+      } else {
+        console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: No auth data in localStorage");
         setIsAuthenticated(false);
-        setTeacherName(null); // Signal loading complete, unauthenticated
-        localStorage.removeItem(AUTH_STORAGE_KEY); // Clean up corrupted data
+        setTeacherName(null);
       }
-    } else {
-      // No stored auth, explicitly set teacherName to null to indicate loading is complete
-      console.log("AuthProvider: No auth data in localStorage");
+    } catch (error) {
+      console.error("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: Failed to parse auth data from localStorage", error);
       setIsAuthenticated(false);
       setTeacherName(null);
+      localStorage.removeItem(AUTH_STORAGE_KEY);
     }
 
-    // Load students from localStorage or initialize
-    const storedStudents = localStorage.getItem(STUDENTS_STORAGE_KEY);
-    if (storedStudents) {
-      try {
+    try {
+      const storedStudents = localStorage.getItem(STUDENTS_STORAGE_KEY);
+      if (storedStudents) {
         setStudents(JSON.parse(storedStudents));
-        console.log("AuthProvider: Loaded students from localStorage");
-      } catch (error) {
-        console.error("AuthProvider: Failed to parse students data from localStorage", error);
+        console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: Loaded students from localStorage");
+      } else {
         const initialStudents = generateInitialStudents();
         setStudents(initialStudents);
         localStorage.setItem(STUDENTS_STORAGE_KEY, JSON.stringify(initialStudents));
-        console.log("AuthProvider: Initialized students and saved to localStorage");
+        console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: Initialized students and saved to localStorage");
       }
-    } else {
+    } catch (error) {
+      console.error("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: Failed to parse students data from localStorage", error);
       const initialStudents = generateInitialStudents();
       setStudents(initialStudents);
       localStorage.setItem(STUDENTS_STORAGE_KEY, JSON.stringify(initialStudents));
-      console.log("AuthProvider: Initialized students and saved to localStorage (no prior data)");
     }
   }, []);
 
@@ -83,17 +81,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const login = (name: string) => {
-    console.log("AuthProvider: login called", name);
+    console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: login called", name);
     setIsAuthenticated(true);
     setTeacherName(name);
     localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ isAuthenticated: true, teacherName: name }));
-    router.push('/');
+    router.push('/dashboard'); // Redirect to /dashboard after login
   };
 
   const logout = () => {
-    console.log("AuthProvider: logout called");
+    console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: logout called");
     setIsAuthenticated(false);
-    setTeacherName(null); // Set to null on logout
+    setTeacherName(null);
     localStorage.removeItem(AUTH_STORAGE_KEY);
     router.push('/login');
   };
@@ -102,7 +100,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setStudents(prevStudents => {
       const newStudent: Student = {
         ...studentData,
-        id: `s${Date.now()}`, 
+        id: `s${Date.now()}`,
         contributions: { tampas: 0, latas: 0, oleo: 0 },
         narcisoCoins: 0,
       };
@@ -121,7 +119,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return updatedStudents;
     });
   }, []);
-  
+
   const deleteStudent = useCallback((studentId: string) => {
     setStudents(prevStudents => {
       const updatedStudents = prevStudents.filter(s => s.id !== studentId);
@@ -163,7 +161,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return { totalLids, totalCans, totalOil, totalCoins };
   }, [students]);
 
-  console.log("AuthProvider: context value", { isAuthenticated, teacherName: teacherName, studentsCount: students.length });
+  console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: context value", { isAuthenticated, teacherName: teacherName, studentsCount: students.length });
   return (
     <AuthContext.Provider value={{ isAuthenticated, teacherName, students, classes, login, logout, addStudent, updateStudent, deleteStudent, addContribution, getOverallStats }}>
       {children}

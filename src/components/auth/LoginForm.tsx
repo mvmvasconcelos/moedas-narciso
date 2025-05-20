@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -7,19 +8,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LogInIcon, LeafIcon } from 'lucide-react';
+// No longer need useRouter here directly as useAuth's login will handle redirection.
 
 export function LoginForm() {
-  const [email, setEmail] = useState(''); // Using email as a stand-in for teacher identifier
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const { login } = useAuth();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // In a real app, you'd validate credentials against a backend.
-    // For this demo, any non-empty email/password combination works.
     if (email && password) {
-      // Using email as teacher name for simplicity
-      login(email.split('@')[0] || "Professor(a)"); 
+      login(email.split('@')[0] || "Professor(a)");
+      // login function in AuthContext now handles router.push('/dashboard')
     } else {
       alert("Por favor, preencha o email e a senha.");
     }
