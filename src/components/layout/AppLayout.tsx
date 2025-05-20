@@ -4,7 +4,8 @@ console.log("DEBUG: /src/components/layout/AppLayout.tsx - FILE PARSED");
 import type { ReactNode } from 'react';
 import { Header } from './Header';
 import { AuthGuard } from '@/components/auth/AuthGuard';
-import { SidebarProvider, Sidebar, SidebarNav, SidebarInset } from '@/components/ui/sidebar'; // Re-import Sidebar components
+import { SidebarProvider, Sidebar, SidebarInset } from '@/components/ui/sidebar'; // Re-import Sidebar components
+import { SidebarNav } from '@/components/layout/SidebarNav'; // Corrected import path
 
 export function AppLayout({ children }: { children: ReactNode }) {
   console.log("DEBUG: /src/components/layout/AppLayout.tsx - AppLayout FUNCTION CALLED (Restoring Full Structure)");
