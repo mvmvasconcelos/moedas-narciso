@@ -1,40 +1,44 @@
 
 import type { ReactNode } from 'react';
 import { Header } from './Header';
-import { SidebarNav } from './SidebarNav';
 import { AuthGuard } from '@/components/auth/AuthGuard';
-import { 
-  SidebarProvider, 
-  Sidebar, 
-  SidebarInset
-} from '@/components/ui/sidebar'; // Removed unused SidebarTrigger
+
+// Removed SidebarProvider, Sidebar, SidebarNav, SidebarInset for debugging
 
 export function AppLayout({ children }: { children: ReactNode }) {
   return (
     <AuthGuard>
-      <SidebarProvider defaultOpen={true} collapsible="icon">
-        <Sidebar variant="sidebar" side="left">
-          <SidebarNav />
-        </Sidebar>
-        <SidebarInset> {/* This is a <main> tag: flex flex-col flex-1 min-h-screen */}
-          <Header /> {/* You can add a temporary background to Header if needed for debugging its bounds */}
-          {/* This div will be the main content area, taking remaining space */}
-          <div className="flex-1 p-4 sm:p-6 md:p-8 bg-lime-400 border-4 border-red-500 overflow-y-auto">
-            {/* Original {children} is commented out for debugging */}
-            <div className="bg-yellow-200 p-10 rounded-lg shadow-lg">
-              <h1 className="text-4xl text-black font-bold">DEBUG: TEST CONTENT</h1>
-              <p className="text-xl text-gray-800 mt-2">
-                If you see this yellow box within a lime green area with a red border, 
-                then the AppLayout structure (including Header and content area) is mostly working.
-                The issue might then be with the actual page content that was originally passed as children.
-              </p>
-              <p className="text-xl text-gray-800 mt-2">
-                The overall page background should be a light green.
-              </p>
-            </div>
+      <div className="flex flex-col min-h-screen bg-purple-700 text-white border-8 border-pink-500 p-4"> {/* Wrapper with visible debug style */}
+        <Header /> {/* Assume Header is okay for now */}
+        <main className="flex-1 mt-4 p-4 bg-orange-500 border-4 border-yellow-500 overflow-y-auto"> {/* Main content area with visible debug style */}
+          <div className="bg-teal-200 p-10 rounded-lg shadow-lg">
+            <h1 className="text-4xl text-black font-bold">DEBUG: AppLayout Simplified</h1>
+            <p className="text-xl text-gray-800 mt-2">
+              This is a placeholder inside the 'main' area of AppLayout.
+            </p>
+            <p className="text-xl text-gray-800 mt-2">
+              The original page content (children) is NOT being rendered here for this specific test.
+            </p>
+            <p className="text-xl text-gray-800 mt-2">
+              If you see this purple/orange/teal content, it means:
+            </p>
+            <ul className="list-disc list-inside text-gray-800 mt-2">
+              <li>AuthGuard is working and rendering its children.</li>
+              <li>AppLayout's basic structure (with Header) is rendering.</li>
+            </ul>
+            <p className="text-xl text-gray-800 mt-2">
+              The original problem might be with the actual page content (e.g., DashboardPage) 
+              that was passed as 'children', OR with the Sidebar components (which are currently removed).
+            </p>
           </div>
-        </SidebarInset>
-      </SidebarProvider>
+          {/* Original {children} is intentionally commented out for this debug step
+          <div className="mt-4 bg-gray-300 p-4">
+             <p className="text-black">Original children would be here:</p>
+             {children}
+          </div>
+          */}
+        </main>
+      </div>
     </AuthGuard>
   );
 }
