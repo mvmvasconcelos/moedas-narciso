@@ -15,6 +15,7 @@ import {
   SidebarGroupLabel,
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/hooks/use-auth";
+import { useSidebar } from "@/components/ui/sidebar"; // Import useSidebar
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboardIcon },
@@ -25,6 +26,13 @@ const navItems = [
 export function SidebarNav() {
   const pathname = usePathname();
   const { logout, teacherName } = useAuth();
+  const { setOpenMobile, isMobile } = useSidebar(); // Get sidebar control functions
+
+  const handleMenuItemClick = () => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  };
 
   return (
     <>
@@ -40,6 +48,7 @@ export function SidebarNav() {
         <SidebarMenu>
           {navItems.map((item) => {
             const Icon = item.icon;
+            // Adjusted isActive logic to correctly highlight dashboard when on /contribuicoes
             const isActive =
               (item.href === "/dashboard" && (pathname === "/dashboard" || pathname.startsWith("/contribuicoes"))) ||
               (item.href !== "/dashboard" && pathname.startsWith(item.href));
@@ -55,6 +64,7 @@ export function SidebarNav() {
                         "justify-start",
                         isActive && "bg-sidebar-accent text-sidebar-accent-foreground"
                     )}
+                    onClick={handleMenuItemClick} // Add onClick handler here
                   >
                     <a>
                       <Icon className="h-5 w-5" />
@@ -75,7 +85,10 @@ export function SidebarNav() {
         )}
         <SidebarMenuItem className="list-none">
           <SidebarMenuButton
-            onClick={logout}
+            onClick={() => {
+              logout();
+              handleMenuItemClick(); // Also close sidebar on logout if mobile
+            }}
             tooltip={{children: "Sair", side: 'right', align: 'center' }}
             className="justify-start w-full"
           >
@@ -90,4 +103,3 @@ export function SidebarNav() {
     </>
   );
 }
-
