@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -24,19 +25,19 @@ import type { Student } from "@/lib/constants";
 import { MATERIAL_TYPES, MATERIAL_LABELS } from "@/lib/constants";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import { CoinsIcon, PackageIcon, ArchiveIcon, DropletIcon, SaveIcon } from "lucide-react";
+import { CoinsIcon, PackageIcon, ArchiveIcon, DropletIcon, SaveIcon, UsersIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 
 const contributionFormSchema = z.object({
-  classId: z.string().min(1, "Selecione uma turma."), // Using class name as ID for simplicity
+  classId: z.string().min(1, "Selecione uma turma."),
   studentId: z.string().min(1, "Selecione um aluno."),
   [MATERIAL_TYPES.LIDS]: z.coerce.number().min(0).optional(),
   [MATERIAL_TYPES.CANS]: z.coerce.number().min(0).optional(),
   [MATERIAL_TYPES.OIL]: z.coerce.number().min(0).optional(),
 }).refine(data => data.tampas || data.latas || data.oleo, {
   message: "Ao menos um tipo de material deve ser preenchido.",
-  path: ["tampas"], // Show error under the first field, or a general one
+  path: ["tampas"],
 });
 
 
@@ -63,7 +64,7 @@ export function ContributionForm() {
   useEffect(() => {
     if (selectedClass) {
       setFilteredStudents(students.filter(s => s.className === selectedClass));
-      form.setValue("studentId", ""); // Reset student selection when class changes
+      form.setValue("studentId", ""); 
       setSelectedStudent(null);
     } else {
       setFilteredStudents([]);
@@ -79,6 +80,10 @@ export function ContributionForm() {
     }
   }, [form.watch("studentId"), students]);
 
+  function handleClassSelect(className: string) {
+    setSelectedClass(className);
+    form.setValue("classId", className, { shouldValidate: true });
+  }
 
   function onSubmit(data: ContributionFormValues) {
     if (data.studentId) {
@@ -102,13 +107,12 @@ export function ContributionForm() {
             description: `Contribuições de ${selectedStudent?.name || 'aluno'} registradas.`,
           });
           form.reset({ 
-            classId: data.classId, // Keep class selected
-            studentId: data.studentId, // Keep student selected if desired, or reset
+            classId: data.classId, 
+            studentId: data.studentId, 
             [MATERIAL_TYPES.LIDS]: 0,
             [MATERIAL_TYPES.CANS]: 0,
             [MATERIAL_TYPES.OIL]: 0,
           });
-          // Re-fetch selected student to show updated coins
           setSelectedStudent(students.find(s => s.id === data.studentId) || null);
 
       } else {
@@ -132,62 +136,57 @@ export function ContributionForm() {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <FormLabel>Turma</FormLabel>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-2">
+                {classes.map((cls) => (
+                  <Button
+                    key={cls.id}
+                    type="button"
+                    variant={selectedClass === cls.name ? "default" : "outline"}
+                    onClick={() => handleClassSelect(cls.name)}
+                    className="w-full justify-start text-left"
+                  >
+                    <UsersIcon className="mr-2 h-4 w-4" />
+                    {cls.name}
+                  </Button>
+                ))}
+              </div>
               <FormField
                 control={form.control}
                 name="classId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Turma</FormLabel>
-                    <Select 
-                      onValueChange={(value) => {
-                        field.onChange(value);
-                        setSelectedClass(value);
-                      }} 
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione a turma" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {classes.map((cls) => (
-                          <SelectItem key={cls.id} value={cls.name}> {/* Using name as value for simplicity */}
-                            {cls.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="studentId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Aluno</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!selectedClass}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione o aluno" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {filteredStudents.map((std) => (
-                          <SelectItem key={std.id} value={std.id}>
-                            {std.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                render={({ field }) => ( <FormItem><FormMessage className="mt-2" /></FormItem>)}
               />
             </div>
+            
+            <FormField
+              control={form.control}
+              name="studentId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Aluno</FormLabel>
+                  <Select 
+                    onValueChange={field.onChange} 
+                    value={field.value} // Use value prop for controlled component
+                    disabled={!selectedClass}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o aluno" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {filteredStudents.map((std) => (
+                        <SelectItem key={std.id} value={std.id}>
+                          {std.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             
             {selectedStudent && (
               <div className="p-4 border rounded-md bg-muted/50">
@@ -241,7 +240,7 @@ export function ContributionForm() {
                     )}
                     />
                 </div>
-                 {form.formState.errors.tampas && ( // For the custom refine error
+                 {form.formState.errors.tampas && (
                     <p className="text-sm font-medium text-destructive">{form.formState.errors.tampas.message}</p>
                 )}
             </div>
