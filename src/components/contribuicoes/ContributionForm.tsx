@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import type { Student, MaterialType } from "@/lib/constants";
-import { MATERIAL_LABELS, MATERIAL_TYPES, CONVERSION_RATES } from "@/lib/constants";
+import { MATERIAL_LABELS, MATERIAL_TYPES, MATERIAL_UNITS_PER_COIN } from "@/lib/constants";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { CoinsIcon, PackageIcon, ArchiveIcon, DropletIcon, SaveIcon, UsersIcon, UserIcon } from "lucide-react";
@@ -34,7 +34,6 @@ const createContributionFormSchema = (materialType: MaterialType) => {
     classId: z.string().min(1, "Selecione uma turma."),
     studentId: z.string().min(1, "Selecione um aluno."),
     [materialType]: z.coerce.number().min(1, `A quantidade de ${MATERIAL_LABELS[materialType].toLowerCase()} deve ser maior que zero.`),
-    // Make other materials optional and not explicitly validated here
     ...(materialType !== MATERIAL_TYPES.LIDS && { [MATERIAL_TYPES.LIDS]: z.coerce.number().optional() }),
     ...(materialType !== MATERIAL_TYPES.CANS && { [MATERIAL_TYPES.CANS]: z.coerce.number().optional() }),
     ...(materialType !== MATERIAL_TYPES.OIL && { [MATERIAL_TYPES.OIL]: z.coerce.number().optional() }),
@@ -65,12 +64,12 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
   });
 
   const watchedStudentId = form.watch("studentId");
-  const watchedMaterialQuantity = form.watch(materialType);
+  const watchedMaterialQuantity = form.watch(materialType); // This is the new quantity being added
 
   useEffect(() => {
     if (selectedClass) {
       setFilteredStudents(students.filter(s => s.className === selectedClass));
-      form.setValue("studentId", ""); // Reset student selection when class changes
+      form.setValue("studentId", ""); 
       setSelectedStudent(null);
     } else {
       setFilteredStudents([]);
@@ -78,11 +77,12 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
       setSelectedStudent(null);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedClass, students]); // form dependency removed to avoid re-renders, explicitly using form.setValue
+  }, [selectedClass, students]); 
 
   useEffect(() => {
     if (watchedStudentId) {
-      setSelectedStudent(students.find(s => s.id === watchedStudentId) || null);
+      const student = students.find(s => s.id === watchedStudentId);
+      setSelectedStudent(student || null);
     } else {
       setSelectedStudent(null);
     }
@@ -91,14 +91,15 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
   function handleClassSelect(className: string) {
     setSelectedClass(className);
     form.setValue("classId", className, { shouldValidate: true });
-    form.setValue("studentId", ""); // Reset student when class changes
+    form.setValue("studentId", ""); 
     setSelectedStudent(null);
-    form.setValue(materialType, 0); // Reset quantity
+    form.setValue(materialType, 0); 
   }
 
-  function handleStudentSelect(student: Student) {
-    form.setValue("studentId", student.id, { shouldValidate: true });
-    form.setValue(materialType, 0); // Reset quantity
+  function handleStudentSelect(studentId: string) {
+    form.setValue("studentId", studentId, { shouldValidate: true });
+    // student state will update via useEffect on watchedStudentId
+    form.setValue(materialType, 0); 
   }
 
   const adjustQuantity = (amount: number) => {
@@ -111,21 +112,21 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
   const quantityButtons = [1, 5, 10, 50];
 
   function onSubmit(data: ContributionFormValues) {
-    if (data.studentId) {
-      const quantity = data[materialType];
+    if (data.studentId && selectedStudent) {
+      const quantity = data[materialType]; // This is the new amount being added
       if (quantity !== undefined && quantity > 0) {
         addContribution(data.studentId, materialType, quantity as number);
         toast({
           title: "Sucesso!",
           description: `${quantity} ${MATERIAL_LABELS[materialType].toLowerCase()} de ${selectedStudent?.name || 'aluno'} registradas.`,
         });
-        // Reset only quantity, keep class and student selected for easier subsequent entries
         form.setValue(materialType, 0, {shouldValidate: true});
-        // Manually trigger re-fetch or update of selectedStudent to show new balance
-        // This can be complex, for now, local state of selectedStudent will be stale until next selection
-        // Or, we can refetch the student data from context, but useAuth doesn't directly provide getStudentById
-        const updatedStudent = students.find(s => s.id === data.studentId);
-        if(updatedStudent) setSelectedStudent(updatedStudent);
+        
+        // Re-fetch or update selectedStudent to show new balance correctly
+        const updatedStudentData = students.find(s => s.id === data.studentId);
+        if (updatedStudentData) {
+          setSelectedStudent(updatedStudentData);
+        }
 
       } else {
         form.setError(materialType, { type: "manual", message: `A quantidade de ${MATERIAL_LABELS[materialType].toLowerCase()} deve ser maior que zero.` });
@@ -138,7 +139,16 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
     materialType === MATERIAL_TYPES.CANS ? ArchiveIcon :
     DropletIcon;
 
-  const coinsFromCurrentContribution = (watchedMaterialQuantity || 0) * (CONVERSION_RATES[materialType] || 0);
+  let coinsFromCurrentContribution = 0;
+  if (selectedStudent && watchedMaterialQuantity > 0 && MATERIAL_UNITS_PER_COIN[materialType]) {
+    const unitsPerCoin = MATERIAL_UNITS_PER_COIN[materialType];
+    const currentPendingForMaterial = selectedStudent.pendingContributions[materialType] || 0;
+    
+    const totalPendingAfterContribution = currentPendingForMaterial + watchedMaterialQuantity;
+    
+    coinsFromCurrentContribution = Math.floor(totalPendingAfterContribution / unitsPerCoin) - Math.floor(currentPendingForMaterial / unitsPerCoin);
+  }
+
 
   return (
     <Card className="w-full max-w-2xl mx-auto shadow-xl">
@@ -170,7 +180,7 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
               <FormField
                 control={form.control}
                 name="classId"
-                render={({ field }) => ( <FormItem><FormMessage className="mt-2" /></FormItem>)}
+                render={() => ( <FormItem><FormMessage className="mt-2" /></FormItem>)}
               />
             </div>
 
@@ -186,7 +196,7 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
                           key={std.id}
                           type="button"
                           variant={isStudentSelected ? "destructive" : "outline"}
-                          onClick={() => handleStudentSelect(std)}
+                          onClick={() => handleStudentSelect(std.id)}
                            className={cn(
                             "w-full h-auto py-2 px-1.5 flex flex-col items-center whitespace-normal text-center leading-tight",
                             !isStudentSelected && "hover:bg-primary hover:text-primary-foreground"
@@ -204,7 +214,7 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
                 <FormField
                   control={form.control}
                   name="studentId"
-                  render={({ field }) => (<FormItem><FormMessage className="mt-2" /></FormItem>)}
+                  render={() => (<FormItem><FormMessage className="mt-2" /></FormItem>)}
                 />
               </div>
             )}
@@ -218,10 +228,10 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
                       <CoinsIcon className="mr-2 h-6 w-6" /> {selectedStudent.narcisoCoins}
                       <span className="text-lg ml-1">Moedas</span>
                     </p>
-                    <p className="text-sm text-foreground flex items-center">
-                      <MaterialIcon className="mr-1 h-4 w-4 text-muted-foreground" />
-                      {MATERIAL_LABELS[materialType]}: {selectedStudent.contributions[materialType] || 0}
-                    </p>
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1 flex items-center">
+                      <MaterialIcon className="mr-1 h-3 w-3" />
+                      Saldo pendente de {MATERIAL_LABELS[materialType].toLowerCase()}: {selectedStudent.pendingContributions[materialType] || 0}
                   </div>
                 </div>
 
@@ -229,7 +239,7 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
                     <h3 className="text-lg font-medium">Adicionar {MATERIAL_LABELS[materialType]}:</h3>
                     <FormField
                       control={form.control}
-                      name={materialType}
+                      name={materialType} // Name matches the dynamic material type
                       render={({ field }) => (
                           <FormItem>
                           <FormLabel className="flex items-center sr-only">

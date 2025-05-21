@@ -15,18 +15,23 @@ export const MATERIAL_LABELS: Record<MaterialType, string> = {
   [MATERIAL_TYPES.OIL]: 'Óleo (unidades)',
 };
 
-// Updated conversion rates: coins earned per unit of material
-export const CONVERSION_RATES: Record<MaterialType, number> = {
-  [MATERIAL_TYPES.LIDS]: 1 / 20, // 0.05 moedas por tampa
-  [MATERIAL_TYPES.CANS]: 1 / 30, // 1/30 moedas por lata
-  [MATERIAL_TYPES.OIL]: 1 / 2,   // 0.5 moedas por unidade de óleo
+// Define quantos itens de cada material são necessários para 1 Moeda Narciso
+export const MATERIAL_UNITS_PER_COIN: Record<MaterialType, number> = {
+  [MATERIAL_TYPES.LIDS]: 20,
+  [MATERIAL_TYPES.CANS]: 30,
+  [MATERIAL_TYPES.OIL]: 2,
 };
 
 export interface Student {
   id: string;
   name: string;
   className: string;
-  contributions: {
+  contributions: { // Total histórico de contribuições
+    [MATERIAL_TYPES.LIDS]: number;
+    [MATERIAL_TYPES.CANS]: number;
+    [MATERIAL_TYPES.OIL]: number;
+  };
+  pendingContributions: { // Saldo pendente de itens antes de formar uma moeda
     [MATERIAL_TYPES.LIDS]: number;
     [MATERIAL_TYPES.CANS]: number;
     [MATERIAL_TYPES.OIL]: number;
@@ -48,7 +53,9 @@ export const MOCK_CLASSES: Class[] = [
   { id: '6', name: '4º e 5º Anos' },
 ];
 
-export const MOCK_STUDENTS_INITIAL: Omit<Student, 'narcisoCoins' | 'id'>[] = [
+// MOCK_STUDENTS_INITIAL agora representa apenas os dados base,
+// narcisoCoins e pendingContributions serão calculados em generateInitialStudents
+export const MOCK_STUDENTS_INITIAL_DATA: Omit<Student, 'narcisoCoins' | 'id' | 'pendingContributions'>[] = [
   { name: 'Ana Beatriz Costa', className: 'Pré Manhã', contributions: { tampas: 25, latas: 5, oleo: 2 } },
   { name: 'Bruno Alves Dias', className: 'Pré Manhã', contributions: { tampas: 15, latas: 3, oleo: 1 } },
   { name: 'Carla Moreira Lima', className: 'Pré Tarde', contributions: { tampas: 30, latas: 6, oleo: 0 } },
@@ -61,19 +68,34 @@ export const MOCK_STUDENTS_INITIAL: Omit<Student, 'narcisoCoins' | 'id'>[] = [
   { name: 'Lucas Azevedo Sousa', className: '4º e 5º Anos', contributions: { tampas: 18, latas: 3, oleo: 1 } },
 ];
 
-export const calculateStudentCoins = (student: Omit<Student, 'narcisoCoins' | 'id' | 'className' | 'name'>): number => {
-  const coinsFromLids = (student.contributions[MATERIAL_TYPES.LIDS] || 0) * CONVERSION_RATES[MATERIAL_TYPES.LIDS];
-  const coinsFromCans = (student.contributions[MATERIAL_TYPES.CANS] || 0) * CONVERSION_RATES[MATERIAL_TYPES.CANS];
-  const coinsFromOil = (student.contributions[MATERIAL_TYPES.OIL] || 0) * CONVERSION_RATES[MATERIAL_TYPES.OIL];
-  // Summing up and ensuring a fixed number of decimal places, e.g., 2, if needed.
-  // For now, direct sum. Could use parseFloat().toFixed(2) if precise decimals are critical for display.
-  return coinsFromLids + coinsFromCans + coinsFromOil;
-};
-
 export const generateInitialStudents = (): Student[] => {
-  return MOCK_STUDENTS_INITIAL.map((stud, index) => {
+  return MOCK_STUDENTS_INITIAL_DATA.map((studData, index) => {
     const id = `s${index + 1}`;
-    const narcisoCoins = calculateStudentCoins(stud);
-    return { ...stud, id, narcisoCoins };
+    let narcisoCoins = 0;
+    const pendingContributions: Student['pendingContributions'] = {
+      [MATERIAL_TYPES.LIDS]: 0,
+      [MATERIAL_TYPES.CANS]: 0,
+      [MATERIAL_TYPES.OIL]: 0,
+    };
+
+    for (const materialKey in MATERIAL_TYPES) {
+      const material = MATERIAL_TYPES[materialKey as MaterialKey];
+      const totalAmount = studData.contributions[material] || 0;
+      const unitsPerCoin = MATERIAL_UNITS_PER_COIN[material];
+      
+      if (unitsPerCoin > 0) { // Avoid division by zero if a unitPerCoin is accidentally 0
+        narcisoCoins += Math.floor(totalAmount / unitsPerCoin);
+        pendingContributions[material] = totalAmount % unitsPerCoin;
+      } else {
+        pendingContributions[material] = totalAmount; // If no conversion, all are pending
+      }
+    }
+
+    return {
+      ...studData, // Includes historical contributions
+      id,
+      narcisoCoins,
+      pendingContributions,
+    };
   });
 };
