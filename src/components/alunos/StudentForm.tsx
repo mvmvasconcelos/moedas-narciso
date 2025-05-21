@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -20,13 +21,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { Student, Class } from "@/lib/constants";
+import type { Student, Class, GenderType } from "@/lib/constants";
+import { GENDER_LABELS } from "@/lib/constants";
 import { useAuth } from "@/hooks/use-auth";
 import { useEffect } from "react";
 
 const studentFormSchema = z.object({
   name: z.string().min(2, { message: "Nome deve ter pelo menos 2 caracteres." }),
   className: z.string({ required_error: "Por favor, selecione uma turma." }),
+  gender: z.enum(['masculino', 'feminino', 'outro', 'prefiroNaoInformar'], {
+    required_error: "Por favor, selecione o gênero.",
+  }),
 });
 
 type StudentFormValues = z.infer<typeof studentFormSchema>;
@@ -39,11 +44,14 @@ interface StudentFormProps {
 export function StudentForm({ student, onSuccess }: StudentFormProps) {
   const { classes, addStudent, updateStudent } = useAuth();
 
+  const defaultGender = student?.gender || (Object.keys(GENDER_LABELS)[3] as GenderType); // Default to 'prefiroNaoInformar'
+
   const form = useForm<StudentFormValues>({
     resolver: zodResolver(studentFormSchema),
     defaultValues: {
       name: student?.name || "",
       className: student?.className || "",
+      gender: student?.gender || defaultGender,
     },
   });
 
@@ -52,11 +60,12 @@ export function StudentForm({ student, onSuccess }: StudentFormProps) {
       form.reset({
         name: student.name,
         className: student.className,
+        gender: student.gender,
       });
     } else {
-      form.reset({ name: "", className: "" });
+      form.reset({ name: "", className: "", gender: defaultGender });
     }
-  }, [student, form]);
+  }, [student, form, defaultGender]);
 
   function onSubmit(data: StudentFormValues) {
     if (student) {
@@ -65,7 +74,7 @@ export function StudentForm({ student, onSuccess }: StudentFormProps) {
       addStudent(data);
     }
     onSuccess();
-    form.reset({ name: "", className: "" }); // Reset after successful submission
+    form.reset({ name: "", className: "", gender: defaultGender });
   }
 
   return (
@@ -100,6 +109,30 @@ export function StudentForm({ student, onSuccess }: StudentFormProps) {
                   {classes.map((cls) => (
                     <SelectItem key={cls.id} value={cls.name}>
                       {cls.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="gender"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Gênero</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o gênero" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {(Object.keys(GENDER_LABELS) as GenderType[]).map((genderKey) => (
+                    <SelectItem key={genderKey} value={genderKey}>
+                      {GENDER_LABELS[genderKey]}
                     </SelectItem>
                   ))}
                 </SelectContent>

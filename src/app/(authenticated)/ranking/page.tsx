@@ -1,14 +1,14 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react"; // Adicionado useEffect
 import { useAuth } from "@/hooks/use-auth";
-import type { Student, Class, MaterialType } from "@/lib/constants";
+import type { Student, Class, MaterialType, GenderType } from "@/lib/constants";
 import { MATERIAL_TYPES, MATERIAL_LABELS } from "@/lib/constants";
 import { StudentRankCard } from "@/components/ranking/StudentRankCard";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { BarChart3Icon, CoinsIcon, PackageIcon, ArchiveIcon, DropletIcon, UsersIcon, TrophyIcon, AwardIcon, FilterIcon } from "lucide-react";
+import { BarChart3Icon, CoinsIcon, PackageIcon, ArchiveIcon, DropletIcon, UsersIcon, TrophyIcon, AwardIcon, FilterIcon, LucideIcon } from "lucide-react"; // type LucideIcon importado
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
@@ -16,15 +16,20 @@ type SortCriterion = MaterialType | 'narcisoCoins';
 
 export default function RankingPage() {
   const { students, classes, teacherName } = useAuth();
-  const [isLoading, setIsLoading] = useState(true); // Placeholder for potential async operations
+  const [isLoading, setIsLoading] = useState(true);
 
   const [selectedClass, setSelectedClass] = useState<Class | null>(null);
   const [classSortCriterion, setClassSortCriterion] = useState<SortCriterion>('narcisoCoins');
 
-  // Simulate loading
-  useState(() => {
-    if (teacherName !== undefined) setIsLoading(false);
-  });
+  useEffect(() => {
+    if (teacherName !== undefined && students.length > 0) {
+        setIsLoading(false);
+    } else if (teacherName !== undefined && students.length === 0){
+        // Se não há alunos, mas o professor está carregado, paramos de carregar
+        setIsLoading(false);
+    }
+  }, [teacherName, students]);
+
 
   const sortedByCoins = useMemo(() => {
     return [...students].sort((a, b) => b.narcisoCoins - a.narcisoCoins);
@@ -42,6 +47,27 @@ export default function RankingPage() {
   const topCansContributor = useMemo(() => findTopContributor(MATERIAL_TYPES.CANS), [students]);
   const topOilContributor = useMemo(() => findTopContributor(MATERIAL_TYPES.OIL), [students]);
 
+  const getMaterialTitle = (material: MaterialType, gender: GenderType | undefined): string => {
+    const defaultTitles: Record<MaterialType, string> = {
+        [MATERIAL_TYPES.LIDS]: "Destaque em Tampas",
+        [MATERIAL_TYPES.CANS]: "Destaque em Latas",
+        [MATERIAL_TYPES.OIL]: "Destaque em Óleo",
+    };
+    if (!gender) return defaultTitles[material];
+
+    switch (material) {
+        case MATERIAL_TYPES.LIDS:
+            return gender === 'masculino' ? "Rei das Tampas" : gender === 'feminino' ? "Rainha das Tampas" : defaultTitles[material];
+        case MATERIAL_TYPES.CANS:
+            return gender === 'masculino' ? "Mestre das Latas" : gender === 'feminino' ? "Mestra das Latas" : defaultTitles[material];
+        case MATERIAL_TYPES.OIL:
+            return gender === 'masculino' ? "Barão do Óleo" : gender === 'feminino' ? "Baronesa do Óleo" : defaultTitles[material];
+        default:
+            return defaultTitles[material];
+    }
+  };
+
+
   const rankedStudentsInClass = useMemo(() => {
     if (!selectedClass) return [];
     const classStudents = students.filter(s => s.className === selectedClass.name);
@@ -55,7 +81,7 @@ export default function RankingPage() {
 
   const handleClassSelect = (cls: Class) => {
     setSelectedClass(prev => (prev?.id === cls.id ? null : cls));
-    setClassSortCriterion('narcisoCoins'); // Reset criterion on new class selection
+    setClassSortCriterion('narcisoCoins'); 
   };
   
   const getCriterionValue = (student: Student, criterion: SortCriterion) => {
@@ -73,7 +99,7 @@ export default function RankingPage() {
     if (criterion === MATERIAL_TYPES.LIDS) return PackageIcon;
     if (criterion === MATERIAL_TYPES.CANS) return ArchiveIcon;
     if (criterion === MATERIAL_TYPES.OIL) return DropletIcon;
-    return FilterIcon; // Fallback
+    return FilterIcon; 
   };
 
 
@@ -99,7 +125,6 @@ export default function RankingPage() {
         </div>
       </div>
 
-      {/* Top Coins Ranking */}
       <section className="space-y-6">
         <h2 className="text-2xl font-semibold tracking-tight text-foreground flex items-center">
           <TrophyIcon className="mr-2 h-6 w-6 text-amber-500" />
@@ -108,7 +133,7 @@ export default function RankingPage() {
         {topCoinStudent ? (
           <StudentRankCard
             student={topCoinStudent}
-            title="#1 - Campeão de Moedas"
+            title="#1 - Campeão(ã) de Moedas"
             value={`${topCoinStudent.narcisoCoins} Moedas`}
             icon={CoinsIcon}
             variant="prominent"
@@ -118,7 +143,7 @@ export default function RankingPage() {
         ) : (
            <StudentRankCard
             student={null}
-            title="#1 - Campeão de Moedas"
+            title="#1 - Campeão(ã) de Moedas"
             value={"N/A"}
             icon={CoinsIcon}
             variant="prominent"
@@ -145,7 +170,6 @@ export default function RankingPage() {
 
       <Separator className="my-8" />
 
-      {/* Top Material Contributors */}
       <section className="space-y-6">
         <h2 className="text-2xl font-semibold tracking-tight text-foreground flex items-center">
           <AwardIcon className="mr-2 h-6 w-6 text-sky-500" />
@@ -154,7 +178,7 @@ export default function RankingPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <StudentRankCard
             student={topLidsContributor}
-            title={`Rei/Rainha das Tampas`}
+            title={getMaterialTitle(MATERIAL_TYPES.LIDS, topLidsContributor?.gender)}
             value={`${topLidsContributor?.contributions[MATERIAL_TYPES.LIDS] || 0} ${MATERIAL_LABELS[MATERIAL_TYPES.LIDS].replace(" (unidades)","")}`}
             icon={PackageIcon}
             variant="default"
@@ -163,7 +187,7 @@ export default function RankingPage() {
           />
           <StudentRankCard
             student={topCansContributor}
-            title={`Mestre das Latas`}
+            title={getMaterialTitle(MATERIAL_TYPES.CANS, topCansContributor?.gender)}
             value={`${topCansContributor?.contributions[MATERIAL_TYPES.CANS] || 0} ${MATERIAL_LABELS[MATERIAL_TYPES.CANS].replace(" (unidades)","")}`}
             icon={ArchiveIcon}
             variant="default"
@@ -172,7 +196,7 @@ export default function RankingPage() {
           />
           <StudentRankCard
             student={topOilContributor}
-            title={`Barão/Baronesa do Óleo`}
+            title={getMaterialTitle(MATERIAL_TYPES.OIL, topOilContributor?.gender)}
             value={`${topOilContributor?.contributions[MATERIAL_TYPES.OIL] || 0} ${MATERIAL_LABELS[MATERIAL_TYPES.OIL].replace(" (unidades)","")}`}
             icon={DropletIcon}
             variant="default"
@@ -184,14 +208,12 @@ export default function RankingPage() {
 
       <Separator className="my-8" />
 
-      {/* Class-Based Ranking */}
       <section className="space-y-6">
         <h2 className="text-2xl font-semibold tracking-tight text-foreground flex items-center">
           <UsersIcon className="mr-2 h-6 w-6 text-teal-500" />
           Ranking por Turma
         </h2>
         
-        {/* Class Selection Buttons */}
         <Card>
           <CardHeader>
             <CardTitle>Selecione uma Turma</CardTitle>
@@ -220,7 +242,7 @@ export default function RankingPage() {
                 {selectedClass && (
                     <Button
                         variant="destructive"
-                        onClick={() => handleClassSelect(selectedClass)}
+                        onClick={() => handleClassSelect(selectedClass)} // Permite deselecionar
                         className="w-full max-w-xs sm:max-w-sm h-auto py-3 px-4 flex flex-col items-center whitespace-normal text-center leading-snug"
                     >
                         <UsersIcon className="h-5 w-5 mb-1 flex-shrink-0" />
@@ -229,8 +251,6 @@ export default function RankingPage() {
                 )}
             </div>
 
-
-            {/* Filter Buttons - Appear when a class is selected */}
             {selectedClass && (
               <div className="mt-4 pt-4 border-t">
                 <h3 className="text-sm font-medium text-muted-foreground mb-2 text-center">Filtrar Ranking da Turma por:</h3>
@@ -256,7 +276,6 @@ export default function RankingPage() {
           </CardContent>
         </Card>
 
-        {/* Ranked List for Selected Class */}
         {selectedClass && (
           <div className="mt-6 space-y-3">
             {rankedStudentsInClass.length > 0 ? (

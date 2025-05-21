@@ -4,20 +4,20 @@
 import type { ReactNode } from 'react';
 import React, { createContext, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import type { Student, Class, MaterialType } from '@/lib/constants';
+import type { Student, Class, MaterialType, GenderType } from '@/lib/constants'; // Adicionado GenderType
 import { MOCK_CLASSES, generateInitialStudents, MATERIAL_TYPES, MATERIAL_UNITS_PER_COIN } from '@/lib/constants';
 
 console.log("DEBUG: src/contexts/AuthContext.tsx - FILE PARSED");
 
 interface AuthContextType {
   isAuthenticated: boolean;
-  teacherName: string | null | undefined; // Allow undefined for loading state
+  teacherName: string | null | undefined;
   students: Student[];
   classes: Class[];
   login: (name: string) => void;
   logout: () => void;
   addStudent: (studentData: Omit<Student, 'id' | 'narcisoCoins' | 'contributions' | 'pendingContributions'>) => void;
-  updateStudent: (studentData: Partial<Omit<Student, 'id' | 'narcisoCoins' | 'contributions' | 'pendingContributions'>> & { id: string }) => void;
+  updateStudent: (studentData: Partial<Omit<Student, 'id' | 'narcisoCoins' | 'contributions' | 'pendingContributions'>> & { id: string; gender?: GenderType }) => void;
   deleteStudent: (studentId: string) => void;
   addContribution: (studentId: string, material: MaterialType, quantity: number) => void;
   getOverallStats: () => { totalLids: number; totalCans: number; totalOil: number; totalCoins: number };
@@ -45,9 +45,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setIsAuthenticated(authData.isAuthenticated || false);
         setTeacherName(authData.teacherName || null);
       } else {
-        console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: No auth data in localStorage, setting to null.");
         setIsAuthenticated(false);
-        setTeacherName(null);
+        setTeacherName(null); 
       }
     } catch (error) {
       console.error("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: Failed to parse auth data from localStorage", error);
@@ -65,6 +64,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           id: student.id || `s_fallback_${Date.now()}_${Math.random()}`,
           name: student.name || "Nome Desconhecido",
           className: student.className || "Turma Desconhecida",
+          gender: student.gender || 'prefiroNaoInformar', // Default gender
           contributions: student.contributions || {
             [MATERIAL_TYPES.LIDS]: 0,
             [MATERIAL_TYPES.CANS]: 0,
@@ -89,6 +89,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setStudents(initialStudents);
       localStorage.setItem(STUDENTS_STORAGE_KEY, JSON.stringify(initialStudents));
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const updateLocalStorageStudents = (updatedStudents: Student[]) => {
@@ -114,7 +115,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const addStudent = useCallback((studentData: Omit<Student, 'id' | 'narcisoCoins' | 'contributions' | 'pendingContributions'>) => {
     setStudents(prevStudents => {
       const newStudent: Student = {
-        ...studentData,
+        ...studentData, // name, className, gender são passados aqui
         id: `s${Date.now()}`,
         contributions: {
           [MATERIAL_TYPES.LIDS]: 0,
@@ -134,10 +135,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
   }, []);
 
-  const updateStudent = useCallback((studentData: Partial<Omit<Student, 'id' | 'narcisoCoins' | 'contributions' | 'pendingContributions'>> & { id: string }) => {
+  const updateStudent = useCallback((studentData: Partial<Omit<Student, 'id' | 'narcisoCoins' | 'contributions' | 'pendingContributions'>> & { id: string; gender?: GenderType }) => {
     setStudents(prevStudents => {
       const updatedStudents = prevStudents.map(s =>
-        s.id === studentData.id ? { ...s, name: studentData.name || s.name, className: studentData.className || s.className } : s
+        s.id === studentData.id ? { 
+            ...s, 
+            name: studentData.name || s.name, 
+            className: studentData.className || s.className,
+            gender: studentData.gender || s.gender // Atualiza gênero
+        } : s
       );
       updateLocalStorageStudents(updatedStudents);
       return updatedStudents;
@@ -158,8 +164,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (studentIndex === -1) return prevStudents;
 
       const studentBefore = { ...prevStudents[studentIndex] };
-      // Deep clone nested objects to avoid mutating the original studentBefore state directly
-      // when calculating "after" state for logging, as studentAfter will be the new state.
       const studentBeforeForLog = JSON.parse(JSON.stringify(studentBefore));
 
 
@@ -190,7 +194,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const updatedStudents = [...prevStudents];
       updatedStudents[studentIndex] = studentAfter;
 
-      // Log the detailed transaction
       const transactionLog = {
         data: new Date().toISOString(),
         alunoId: studentId,
@@ -209,6 +212,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       updateLocalStorageStudents(updatedStudents);
       return updatedStudents;
     });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const getOverallStats = useCallback(() => {
@@ -226,10 +230,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return { totalLids, totalCans, totalOil, totalCoins };
   }, [students]);
 
+  console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: context value", {isAuthenticated, teacherName, studentsCount: students.length });
+
   return (
     <AuthContext.Provider value={{ isAuthenticated, teacherName, students, classes, login, logout, addStudent, updateStudent, deleteStudent, addContribution, getOverallStats }}>
       {children}
     </AuthContext.Provider>
   );
 };
-
