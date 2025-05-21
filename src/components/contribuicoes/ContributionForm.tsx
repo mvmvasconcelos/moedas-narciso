@@ -113,6 +113,7 @@ export function ContributionForm() {
             [MATERIAL_TYPES.CANS]: 0,
             [MATERIAL_TYPES.OIL]: 0,
           });
+          // Re-fetch student data to update displayed balance
           setSelectedStudent(students.find(s => s.id === data.studentId) || null);
 
       } else {
@@ -145,10 +146,10 @@ export function ContributionForm() {
                     type="button"
                     variant={selectedClass === cls.name ? "default" : "outline"}
                     onClick={() => handleClassSelect(cls.name)}
-                    className="w-full justify-start text-left"
+                    className="w-full justify-start text-left whitespace-normal h-auto py-2 px-3"
                   >
-                    <UsersIcon className="mr-2 h-4 w-4" />
-                    {cls.name}
+                    <UsersIcon className="mr-2 h-4 w-4 flex-shrink-0" />
+                    <span className="leading-snug">{cls.name}</span>
                   </Button>
                 ))}
               </div>
@@ -167,7 +168,7 @@ export function ContributionForm() {
                   <FormLabel>Aluno</FormLabel>
                   <Select 
                     onValueChange={field.onChange} 
-                    value={field.value} // Use value prop for controlled component
+                    value={field.value} 
                     disabled={!selectedClass}
                   >
                     <FormControl>
@@ -240,7 +241,7 @@ export function ContributionForm() {
                     )}
                     />
                 </div>
-                 {form.formState.errors.tampas && (
+                 {form.formState.errors.tampas && ( // Check for the specific error path defined in refine
                     <p className="text-sm font-medium text-destructive">{form.formState.errors.tampas.message}</p>
                 )}
             </div>
@@ -256,3 +257,4 @@ export function ContributionForm() {
     </Card>
   );
 }
+
