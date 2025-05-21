@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboardIcon, UsersIcon, LeafIcon, LogOutIcon } from "lucide-react"; // Removed ClipboardPlusIcon
+import { LayoutDashboardIcon, UsersIcon, LeafIcon, LogOutIcon, BarChart3Icon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   SidebarMenu,
@@ -19,6 +19,7 @@ import { useAuth } from "@/hooks/use-auth";
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboardIcon },
   { href: "/alunos", label: "Gerenciar Alunos", icon: UsersIcon },
+  { href: "/ranking", label: "Ranking", icon: BarChart3Icon },
 ];
 
 export function SidebarNav() {
@@ -39,8 +40,6 @@ export function SidebarNav() {
         <SidebarMenu>
           {navItems.map((item) => {
             const Icon = item.icon;
-            // Adjust isActive for /dashboard route as it's the new root for authenticated users
-            // Dashboard is also active if we are on /contribuicoes (which is accessed FROM dashboard)
             const isActive =
               (item.href === "/dashboard" && (pathname === "/dashboard" || pathname.startsWith("/contribuicoes"))) ||
               (item.href !== "/dashboard" && pathname.startsWith(item.href));
@@ -74,7 +73,7 @@ export function SidebarNav() {
              Olá, {teacherName}
            </div>
         )}
-        <SidebarMenuItem className="list-none"> {/* Removed list style dot */}
+        <SidebarMenuItem className="list-none">
           <SidebarMenuButton
             onClick={logout}
             tooltip={{children: "Sair", side: 'right', align: 'center' }}
@@ -91,3 +90,4 @@ export function SidebarNav() {
     </>
   );
 }
+
