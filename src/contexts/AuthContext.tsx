@@ -47,7 +47,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } else {
         console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: No auth data in localStorage, setting to null.");
         setIsAuthenticated(false);
-        setTeacherName(null); 
+        setTeacherName(null);
       }
     } catch (error) {
       console.error("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: Failed to parse auth data from localStorage", error);
@@ -62,19 +62,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         let parsedStudents: Student[] = JSON.parse(storedStudents);
         parsedStudents = parsedStudents.map(student => ({
           ...student,
+          id: student.id || `s_fallback_${Date.now()}_${Math.random()}`,
           name: student.name || "Nome Desconhecido",
           className: student.className || "Turma Desconhecida",
-          contributions: student.contributions || { 
-            [MATERIAL_TYPES.LIDS]: 0, 
-            [MATERIAL_TYPES.CANS]: 0, 
-            [MATERIAL_TYPES.OIL]: 0 
+          contributions: student.contributions || {
+            [MATERIAL_TYPES.LIDS]: 0,
+            [MATERIAL_TYPES.CANS]: 0,
+            [MATERIAL_TYPES.OIL]: 0
           },
-          pendingContributions: student.pendingContributions || { 
-            [MATERIAL_TYPES.LIDS]: 0, 
-            [MATERIAL_TYPES.CANS]: 0, 
-            [MATERIAL_TYPES.OIL]: 0 
+          pendingContributions: student.pendingContributions || {
+            [MATERIAL_TYPES.LIDS]: 0,
+            [MATERIAL_TYPES.CANS]: 0,
+            [MATERIAL_TYPES.OIL]: 0
           },
-          narcisoCoins: student.narcisoCoins || 0,
+          narcisoCoins: typeof student.narcisoCoins === 'number' ? student.narcisoCoins : 0,
         }));
         setStudents(parsedStudents);
       } else {
@@ -115,15 +116,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const newStudent: Student = {
         ...studentData,
         id: `s${Date.now()}`,
-        contributions: { 
-          [MATERIAL_TYPES.LIDS]: 0, 
-          [MATERIAL_TYPES.CANS]: 0, 
-          [MATERIAL_TYPES.OIL]: 0 
+        contributions: {
+          [MATERIAL_TYPES.LIDS]: 0,
+          [MATERIAL_TYPES.CANS]: 0,
+          [MATERIAL_TYPES.OIL]: 0
         },
-        pendingContributions: { 
-          [MATERIAL_TYPES.LIDS]: 0, 
-          [MATERIAL_TYPES.CANS]: 0, 
-          [MATERIAL_TYPES.OIL]: 0 
+        pendingContributions: {
+          [MATERIAL_TYPES.LIDS]: 0,
+          [MATERIAL_TYPES.CANS]: 0,
+          [MATERIAL_TYPES.OIL]: 0
         },
         narcisoCoins: 0,
       };
@@ -151,35 +152,60 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
   }, []);
 
-  const addContribution = useCallback((studentId: string, material: MaterialType, quantity: number) => {
+  const addContribution = useCallback((studentId: string, material: MaterialType, quantityAdded: number) => {
     setStudents(prevStudents => {
-      const updatedStudents = prevStudents.map(s => {
-        if (s.id === studentId) {
-          const unitsPerCoin = MATERIAL_UNITS_PER_COIN[material];
-          if (!unitsPerCoin || unitsPerCoin <= 0) return s; 
+      const studentIndex = prevStudents.findIndex(s => s.id === studentId);
+      if (studentIndex === -1) return prevStudents;
 
-          let currentMaterialPending = (s.pendingContributions?.[material]) || 0;
-          
-          currentMaterialPending += quantity; 
-          
-          const newCoinsEarned = Math.floor(currentMaterialPending / unitsPerCoin);
-          const updatedMaterialPending = currentMaterialPending % unitsPerCoin;
-          
-          return {
-            ...s,
-            contributions: { 
-              ...(s.contributions || {}), // Ensure contributions object exists
-              [material]: ((s.contributions?.[material]) || 0) + quantity,
-            },
-            pendingContributions: { 
-              ...(s.pendingContributions || {}), // Ensure pendingContributions object exists
-              [material]: updatedMaterialPending,
-            },
-            narcisoCoins: (s.narcisoCoins || 0) + newCoinsEarned, 
-          };
-        }
-        return s;
-      });
+      const studentBefore = { ...prevStudents[studentIndex] };
+      // Deep clone nested objects to avoid mutating the original studentBefore state directly
+      // when calculating "after" state for logging, as studentAfter will be the new state.
+      const studentBeforeForLog = JSON.parse(JSON.stringify(studentBefore));
+
+
+      const unitsPerCoin = MATERIAL_UNITS_PER_COIN[material];
+      if (!unitsPerCoin || unitsPerCoin <= 0) return prevStudents;
+
+      const materialPendingBefore = studentBefore.pendingContributions?.[material] || 0;
+      const totalHistoricalContributionsBefore = studentBefore.contributions?.[material] || 0;
+      const totalCoinsBefore = studentBefore.narcisoCoins || 0;
+
+      const currentTotalMaterialPending = materialPendingBefore + quantityAdded;
+      const newCoinsEarnedThisTransaction = Math.floor(currentTotalMaterialPending / unitsPerCoin);
+      const materialPendingAfter = currentTotalMaterialPending % unitsPerCoin;
+
+      const studentAfter: Student = {
+        ...studentBefore,
+        contributions: {
+          ...(studentBefore.contributions || {}),
+          [material]: totalHistoricalContributionsBefore + quantityAdded,
+        },
+        pendingContributions: {
+          ...(studentBefore.pendingContributions || {}),
+          [material]: materialPendingAfter,
+        },
+        narcisoCoins: totalCoinsBefore + newCoinsEarnedThisTransaction,
+      };
+
+      const updatedStudents = [...prevStudents];
+      updatedStudents[studentIndex] = studentAfter;
+
+      // Log the detailed transaction
+      const transactionLog = {
+        data: new Date().toISOString(),
+        alunoId: studentId,
+        alunoNome: studentAfter.name,
+        material: material,
+        quantidadeAdicionada: quantityAdded,
+        taxaConversaoAtual: `${unitsPerCoin} unidades por moeda`,
+        saldoMaterialPendenteAnterior: materialPendingBefore,
+        saldoMaterialPendenteAtual: materialPendingAfter,
+        moedasRecebidasNestaTroca: newCoinsEarnedThisTransaction,
+        totalMoedasAlunoAposTroca: studentAfter.narcisoCoins,
+        totalHistoricoMaterialAposTroca: studentAfter.contributions[material],
+      };
+      console.log("LOG DE CONTRIBUIÇÃO:", transactionLog);
+
       updateLocalStorageStudents(updatedStudents);
       return updatedStudents;
     });
@@ -206,3 +232,4 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     </AuthContext.Provider>
   );
 };
+
