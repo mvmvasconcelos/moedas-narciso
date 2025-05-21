@@ -17,9 +17,8 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 
 const navItems = [
-  { href: "/dashboard", label: "Painel de Estatísticas", icon: LayoutDashboardIcon },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboardIcon },
   { href: "/alunos", label: "Gerenciar Alunos", icon: UsersIcon },
-  // { href: "/contribuicoes", label: "Registrar Contribuições", icon: ClipboardPlusIcon }, // Removed this item
 ];
 
 export function SidebarNav() {

@@ -36,7 +36,7 @@ export default function DashboardPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center">
             <LayoutDashboardIcon className="mr-3 h-8 w-8 text-primary" />
-            Painel de Estatísticas
+            Dashboard
           </h1>
           <p className="text-muted-foreground">
             Resumo das contribuições e Moedas Narciso distribuídas.
@@ -70,7 +70,7 @@ export default function DashboardPage() {
           value={stats.totalCoins}
           icon={CoinsIcon}
           isLoading={isLoading}
-          className="w-full" 
+          className="w-full"
         />
       </div>
 
@@ -81,14 +81,14 @@ export default function DashboardPage() {
         </h2>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           {materialButtons.map(({ material, label, icon: MaterialIcon }) => (
-            <Button 
-              key={material} 
-              variant="outline" 
+            <Button
+              key={material}
+              variant="outline"
               className="flex-1 sm:flex-initial h-32 p-0" // Increased height, removed size prop, p-0
               asChild
             >
-              <Link 
-                href={`/contribuicoes?material=${material}`} 
+              <Link
+                href={`/contribuicoes?material=${material}`}
                 className="flex flex-col items-center justify-center h-full w-full text-center p-2" // Flex column, center, padding
               >
                 <div className="flex items-center mb-2"> {/* Group icons */}
