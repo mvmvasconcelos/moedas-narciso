@@ -8,13 +8,12 @@ import { getFirestore, type Firestore } from "firebase/firestore";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyBKNvT8HfGUAGpsT2PkK9L0vy7j7-uwat4",
-  authDomain: "moedas-narciso-app.firebaseapp.com",
-  projectId: "moedas-narciso-app",
-  storageBucket: "moedas-narciso-app.firebasestorage.app",
-  messagingSenderId: "680084547843",
-  appId: "1:680084547843:web:3e94f925a347f203502136",
-  // measurementId: "G-B80V27ZJ5Y" // Removido para evitar erros de gtag não relacionados
+  apiKey: "AIzaSyDPWQZcvPg4eOMGBGXhljnNSccD-O8kE6I",
+  authDomain: "moedas-narciso.firebaseapp.com",
+  projectId: "moedas-narciso",
+  storageBucket: "moedas-narciso.firebasestorage.app",
+  messagingSenderId: "725003401777",
+  appId: "1:725003401777:web:1675e0970cb4d5295ab310"
 };
 
 // Initialize Firebase

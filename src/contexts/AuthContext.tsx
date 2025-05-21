@@ -15,8 +15,6 @@ import {
 } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
 
-console.log("DEBUG: src/contexts/AuthContext.tsx - FILE PARSED");
-
 interface AuthContextType {
   currentUser: FirebaseUser | null | undefined; 
   isAuthenticated: boolean; 
@@ -37,7 +35,6 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 const STUDENTS_STORAGE_KEY = 'moedasNarcisoStudents';
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider rendering");
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null | undefined>(undefined);
   const [students, setStudents] = useState<Student[]>([]);
   const classes = MOCK_CLASSES;
@@ -48,12 +45,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const teacherName = currentUser?.email?.split('@')[0] || currentUser?.displayName || null;
 
   useEffect(() => {
-    console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: useEffect for onAuthStateChanged");
-    
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
-        console.log("DEBUG: src/contexts/AuthContext.tsx - onAuthStateChanged: User is signed in", user);
         setCurrentUser(user);
+ router.push('/dashboard');
       } else {
         console.log("DEBUG: src/contexts/AuthContext.tsx - onAuthStateChanged: User is signed out");
         setCurrentUser(null);
@@ -89,7 +84,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         localStorage.setItem(STUDENTS_STORAGE_KEY, JSON.stringify(initialStudents));
       }
     } catch (error) {
-      console.error("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: Failed to parse/validate students data from localStorage, re-initializing.", error);
       const initialStudents = generateInitialStudents();
       setStudents(initialStudents);
       localStorage.setItem(STUDENTS_STORAGE_KEY, JSON.stringify(initialStudents));
@@ -103,13 +97,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const login = async (email: string, pass: string) => {
-    console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: Firebase login attempt for", email);
     try {
       await signInWithEmailAndPassword(auth, email, pass);
       // onAuthStateChanged will handle setting currentUser.
       // Navigation to /dashboard will be handled by HomePage or AuthGuard based on new auth state.
       // Forcing a navigation here can sometimes conflict if onAuthStateChanged is also triggering navigation.
-      // router.push('/dashboard'); 
     } catch (error: any) {
       console.error("DEBUG: src/contexts/AuthContext.tsx - Firebase login error", error.code, error.message);
       let errorMessage = "Falha no login. Verifique suas credenciais ou tente novamente mais tarde.";
@@ -130,14 +122,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = async () => {
-    console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: Firebase logout attempt");
     try {
       await signOut(auth);
       // onAuthStateChanged will set currentUser to null.
       // Navigation to /login will be handled by HomePage or AuthGuard.
       // router.push('/login'); 
-    } catch (error) {
-      console.error("DEBUG: src/contexts/AuthContext.tsx - Firebase logout error", error);
+ } catch (error) {
       toast({
         variant: "destructive",
         title: "Erro de Logout",

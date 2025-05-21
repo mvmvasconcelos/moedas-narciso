@@ -1,8 +1,13 @@
 import type {NextConfig} from 'next';
 
+// Load environment variables
+import dotenv from 'dotenv';
+dotenv.config();
+
 const nextConfig: NextConfig = {
   /* config options here */
   typescript: {
+
     ignoreBuildErrors: true,
   },
   eslint: {
@@ -18,6 +23,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  allowedDevOrigins: ['*.cluster-vpxjqdstfzgs6qeiaf7rdlsqrc.cloudworkstations.dev'],
 };
 
 export default nextConfig;
