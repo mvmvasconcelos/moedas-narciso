@@ -6,6 +6,7 @@ import React, { createContext, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Student, Class, MaterialType, GenderType } from '@/lib/constants'; // Adicionado GenderType
 import { MOCK_CLASSES, generateInitialStudents, MATERIAL_TYPES, MATERIAL_UNITS_PER_COIN } from '@/lib/constants';
+import { auth } from '@/lib/firebase'; // Import Firebase auth
 
 console.log("DEBUG: src/contexts/AuthContext.tsx - FILE PARSED");
 
@@ -14,8 +15,8 @@ interface AuthContextType {
   teacherName: string | null | undefined;
   students: Student[];
   classes: Class[];
-  login: (name: string) => void;
-  logout: () => void;
+  login: (name: string) => void; // This will change to use Firebase Auth
+  logout: () => void; // This will change to use Firebase Auth
   addStudent: (studentData: Omit<Student, 'id' | 'narcisoCoins' | 'contributions' | 'pendingContributions'>) => void;
   updateStudent: (studentData: Partial<Omit<Student, 'id' | 'narcisoCoins' | 'contributions' | 'pendingContributions'>> & { id: string; gender?: GenderType }) => void;
   deleteStudent: (studentId: string) => void;
@@ -31,22 +32,26 @@ const STUDENTS_STORAGE_KEY = 'moedasNarcisoStudents';
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider rendering");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [teacherName, setTeacherName] = useState<string | null | undefined>(undefined);
+  const [teacherName, setTeacherName] = useState<string | null | undefined>(undefined); // undefined initially, null if check done & not auth, string if auth
   const [students, setStudents] = useState<Student[]>([]);
   const classes = MOCK_CLASSES;
   const router = useRouter();
 
   useEffect(() => {
     console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: useEffect for localStorage");
+    console.log("Firebase Auth object:", auth); // Test Firebase auth object
+
     try {
       const storedAuth = localStorage.getItem(AUTH_STORAGE_KEY);
       if (storedAuth) {
         const authData = JSON.parse(storedAuth);
         setIsAuthenticated(authData.isAuthenticated || false);
         setTeacherName(authData.teacherName || null);
+        console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: Loaded auth from localStorage", authData);
       } else {
         setIsAuthenticated(false);
-        setTeacherName(null); 
+        setTeacherName(null);
+        console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: No auth data in localStorage");
       }
     } catch (error) {
       console.error("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: Failed to parse auth data from localStorage", error);
@@ -59,12 +64,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const storedStudents = localStorage.getItem(STUDENTS_STORAGE_KEY);
       if (storedStudents) {
         let parsedStudents: Student[] = JSON.parse(storedStudents);
+        // Validate and provide defaults for each student object
         parsedStudents = parsedStudents.map(student => ({
-          ...student,
-          id: student.id || `s_fallback_${Date.now()}_${Math.random()}`,
+          id: student.id || `s_fallback_${Date.now()}_${Math.random().toString(36).substring(7)}`,
           name: student.name || "Nome Desconhecido",
           className: student.className || "Turma Desconhecida",
-          gender: student.gender || 'prefiroNaoInformar', // Default gender
+          gender: student.gender || 'prefiroNaoInformar',
           contributions: student.contributions || {
             [MATERIAL_TYPES.LIDS]: 0,
             [MATERIAL_TYPES.CANS]: 0,
@@ -78,10 +83,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           narcisoCoins: typeof student.narcisoCoins === 'number' ? student.narcisoCoins : 0,
         }));
         setStudents(parsedStudents);
+        console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: Loaded students from localStorage");
       } else {
         const initialStudents = generateInitialStudents();
         setStudents(initialStudents);
         localStorage.setItem(STUDENTS_STORAGE_KEY, JSON.stringify(initialStudents));
+        console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: Initialized mock students and saved to localStorage");
       }
     } catch (error) {
       console.error("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: Failed to parse/validate students data from localStorage, re-initializing.", error);
@@ -96,6 +103,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem(STUDENTS_STORAGE_KEY, JSON.stringify(updatedStudents));
   };
 
+  // This login function will be replaced with Firebase Authentication
   const login = (name: string) => {
     console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: login called", name);
     setIsAuthenticated(true);
@@ -104,6 +112,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     router.push('/dashboard');
   };
 
+  // This logout function will be replaced with Firebase Authentication
   const logout = () => {
     console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: logout called");
     setIsAuthenticated(false);
@@ -115,7 +124,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const addStudent = useCallback((studentData: Omit<Student, 'id' | 'narcisoCoins' | 'contributions' | 'pendingContributions'>) => {
     setStudents(prevStudents => {
       const newStudent: Student = {
-        ...studentData, // name, className, gender são passados aqui
+        ...studentData,
         id: `s${Date.now()}`,
         contributions: {
           [MATERIAL_TYPES.LIDS]: 0,
@@ -138,11 +147,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const updateStudent = useCallback((studentData: Partial<Omit<Student, 'id' | 'narcisoCoins' | 'contributions' | 'pendingContributions'>> & { id: string; gender?: GenderType }) => {
     setStudents(prevStudents => {
       const updatedStudents = prevStudents.map(s =>
-        s.id === studentData.id ? { 
-            ...s, 
-            name: studentData.name || s.name, 
+        s.id === studentData.id ? {
+            ...s,
+            name: studentData.name || s.name,
             className: studentData.className || s.className,
-            gender: studentData.gender || s.gender // Atualiza gênero
+            gender: studentData.gender || s.gender
         } : s
       );
       updateLocalStorageStudents(updatedStudents);
@@ -164,11 +173,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (studentIndex === -1) return prevStudents;
 
       const studentBefore = { ...prevStudents[studentIndex] };
-      const studentBeforeForLog = JSON.parse(JSON.stringify(studentBefore));
+      // Ensure pendingContributions and contributions are initialized
+      studentBefore.pendingContributions = studentBefore.pendingContributions || { tampas: 0, latas: 0, oleo: 0 };
+      studentBefore.contributions = studentBefore.contributions || { tampas: 0, latas: 0, oleo: 0 };
+      studentBefore.narcisoCoins = studentBefore.narcisoCoins || 0;
 
 
       const unitsPerCoin = MATERIAL_UNITS_PER_COIN[material];
-      if (!unitsPerCoin || unitsPerCoin <= 0) return prevStudents;
+      if (!unitsPerCoin || unitsPerCoin <= 0) return prevStudents; // Should not happen with current constants
 
       const materialPendingBefore = studentBefore.pendingContributions?.[material] || 0;
       const totalHistoricalContributionsBefore = studentBefore.contributions?.[material] || 0;
@@ -181,11 +193,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const studentAfter: Student = {
         ...studentBefore,
         contributions: {
-          ...(studentBefore.contributions || {}),
+          ...(studentBefore.contributions),
           [material]: totalHistoricalContributionsBefore + quantityAdded,
         },
         pendingContributions: {
-          ...(studentBefore.pendingContributions || {}),
+          ...(studentBefore.pendingContributions),
           [material]: materialPendingAfter,
         },
         narcisoCoins: totalCoinsBefore + newCoinsEarnedThisTransaction,
@@ -208,6 +220,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         totalHistoricoMaterialAposTroca: studentAfter.contributions[material],
       };
       console.log("LOG DE CONTRIBUIÇÃO:", transactionLog);
+
 
       updateLocalStorageStudents(updatedStudents);
       return updatedStudents;
@@ -238,3 +251,5 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     </AuthContext.Provider>
   );
 };
+
+    
