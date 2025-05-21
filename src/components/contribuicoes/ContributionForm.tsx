@@ -69,11 +69,15 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
   useEffect(() => {
     if (selectedClass) {
       setFilteredStudents(students.filter(s => s.className === selectedClass));
+      // Reset student selection and material quantity when class changes
+      form.setValue("studentId", "", { shouldValidate: true });
+      setSelectedStudent(null);
+      form.setValue(materialType, 0, {shouldValidate: true});
     } else {
       setFilteredStudents([]);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedClass, students]);
+  }, [selectedClass, students, form, materialType]); // Added form and materialType to dependencies
 
   useEffect(() => {
     if (watchedStudentId) {
@@ -85,13 +89,13 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
   }, [watchedStudentId, students]);
 
   function handleClassSelect(className: string) {
-    if (selectedClass === className) { // Clicked on the already selected class to deselect
+    if (selectedClass === className) { 
       setSelectedClass(null);
       form.setValue("classId", "", { shouldValidate: true });
-      form.setValue("studentId", ""); // Also reset studentId
-      setSelectedStudent(null); // And selectedStudent state
+      form.setValue("studentId", ""); 
+      setSelectedStudent(null); 
       form.setValue(materialType, 0);
-    } else { // Clicked on a new class or no class was selected
+    } else { 
       setSelectedClass(className);
       form.setValue("classId", className, { shouldValidate: true });
       form.setValue("studentId", ""); 
@@ -101,12 +105,15 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
   }
 
   function handleStudentSelect(studentId: string) {
-    if (watchedStudentId === studentId) { // Clicked on the already selected student to deselect
+    if (watchedStudentId === studentId) { 
         form.setValue("studentId", "", { shouldValidate: true });
+        setSelectedStudent(null); // Explicitly set selectedStudent to null
         form.setValue(materialType, 0, {shouldValidate: true});
-    } else { // Clicked a new student
+    } else { 
         form.setValue("studentId", studentId, { shouldValidate: true });
-        form.setValue(materialType, 0, {shouldValidate: true}); // Reset quantity for new student
+        const student = students.find(s => s.id === studentId);
+        setSelectedStudent(student || null); // Explicitly set selectedStudent
+        form.setValue(materialType, 0, {shouldValidate: true}); 
     }
   }
 
@@ -130,9 +137,10 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
         });
         form.setValue(materialType, 0, {shouldValidate: true}); 
 
+        // Re-fetch student data to update pending contributions display
         const updatedStudentData = students.find(s => s.id === data.studentId);
         if (updatedStudentData) {
-          setSelectedStudent(updatedStudentData); // Refresh student data to show updated pending contributions/coins
+          setSelectedStudent(updatedStudentData);
         }
 
       } else {
@@ -155,10 +163,11 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
   }
 
   return (
-    <Card className="w-full max-w-2xl mx-auto shadow-xl">
+    <Card className="w-full shadow-xl"> {/* Removed max-w-2xl and mx-auto */}
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <CardContent className="space-y-6 pt-6">
+            {/* Seção de Seleção de Turma */}
             <div>
               <FormLabel>Turma</FormLabel>
               <FormField
@@ -181,7 +190,7 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
                     onClick={() => handleClassSelect(cls.name)}
                     className={cn(
                       "w-full h-auto py-2 px-1.5 flex flex-col items-center whitespace-normal text-center leading-snug",
-                      "hover:bg-primary hover:text-primary-foreground"
+                       "hover:bg-primary hover:text-primary-foreground"
                     )}
                   >
                     <UsersIcon className="h-4 w-4 sm:h-5 sm:w-5 mb-1 flex-shrink-0" />
@@ -199,10 +208,10 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
               >
                 {selectedClass && classes.find(cls => cls.name === selectedClass) && (
                   <Button
-                    key={selectedClass} // Garante que o botão seja recriado ao mudar de turma
+                    key={classes.find(cls => cls.name === selectedClass)!.id} 
                     type="button"
                     variant="destructive"
-                    onClick={() => handleClassSelect(selectedClass)} // Clicar para "desselecionar"
+                    onClick={() => handleClassSelect(selectedClass)} 
                     className={cn(
                       "w-full max-w-xs sm:max-w-sm h-auto py-3 px-4 flex flex-col items-center whitespace-normal text-center leading-snug"
                     )}
@@ -215,73 +224,76 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
             </div>
 
             {/* Container para Seleção de Aluno */}
-            {selectedClass && (
-              <div className="mt-4"> {/* Outer container for student selection part */}
-                <FormLabel>Aluno</FormLabel>
-                <FormField
-                  control={form.control}
-                  name="studentId"
-                  render={() => ( <FormItem><FormMessage className="mt-1 mb-2 text-xs" /></FormItem>)}
-                />
+            <div
+              className={cn(
+                "mt-4 transition-all duration-500 ease-in-out",
+                selectedClass ? "opacity-100 max-h-[1000px] visible" : "opacity-0 max-h-0 invisible"
+              )}
+            >
+              <FormLabel>Aluno</FormLabel>
+              <FormField
+                control={form.control}
+                name="studentId"
+                render={() => ( <FormItem><FormMessage className="mt-1 mb-2 text-xs" /></FormItem>)}
+              />
 
-                {/* Grid de Alunos (visível se NENHUM aluno selecionado AINDA) */}
-                <div
-                  className={cn(
-                    "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mt-1 transition-all duration-500 ease-in-out overflow-hidden",
-                    watchedStudentId ? "opacity-0 max-h-0 invisible" : "opacity-100 max-h-[500px] visible"
-                  )}
-                >
-                  {filteredStudents.length > 0 ? (
-                    filteredStudents.map((std) => (
-                      <Button
-                        key={std.id}
-                        type="button"
-                        variant={"outline"}
-                        onClick={() => handleStudentSelect(std.id)}
-                        className={cn(
-                          "w-full h-auto py-2 px-1.5 flex flex-col items-center whitespace-normal text-center leading-tight",
-                          "hover:bg-primary hover:text-primary-foreground"
-                        )}
-                      >
-                        <UserIcon className="h-4 w-4 mb-1 flex-shrink-0" />
-                        <span className="text-xs">{std.name}</span>
-                      </Button>
-                    ))
-                  ) : (
-                    <p className="text-sm text-muted-foreground mt-2 col-span-full">Nenhum aluno encontrado nesta turma.</p>
-                  )}
-                </div>
-
-                {/* Botão do Aluno Selecionado (visível se UM aluno ESTÁ selecionado) */}
-                <div
-                  className={cn(
-                    "flex justify-center mt-1 transition-all duration-500 ease-in-out overflow-hidden",
-                    watchedStudentId && selectedStudent ? "opacity-100 max-h-40 visible" : "opacity-0 max-h-0 invisible"
-                  )}
-                >
-                  {selectedStudent && ( 
+              {/* Grid de Alunos (visível se NENHUM aluno selecionado AINDA) */}
+              <div
+                className={cn(
+                  "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mt-1 transition-all duration-500 ease-in-out overflow-hidden",
+                  selectedClass && !selectedStudent ? "opacity-100 max-h-[500px] visible" : "opacity-0 max-h-0 invisible"
+                )}
+              >
+                {filteredStudents.length > 0 ? (
+                  filteredStudents.map((std) => (
                     <Button
-                      key={selectedStudent.id} // Garante que o botão seja recriado ao mudar de aluno
+                      key={std.id}
                       type="button"
-                      variant="destructive"
-                      onClick={() => handleStudentSelect(selectedStudent.id)} // Click to deselect
+                      variant={"outline"}
+                      onClick={() => handleStudentSelect(std.id)}
                       className={cn(
-                        "w-full max-w-xs sm:max-w-sm h-auto py-3 px-4 flex flex-col items-center whitespace-normal text-center leading-snug"
+                        "w-full h-auto py-2 px-1.5 flex flex-col items-center whitespace-normal text-center leading-tight",
+                        "hover:bg-primary hover:text-primary-foreground"
                       )}
                     >
-                      <UserIcon className="h-5 w-5 mb-1 flex-shrink-0" />
-                      <span className="text-sm">{selectedStudent.name}</span>
+                      <UserIcon className="h-4 w-4 mb-1 flex-shrink-0" />
+                      <span className="text-xs">{std.name}</span>
                     </Button>
-                  )}
-                </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground mt-2 col-span-full">Nenhum aluno encontrado nesta turma.</p>
+                )}
               </div>
-            )}
 
+              {/* Botão do Aluno Selecionado (visível se UM aluno ESTÁ selecionado) */}
+              <div
+                className={cn(
+                  "flex justify-center mt-1 transition-all duration-500 ease-in-out overflow-hidden",
+                  selectedClass && selectedStudent ? "opacity-100 max-h-40 visible" : "opacity-0 max-h-0 invisible"
+                )}
+              >
+                {selectedStudent && ( 
+                  <Button
+                    key={selectedStudent.id} 
+                    type="button"
+                    variant="destructive"
+                    onClick={() => handleStudentSelect(selectedStudent.id)} 
+                    className={cn(
+                      "w-full max-w-xs sm:max-w-sm h-auto py-3 px-4 flex flex-col items-center whitespace-normal text-center leading-snug"
+                    )}
+                  >
+                    <UserIcon className="h-5 w-5 mb-1 flex-shrink-0" />
+                    <span className="text-sm">{selectedStudent.name}</span>
+                  </Button>
+                )}
+              </div>
+            </div>
+            
             {/* Seção de Detalhes e Entrada de Material (aparece se um aluno estiver selecionado) */}
             <div
               className={cn(
                 "space-y-6 pt-6 transition-all duration-500 ease-in-out overflow-hidden",
-                watchedStudentId && selectedStudent ? "opacity-100 max-h-[1000px] visible" : "opacity-0 max-h-0 invisible"
+                selectedStudent ? "opacity-100 max-h-[1000px] visible" : "opacity-0 max-h-0 invisible"
               )}
             >
               {selectedStudent && (
@@ -356,7 +368,7 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
           <CardFooter
             className={cn(
               "justify-center pt-6 transition-all duration-500 ease-in-out overflow-hidden",
-               watchedStudentId && selectedStudent ? "opacity-100 max-h-40 visible" : "opacity-0 max-h-0 invisible"
+               selectedStudent ? "opacity-100 max-h-40 visible" : "opacity-0 max-h-0 invisible"
             )}
           >
             {selectedStudent && ( 
