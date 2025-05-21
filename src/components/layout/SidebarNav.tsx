@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboardIcon, UsersIcon, ClipboardPlusIcon, LeafIcon, LogOutIcon } from "lucide-react";
+import { LayoutDashboardIcon, UsersIcon, LeafIcon, LogOutIcon } from "lucide-react"; // Removed ClipboardPlusIcon
 import { cn } from "@/lib/utils";
 import {
   SidebarMenu,
@@ -14,17 +14,17 @@ import {
   SidebarContent,
   SidebarGroupLabel,
 } from "@/components/ui/sidebar";
-import { useAuth } from "@/hooks/use-auth"; // Import useAuth
+import { useAuth } from "@/hooks/use-auth";
 
 const navItems = [
   { href: "/dashboard", label: "Painel de Estatísticas", icon: LayoutDashboardIcon },
   { href: "/alunos", label: "Gerenciar Alunos", icon: UsersIcon },
-  { href: "/contribuicoes", label: "Registrar Contribuições", icon: ClipboardPlusIcon },
+  // { href: "/contribuicoes", label: "Registrar Contribuições", icon: ClipboardPlusIcon }, // Removed this item
 ];
 
 export function SidebarNav() {
   const pathname = usePathname();
-  const { logout, teacherName } = useAuth(); // Get logout function and teacherName
+  const { logout, teacherName } = useAuth();
 
   return (
     <>
@@ -41,7 +41,11 @@ export function SidebarNav() {
           {navItems.map((item) => {
             const Icon = item.icon;
             // Adjust isActive for /dashboard route as it's the new root for authenticated users
-            const isActive = (item.href === "/dashboard" && (pathname === "/dashboard" || pathname.startsWith("/contribuicoes"))) || (item.href !== "/dashboard" && pathname.startsWith(item.href));
+            // Dashboard is also active if we are on /contribuicoes (which is accessed FROM dashboard)
+            const isActive =
+              (item.href === "/dashboard" && (pathname === "/dashboard" || pathname.startsWith("/contribuicoes"))) ||
+              (item.href !== "/dashboard" && pathname.startsWith(item.href));
+
             return (
               <SidebarMenuItem key={item.href}>
                 <Link href={item.href} passHref legacyBehavior>
@@ -75,7 +79,7 @@ export function SidebarNav() {
           <SidebarMenuButton
             onClick={logout}
             tooltip={{children: "Sair", side: 'right', align: 'center' }}
-            className="justify-start w-full" 
+            className="justify-start w-full"
           >
             <LogOutIcon className="h-5 w-5" />
             <span className="group-data-[collapsible=icon]:hidden">Sair</span>
