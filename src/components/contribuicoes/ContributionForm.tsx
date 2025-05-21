@@ -15,12 +15,12 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import type { Student, MaterialType } from "@/lib/constants";
-import { MATERIAL_LABELS, MATERIAL_TYPES } from "@/lib/constants";
+import { MATERIAL_LABELS, MATERIAL_TYPES, CONVERSION_RATES } from "@/lib/constants";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import { CoinsIcon, PackageIcon, ArchiveIcon, DropletIcon, SaveIcon, UsersIcon, UserIcon, MinusCircle, PlusCircle } from "lucide-react";
+import { CoinsIcon, PackageIcon, ArchiveIcon, DropletIcon, SaveIcon, UsersIcon, UserIcon } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 // Props for the component
@@ -33,7 +33,7 @@ const createContributionFormSchema = (materialType: MaterialType) => {
   return z.object({
     classId: z.string().min(1, "Selecione uma turma."),
     studentId: z.string().min(1, "Selecione um aluno."),
-    [materialType]: z.coerce.number().min(1, "A quantidade deve ser maior que zero."),
+    [materialType]: z.coerce.number().min(1, `A quantidade de ${MATERIAL_LABELS[materialType].toLowerCase()} deve ser maior que zero.`),
     // Make other materials optional and not explicitly validated here
     ...(materialType !== MATERIAL_TYPES.LIDS && { [MATERIAL_TYPES.LIDS]: z.coerce.number().optional() }),
     ...(materialType !== MATERIAL_TYPES.CANS && { [MATERIAL_TYPES.CANS]: z.coerce.number().optional() }),
@@ -49,7 +49,6 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
   const [filteredStudents, setFilteredStudents] = useState<Student[]>([]);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
 
-  // Dynamically create the schema based on the materialType prop
   const currentSchema = createContributionFormSchema(materialType);
   type ContributionFormValues = z.infer<typeof currentSchema>;
 
@@ -59,7 +58,6 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
       classId: "",
       studentId: "",
       [materialType]: 0,
-      // Initialize other materials to 0 or undefined if they are not part of the dynamic schema logic
       ...(materialType !== MATERIAL_TYPES.LIDS && { [MATERIAL_TYPES.LIDS]: 0 }),
       ...(materialType !== MATERIAL_TYPES.CANS && { [MATERIAL_TYPES.CANS]: 0 }),
       ...(materialType !== MATERIAL_TYPES.OIL && { [MATERIAL_TYPES.OIL]: 0 }),
@@ -72,14 +70,15 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
   useEffect(() => {
     if (selectedClass) {
       setFilteredStudents(students.filter(s => s.className === selectedClass));
-      form.setValue("studentId", "");
+      form.setValue("studentId", ""); // Reset student selection when class changes
       setSelectedStudent(null);
     } else {
       setFilteredStudents([]);
       form.setValue("studentId", "");
       setSelectedStudent(null);
     }
-  }, [selectedClass, students, form]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedClass, students]); // form dependency removed to avoid re-renders, explicitly using form.setValue
 
   useEffect(() => {
     if (watchedStudentId) {
@@ -92,10 +91,14 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
   function handleClassSelect(className: string) {
     setSelectedClass(className);
     form.setValue("classId", className, { shouldValidate: true });
+    form.setValue("studentId", ""); // Reset student when class changes
+    setSelectedStudent(null);
+    form.setValue(materialType, 0); // Reset quantity
   }
 
   function handleStudentSelect(student: Student) {
     form.setValue("studentId", student.id, { shouldValidate: true });
+    form.setValue(materialType, 0); // Reset quantity
   }
 
   const adjustQuantity = (amount: number) => {
@@ -114,29 +117,28 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
         addContribution(data.studentId, materialType, quantity as number);
         toast({
           title: "Sucesso!",
-          description: `${MATERIAL_LABELS[materialType]} de ${selectedStudent?.name || 'aluno'} registradas.`,
+          description: `${quantity} ${MATERIAL_LABELS[materialType].toLowerCase()} de ${selectedStudent?.name || 'aluno'} registradas.`,
         });
-        form.reset({
-          classId: data.classId,
-          studentId: data.studentId,
-          [materialType]: 0,
-          ...(materialType !== MATERIAL_TYPES.LIDS && { [MATERIAL_TYPES.LIDS]: 0 }),
-          ...(materialType !== MATERIAL_TYPES.CANS && { [MATERIAL_TYPES.CANS]: 0 }),
-          ...(materialType !== MATERIAL_TYPES.OIL && { [MATERIAL_TYPES.OIL]: 0 }),
-        });
+        // Reset only quantity, keep class and student selected for easier subsequent entries
+        form.setValue(materialType, 0, {shouldValidate: true});
+        // Manually trigger re-fetch or update of selectedStudent to show new balance
+        // This can be complex, for now, local state of selectedStudent will be stale until next selection
+        // Or, we can refetch the student data from context, but useAuth doesn't directly provide getStudentById
+        const updatedStudent = students.find(s => s.id === data.studentId);
+        if(updatedStudent) setSelectedStudent(updatedStudent);
+
       } else {
-        toast({
-            title: "Quantidade Inválida",
-            description: `A quantidade de ${MATERIAL_LABELS[materialType].toLowerCase()} deve ser maior que zero.`,
-            variant: "destructive",
-        });
+        form.setError(materialType, { type: "manual", message: `A quantidade de ${MATERIAL_LABELS[materialType].toLowerCase()} deve ser maior que zero.` });
       }
     }
   }
   
-  const MaterialIcon = materialType === MATERIAL_TYPES.LIDS ? PackageIcon :
-                       materialType === MATERIAL_TYPES.CANS ? ArchiveIcon :
-                       DropletIcon;
+  const MaterialIcon = 
+    materialType === MATERIAL_TYPES.LIDS ? PackageIcon :
+    materialType === MATERIAL_TYPES.CANS ? ArchiveIcon :
+    DropletIcon;
+
+  const coinsFromCurrentContribution = (watchedMaterialQuantity || 0) * (CONVERSION_RATES[materialType] || 0);
 
   return (
     <Card className="w-full max-w-2xl mx-auto shadow-xl">
@@ -209,15 +211,22 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
 
             {selectedStudent && (
               <>
-                <div className="p-4 border rounded-md bg-muted/50">
+                <div className="p-4 border rounded-md bg-card shadow-sm">
                   <h3 className="text-sm font-medium text-muted-foreground">Saldo Atual de {selectedStudent.name}:</h3>
-                  <p className="text-2xl font-bold text-primary flex items-center">
-                    <CoinsIcon className="mr-2 h-6 w-6" /> {selectedStudent.narcisoCoins} Moedas Narciso
-                  </p>
+                  <div className="flex items-center justify-between mt-1">
+                    <p className="text-2xl font-bold text-primary flex items-center">
+                      <CoinsIcon className="mr-2 h-6 w-6" /> {selectedStudent.narcisoCoins}
+                      <span className="text-lg ml-1">Moedas</span>
+                    </p>
+                    <p className="text-sm text-foreground flex items-center">
+                      <MaterialIcon className="mr-1 h-4 w-4 text-muted-foreground" />
+                      {MATERIAL_LABELS[materialType]}: {selectedStudent.contributions[materialType] || 0}
+                    </p>
+                  </div>
                 </div>
 
                 <div className="space-y-4 pt-4 border-t">
-                    <h3 className="text-lg font-medium">Quantidade de {MATERIAL_LABELS[materialType]}:</h3>
+                    <h3 className="text-lg font-medium">Adicionar {MATERIAL_LABELS[materialType]}:</h3>
                     <FormField
                       control={form.control}
                       name={materialType}
@@ -241,6 +250,12 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
                           </FormItem>
                       )}
                     />
+                     {selectedStudent && watchedMaterialQuantity > 0 && (
+                      <div className="mt-1 text-xs text-center text-primary font-medium">
+                        <CoinsIcon className="inline-block mr-1 h-3 w-3" />
+                        <span>+{ coinsFromCurrentContribution } Moedas Narciso por esta contribuição</span>
+                      </div>
+                    )}
                     <div className="space-y-2">
                         <div className="grid grid-cols-4 gap-2">
                             {quantityButtons.map(val => (
@@ -262,7 +277,12 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
             )}
           </CardContent>
           <CardFooter>
-            <Button type="submit" className="w-full md:w-auto ml-auto" size="lg" disabled={!selectedStudent || form.formState.isSubmitting || !watchedMaterialQuantity || watchedMaterialQuantity <=0}>
+            <Button 
+              type="submit" 
+              className="w-full md:w-auto ml-auto" 
+              size="lg" 
+              disabled={!selectedStudent || form.formState.isSubmitting || !watchedMaterialQuantity || watchedMaterialQuantity <= 0}
+            >
               <SaveIcon className="mr-2 h-5 w-5" />
               Registrar {MATERIAL_LABELS[materialType]}
             </Button>
