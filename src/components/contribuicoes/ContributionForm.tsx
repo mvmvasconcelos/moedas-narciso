@@ -1,4 +1,3 @@
-
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -33,7 +32,7 @@ const createContributionFormSchema = (materialType: MaterialType) => {
   return z.object({
     classId: z.string().min(1, "Selecione uma turma."),
     studentId: z.string().min(1, "Selecione um aluno."),
-    [materialType]: z.coerce.number().min(1, `A quantidade de ${MATERIAL_LABELS[materialType].toLowerCase()} deve ser maior que zero.`),
+    [materialType]: z.coerce.number().min(1, `A quantidade de ${MATERIAL_LABELS[materialType].toLowerCase().replace(" (unidades)","")} deve ser maior que zero.`),
     ...(materialType !== MATERIAL_TYPES.LIDS && { [MATERIAL_TYPES.LIDS]: z.coerce.number().optional() }),
     ...(materialType !== MATERIAL_TYPES.CANS && { [MATERIAL_TYPES.CANS]: z.coerce.number().optional() }),
     ...(materialType !== MATERIAL_TYPES.OIL && { [MATERIAL_TYPES.OIL]: z.coerce.number().optional() }),
@@ -69,7 +68,7 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
   useEffect(() => {
     if (selectedClass) {
       setFilteredStudents(students.filter(s => s.className === selectedClass));
-      form.setValue("studentId", "");
+      form.setValue("studentId", ""); // Reset student selection
       setSelectedStudent(null);
     } else {
       setFilteredStudents([]);
@@ -77,7 +76,7 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
       setSelectedStudent(null);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedClass, students, form.setValue]);
+  }, [selectedClass, students]); // form.setValue removed from deps to avoid loop
 
   useEffect(() => {
     if (watchedStudentId) {
@@ -88,17 +87,25 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
     }
   }, [watchedStudentId, students]);
 
+  useEffect(() => { // Reset form material quantity when student changes
+    if (watchedStudentId){
+        form.setValue(materialType, 0, { shouldValidate: true });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [watchedStudentId]);
+
+
   function handleClassSelect(className: string) {
     setSelectedClass(className);
     form.setValue("classId", className, { shouldValidate: true });
-    form.setValue("studentId", "");
-    setSelectedStudent(null);
-    form.setValue(materialType, 0);
+    form.setValue("studentId", ""); // Also reset studentId field in form
+    setSelectedStudent(null); // Reset student object
+    form.setValue(materialType, 0); // Reset material quantity
   }
 
   function handleStudentSelect(studentId: string) {
     form.setValue("studentId", studentId, { shouldValidate: true });
-    form.setValue(materialType, 0);
+    // form.setValue(materialType, 0); // Material quantity reset is now in useEffect
   }
 
   const adjustQuantity = (amount: number) => {
@@ -117,17 +124,18 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
         addContribution(data.studentId, materialType, quantity as number);
         toast({
           title: "Sucesso!",
-          description: `${quantity} ${MATERIAL_LABELS[materialType].toLowerCase()} de ${selectedStudent?.name || 'aluno'} registradas.`,
+          description: `${quantity} ${MATERIAL_LABELS[materialType].toLowerCase().replace(" (unidades)","")} de ${selectedStudent?.name || 'aluno'} registradas.`,
         });
-        form.setValue(materialType, 0, {shouldValidate: true});
+        form.setValue(materialType, 0, {shouldValidate: true}); // Reset only material quantity
 
+        // Update selectedStudent data locally to reflect new totals
         const updatedStudentData = students.find(s => s.id === data.studentId);
         if (updatedStudentData) {
           setSelectedStudent(updatedStudentData);
         }
 
       } else {
-        form.setError(materialType, { type: "manual", message: `A quantidade de ${MATERIAL_LABELS[materialType].toLowerCase()} deve ser maior que zero.` });
+        form.setError(materialType, { type: "manual", message: `A quantidade de ${MATERIAL_LABELS[materialType].toLowerCase().replace(" (unidades)","")} deve ser maior que zero.` });
       }
     }
   }
@@ -155,20 +163,29 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
               <FormLabel>Turma</FormLabel>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-2">
                 {classes.map((cls) => {
-                  const isClassSelected = selectedClass === cls.name;
+                  const isClassSelectedCurrently = selectedClass === cls.name;
                   return (
                     <Button
                       key={cls.id}
                       type="button"
-                      variant={isClassSelected ? "destructive" : "outline"}
+                      variant={isClassSelectedCurrently ? "destructive" : "outline"}
                       onClick={() => handleClassSelect(cls.name)}
                       className={cn(
-                        "w-full h-auto py-3 px-2 flex flex-col items-center whitespace-normal text-center leading-snug",
-                        !isClassSelected && "hover:bg-primary hover:text-primary-foreground"
+                        "w-full h-auto flex flex-col items-center whitespace-normal text-center leading-snug transition-all duration-200 ease-in-out",
+                        !selectedClass && "py-3 px-2", // Larger padding when no class is selected
+                        selectedClass && "py-2 px-1.5 sm:py-3 sm:px-2", // Smaller on mobile, revert on sm+ when class is selected
+                        !isClassSelectedCurrently && "hover:bg-primary hover:text-primary-foreground"
                       )}
                     >
-                      <UsersIcon className="h-5 w-5 mb-1 flex-shrink-0" />
-                      <span className="text-xs sm:text-sm">{cls.name}</span>
+                      <UsersIcon className={cn(
+                          "mb-1 flex-shrink-0 transition-all duration-200 ease-in-out",
+                          !selectedClass && "h-5 w-5", // Larger icon when no class is selected
+                          selectedClass && "h-4 w-4 sm:h-5 sm:w-5" // Smaller icon on mobile, revert on sm+
+                      )} />
+                      <span className={cn(
+                        "transition-all duration-200 ease-in-out",
+                        "text-xs sm:text-sm" // Consistent text size, visual change from padding/icon
+                      )}>{cls.name}</span>
                     </Button>
                   );
                 })}
@@ -227,12 +244,12 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
                   </div>
                   <div className="text-xs text-muted-foreground mt-1 flex items-center">
                       <MaterialIcon className="mr-1 h-3 w-3" />
-                      Saldo pendente de {MATERIAL_LABELS[materialType].toLowerCase()}: {selectedStudent.pendingContributions?.[materialType] || 0}
+                      Saldo pendente de {MATERIAL_LABELS[materialType].toLowerCase().replace(" (unidades)","")}: {selectedStudent.pendingContributions?.[materialType] || 0}
                   </div>
                 </div>
 
                 <div className="space-y-4 pt-4 border-t">
-                    <h3 className="text-lg font-medium">Adicionar {MATERIAL_LABELS[materialType]}:</h3>
+                    <h3 className="text-lg font-medium">Adicionar {MATERIAL_LABELS[materialType].replace(" (unidades)","")}:</h3>
                     <FormField
                       control={form.control}
                       name={materialType}
@@ -248,7 +265,7 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
                                 placeholder="Quantidade"
                                 {...field}
                                 onChange={e => field.onChange(Math.max(0, parseInt(e.target.value, 10) || 0))}
-                                value={field.value || 0}
+                                value={field.value === undefined || field.value === null || isNaN(Number(field.value)) ? 0 : Number(field.value)}
                                 className="text-center text-xl h-12"
                               />
                           </FormControl>
@@ -256,7 +273,7 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
                           </FormItem>
                       )}
                     />
-                     {selectedStudent && watchedMaterialQuantity > 0 && (
+                     {selectedStudent && typeof watchedMaterialQuantity === 'number' && watchedMaterialQuantity > 0 && (
                       <div className="mt-1 text-xs text-center text-primary font-medium">
                         <CoinsIcon className="inline-block mr-1 h-3 w-3" />
                         <span>+{ coinsFromCurrentContribution } Moedas Narciso por esta contribuição</span>
@@ -288,10 +305,10 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
                 type="submit"
                 className="w-full sm:w-auto"
                 size="lg"
-                disabled={form.formState.isSubmitting || !watchedMaterialQuantity || watchedMaterialQuantity <= 0}
+                disabled={form.formState.isSubmitting || !watchedMaterialQuantity || (typeof watchedMaterialQuantity === 'number' && watchedMaterialQuantity <= 0)}
               >
                 <SaveIcon className="mr-2 h-5 w-5" />
-                Registrar {MATERIAL_LABELS[materialType]}
+                Registrar {MATERIAL_LABELS[materialType].replace(" (unidades)","")}
               </Button>
             </CardFooter>
           )}
@@ -300,3 +317,4 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
     </Card>
   );
 }
+
