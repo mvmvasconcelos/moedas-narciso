@@ -39,47 +39,61 @@ export function StudentRankCard({
 
   const cardClasses = cn(
     "shadow-lg transition-all duration-300 w-full",
-    variant === "prominent" && "ring-2 ring-primary shadow-primary/30",
-    variant === "small" && "p-3",
-    variant === "default" && "p-4"
+    variant === "prominent" && "ring-2 ring-accent shadow-lg shadow-accent/40 p-6", // Enhanced prominent variant
+    variant === "default" && "p-4",
+    variant === "small" && "p-3"
   );
 
   const titleClasses = cn(
     "font-semibold tracking-tight",
-    variant === "prominent" && "text-xl text-primary",
+    variant === "prominent" && "text-2xl font-bold text-accent", // Enhanced prominent variant
     variant === "default" && "text-lg",
     variant === "small" && "text-base"
   );
 
   const studentNameClasses = cn(
     "font-medium",
-    variant === "prominent" && "text-lg",
+    variant === "prominent" && "text-xl font-semibold", // Enhanced prominent variant
     variant === "default" && "text-base",
     variant === "small" && "text-sm"
   );
   
   const valueDisplayClasses = cn(
     "font-bold flex items-center",
-    variant === "prominent" && "text-3xl text-primary",
+    variant === "prominent" && "text-4xl font-extrabold text-accent mt-1", // Enhanced prominent variant
     variant === "default" && "text-2xl text-primary",
     variant === "small" && "text-xl"
   );
 
+  const avatarSizeClasses = cn(
+    variant === "prominent" ? "h-14 w-14" : // Larger avatar for prominent
+    variant === "small" ? "h-8 w-8" : 
+    "h-10 w-10"
+  );
+
+  const valueIconSizeClasses = cn(
+    "mr-2",
+    variant === "prominent" ? "h-7 w-7 text-accent" : // Larger icon for prominent
+    variant === "small" ? "h-4 w-4" : 
+    "h-5 w-5"
+  );
+
+
   if (isLoading) {
     return (
       <Card className={cardClasses}>
-        <CardHeader className={cn("p-0 pb-2", variant === "small" && "pb-1")}>
-          <Skeleton className={cn("h-6 w-3/4", variant === "small" && "h-5 w-2/3")} />
+        <CardHeader className={cn("p-0 pb-2", variant === "small" && "pb-1", variant === "prominent" && "pb-3")}>
+          <Skeleton className={cn("h-6 w-3/4", variant === "small" && "h-5 w-2/3", variant === "prominent" && "h-8 w-5/6")} />
         </CardHeader>
         <CardContent className="p-0 space-y-2">
           <div className="flex items-center space-x-3">
-            <Skeleton className={cn("h-10 w-10 rounded-full", variant === "small" && "h-8 w-8")} />
+            <Skeleton className={cn("rounded-full", avatarSizeClasses)} />
             <div className="space-y-1">
-              <Skeleton className={cn("h-5 w-24", variant === "small" && "h-4 w-20")} />
-              <Skeleton className={cn("h-4 w-16", variant === "small" && "h-3 w-12")} />
+              <Skeleton className={cn("h-5 w-24", variant === "small" && "h-4 w-20", variant === "prominent" && "h-6 w-28")} />
+              <Skeleton className={cn("h-4 w-16", variant === "small" && "h-3 w-12", variant === "prominent" && "h-4 w-20")} />
             </div>
           </div>
-          <Skeleton className={cn("h-8 w-1/2", variant === "small" && "h-6 w-1/3")} />
+          <Skeleton className={cn("h-8 w-1/2", variant === "small" && "h-6 w-1/3", variant === "prominent" && "h-10 w-2/3")} />
         </CardContent>
       </Card>
     );
@@ -88,7 +102,7 @@ export function StudentRankCard({
   if (!student) {
     return (
       <Card className={cardClasses}>
-        <CardHeader className={cn("p-0 pb-2", variant === "small" && "pb-1")}>
+        <CardHeader className={cn("p-0 pb-2", variant === "small" && "pb-1", variant === "prominent" && "pb-3")}>
           <CardTitle className={titleClasses}>{title}</CardTitle>
         </CardHeader>
         <CardContent className="p-0 flex flex-col items-center justify-center min-h-[100px]">
@@ -101,25 +115,24 @@ export function StudentRankCard({
 
   return (
     <Card className={cardClasses}>
-      <CardHeader className={cn("p-0 pb-3", variant === "small" ? "pb-2" : "pb-3")}>
+      <CardHeader className={cn("p-0", variant === "small" ? "pb-2" : variant === "prominent" ? "pb-4" : "pb-3")}>
         <CardTitle className={titleClasses}>{title}</CardTitle>
       </CardHeader>
       <CardContent className="p-0 space-y-3">
         <div className="flex items-center space-x-3">
-          <Avatar className={cn(variant === "small" ? "h-8 w-8" : "h-10 w-10")}>
-            {/* For testing, using placeholder.co. Replace with actual student image if available. */}
-            <AvatarImage src={`https://placehold.co/40x40.png?text=${getInitials(avatarSeed || student.name)}`} alt={student.name} />
+          <Avatar className={avatarSizeClasses}>
+            <AvatarImage data-ai-hint="student avatar" src={`https://placehold.co/60x60.png?text=${getInitials(avatarSeed || student.name)}`} alt={student.name} />
             <AvatarFallback>{getInitials(student.name)}</AvatarFallback>
           </Avatar>
           <div>
             <p className={studentNameClasses}>{student.name}</p>
-            <CardDescription className={cn(variant === "small" ? "text-xs" : "text-sm")}>
+            <CardDescription className={cn(variant === "small" ? "text-xs" : variant === "prominent" ? "text-base" : "text-sm")}>
               {student.className}
             </CardDescription>
           </div>
         </div>
         <div className={valueDisplayClasses}>
-          <ValueIcon className={cn("mr-2", variant === "small" ? "h-4 w-4" : "h-5 w-5")} />
+          <ValueIcon className={valueIconSizeClasses} />
           {value}
         </div>
       </CardContent>
