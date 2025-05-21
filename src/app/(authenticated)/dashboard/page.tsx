@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { useAuth } from "@/hooks/use-auth";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { Button } from "@/components/ui/button";
@@ -77,20 +78,26 @@ export default function DashboardPage() {
           Trocar Materiais por Prêmios
         </h2>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Button size="lg" variant="outline" className="flex-1 sm:flex-initial">
-            <RepeatIcon className="mr-2 h-5 w-5" />
-            <PackageIcon className="mr-2 h-5 w-5" />
-            Trocar {MATERIAL_LABELS[MATERIAL_TYPES.LIDS]}
+          <Button size="lg" variant="outline" className="flex-1 sm:flex-initial" asChild>
+            <Link href="/contribuicoes">
+              <RepeatIcon className="mr-2 h-5 w-5" />
+              <PackageIcon className="mr-2 h-5 w-5" />
+              Trocar {MATERIAL_LABELS[MATERIAL_TYPES.LIDS]}
+            </Link>
           </Button>
-          <Button size="lg" variant="outline" className="flex-1 sm:flex-initial">
-            <RepeatIcon className="mr-2 h-5 w-5" />
-            <ArchiveIcon className="mr-2 h-5 w-5" />
-            Trocar {MATERIAL_LABELS[MATERIAL_TYPES.CANS]}
+          <Button size="lg" variant="outline" className="flex-1 sm:flex-initial" asChild>
+            <Link href="/contribuicoes">
+              <RepeatIcon className="mr-2 h-5 w-5" />
+              <ArchiveIcon className="mr-2 h-5 w-5" />
+              Trocar {MATERIAL_LABELS[MATERIAL_TYPES.CANS]}
+            </Link>
           </Button>
-          <Button size="lg" variant="outline" className="flex-1 sm:flex-initial">
-            <RepeatIcon className="mr-2 h-5 w-5" />
-            <DropletIcon className="mr-2 h-5 w-5" />
-            Trocar {MATERIAL_LABELS[MATERIAL_TYPES.OIL]}
+          <Button size="lg" variant="outline" className="flex-1 sm:flex-initial" asChild>
+            <Link href="/contribuicoes">
+              <RepeatIcon className="mr-2 h-5 w-5" />
+              <DropletIcon className="mr-2 h-5 w-5" />
+              Trocar {MATERIAL_LABELS[MATERIAL_TYPES.OIL]}
+            </Link>
           </Button>
         </div>
       </div>
