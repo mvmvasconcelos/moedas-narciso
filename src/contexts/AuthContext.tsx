@@ -4,19 +4,27 @@
 import type { ReactNode } from 'react';
 import React, { createContext, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import type { Student, Class, MaterialType, GenderType } from '@/lib/constants'; // Adicionado GenderType
+import type { Student, Class, MaterialType, GenderType } from '@/lib/constants';
 import { MOCK_CLASSES, generateInitialStudents, MATERIAL_TYPES, MATERIAL_UNITS_PER_COIN } from '@/lib/constants';
-import { auth } from '@/lib/firebase'; // Import Firebase auth
+import { auth } from '@/lib/firebase'; 
+import { 
+  onAuthStateChanged, 
+  signInWithEmailAndPassword, 
+  signOut, 
+  type User as FirebaseUser 
+} from "firebase/auth";
+import { useToast } from "@/hooks/use-toast";
 
 console.log("DEBUG: src/contexts/AuthContext.tsx - FILE PARSED");
 
 interface AuthContextType {
-  isAuthenticated: boolean;
-  teacherName: string | null | undefined;
+  currentUser: FirebaseUser | null | undefined; 
+  isAuthenticated: boolean; 
+  teacherName: string | null; 
   students: Student[];
   classes: Class[];
-  login: (name: string) => void; // This will change to use Firebase Auth
-  logout: () => void; // This will change to use Firebase Auth
+  login: (email: string, pass: string) => Promise<void>;
+  logout: () => Promise<void>;
   addStudent: (studentData: Omit<Student, 'id' | 'narcisoCoins' | 'contributions' | 'pendingContributions'>) => void;
   updateStudent: (studentData: Partial<Omit<Student, 'id' | 'narcisoCoins' | 'contributions' | 'pendingContributions'>> & { id: string; gender?: GenderType }) => void;
   deleteStudent: (studentId: string) => void;
@@ -26,45 +34,37 @@ interface AuthContextType {
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const AUTH_STORAGE_KEY = 'moedasNarcisoAuth';
 const STUDENTS_STORAGE_KEY = 'moedasNarcisoStudents';
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider rendering");
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [teacherName, setTeacherName] = useState<string | null | undefined>(undefined); // undefined initially, null if check done & not auth, string if auth
+  const [currentUser, setCurrentUser] = useState<FirebaseUser | null | undefined>(undefined);
   const [students, setStudents] = useState<Student[]>([]);
   const classes = MOCK_CLASSES;
   const router = useRouter();
+  const { toast } = useToast();
+
+  const isAuthenticated = currentUser !== null && currentUser !== undefined;
+  const teacherName = currentUser?.email?.split('@')[0] || currentUser?.displayName || null;
 
   useEffect(() => {
-    console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: useEffect for localStorage");
-    console.log("Firebase Auth object:", auth); // Test Firebase auth object
-
-    try {
-      const storedAuth = localStorage.getItem(AUTH_STORAGE_KEY);
-      if (storedAuth) {
-        const authData = JSON.parse(storedAuth);
-        setIsAuthenticated(authData.isAuthenticated || false);
-        setTeacherName(authData.teacherName || null);
-        console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: Loaded auth from localStorage", authData);
+    console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: useEffect for onAuthStateChanged");
+    
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        console.log("DEBUG: src/contexts/AuthContext.tsx - onAuthStateChanged: User is signed in", user);
+        setCurrentUser(user);
       } else {
-        setIsAuthenticated(false);
-        setTeacherName(null);
-        console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: No auth data in localStorage");
+        console.log("DEBUG: src/contexts/AuthContext.tsx - onAuthStateChanged: User is signed out");
+        setCurrentUser(null);
       }
-    } catch (error) {
-      console.error("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: Failed to parse auth data from localStorage", error);
-      setIsAuthenticated(false);
-      setTeacherName(null);
-      localStorage.removeItem(AUTH_STORAGE_KEY);
-    }
+    });
 
+    // Load students from localStorage (this will be replaced by Firestore later)
     try {
       const storedStudents = localStorage.getItem(STUDENTS_STORAGE_KEY);
       if (storedStudents) {
         let parsedStudents: Student[] = JSON.parse(storedStudents);
-        // Validate and provide defaults for each student object
         parsedStudents = parsedStudents.map(student => ({
           id: student.id || `s_fallback_${Date.now()}_${Math.random().toString(36).substring(7)}`,
           name: student.name || "Nome Desconhecido",
@@ -83,12 +83,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           narcisoCoins: typeof student.narcisoCoins === 'number' ? student.narcisoCoins : 0,
         }));
         setStudents(parsedStudents);
-        console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: Loaded students from localStorage");
       } else {
         const initialStudents = generateInitialStudents();
         setStudents(initialStudents);
         localStorage.setItem(STUDENTS_STORAGE_KEY, JSON.stringify(initialStudents));
-        console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: Initialized mock students and saved to localStorage");
       }
     } catch (error) {
       console.error("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: Failed to parse/validate students data from localStorage, re-initializing.", error);
@@ -96,6 +94,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setStudents(initialStudents);
       localStorage.setItem(STUDENTS_STORAGE_KEY, JSON.stringify(initialStudents));
     }
+    return () => unsubscribe(); 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -103,22 +102,48 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem(STUDENTS_STORAGE_KEY, JSON.stringify(updatedStudents));
   };
 
-  // This login function will be replaced with Firebase Authentication
-  const login = (name: string) => {
-    console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: login called", name);
-    setIsAuthenticated(true);
-    setTeacherName(name);
-    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ isAuthenticated: true, teacherName: name }));
-    router.push('/dashboard');
+  const login = async (email: string, pass: string) => {
+    console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: Firebase login attempt for", email);
+    try {
+      await signInWithEmailAndPassword(auth, email, pass);
+      // onAuthStateChanged will handle setting currentUser.
+      // Navigation to /dashboard will be handled by HomePage or AuthGuard based on new auth state.
+      // Forcing a navigation here can sometimes conflict if onAuthStateChanged is also triggering navigation.
+      // router.push('/dashboard'); 
+    } catch (error: any) {
+      console.error("DEBUG: src/contexts/AuthContext.tsx - Firebase login error", error.code, error.message);
+      let errorMessage = "Falha no login. Verifique suas credenciais ou tente novamente mais tarde.";
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+        errorMessage = "E-mail ou senha inválidos.";
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = "Formato de e-mail inválido.";
+      } else if (error.code === 'auth/network-request-failed') {
+        errorMessage = "Erro de rede. Verifique sua conexão ou tente mais tarde.";
+      }
+      toast({
+        variant: "destructive",
+        title: "Erro de Login",
+        description: errorMessage,
+      });
+      throw error; 
+    }
   };
 
-  // This logout function will be replaced with Firebase Authentication
-  const logout = () => {
-    console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: logout called");
-    setIsAuthenticated(false);
-    setTeacherName(null);
-    localStorage.removeItem(AUTH_STORAGE_KEY);
-    router.push('/login');
+  const logout = async () => {
+    console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: Firebase logout attempt");
+    try {
+      await signOut(auth);
+      // onAuthStateChanged will set currentUser to null.
+      // Navigation to /login will be handled by HomePage or AuthGuard.
+      // router.push('/login'); 
+    } catch (error) {
+      console.error("DEBUG: src/contexts/AuthContext.tsx - Firebase logout error", error);
+      toast({
+        variant: "destructive",
+        title: "Erro de Logout",
+        description: "Não foi possível sair. Tente novamente.",
+      });
+    }
   };
 
   const addStudent = useCallback((studentData: Omit<Student, 'id' | 'narcisoCoins' | 'contributions' | 'pendingContributions'>) => {
@@ -126,16 +151,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const newStudent: Student = {
         ...studentData,
         id: `s${Date.now()}`,
-        contributions: {
-          [MATERIAL_TYPES.LIDS]: 0,
-          [MATERIAL_TYPES.CANS]: 0,
-          [MATERIAL_TYPES.OIL]: 0
-        },
-        pendingContributions: {
-          [MATERIAL_TYPES.LIDS]: 0,
-          [MATERIAL_TYPES.CANS]: 0,
-          [MATERIAL_TYPES.OIL]: 0
-        },
+        contributions: { [MATERIAL_TYPES.LIDS]: 0, [MATERIAL_TYPES.CANS]: 0, [MATERIAL_TYPES.OIL]: 0 },
+        pendingContributions: { [MATERIAL_TYPES.LIDS]: 0, [MATERIAL_TYPES.CANS]: 0, [MATERIAL_TYPES.OIL]: 0 },
         narcisoCoins: 0,
       };
       const updatedStudents = [...prevStudents, newStudent];
@@ -147,12 +164,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const updateStudent = useCallback((studentData: Partial<Omit<Student, 'id' | 'narcisoCoins' | 'contributions' | 'pendingContributions'>> & { id: string; gender?: GenderType }) => {
     setStudents(prevStudents => {
       const updatedStudents = prevStudents.map(s =>
-        s.id === studentData.id ? {
-            ...s,
-            name: studentData.name || s.name,
-            className: studentData.className || s.className,
-            gender: studentData.gender || s.gender
-        } : s
+        s.id === studentData.id ? { ...s, ...studentData } : s
       );
       updateLocalStorageStudents(updatedStudents);
       return updatedStudents;
@@ -173,14 +185,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (studentIndex === -1) return prevStudents;
 
       const studentBefore = { ...prevStudents[studentIndex] };
-      // Ensure pendingContributions and contributions are initialized
       studentBefore.pendingContributions = studentBefore.pendingContributions || { tampas: 0, latas: 0, oleo: 0 };
       studentBefore.contributions = studentBefore.contributions || { tampas: 0, latas: 0, oleo: 0 };
       studentBefore.narcisoCoins = studentBefore.narcisoCoins || 0;
 
-
       const unitsPerCoin = MATERIAL_UNITS_PER_COIN[material];
-      if (!unitsPerCoin || unitsPerCoin <= 0) return prevStudents; // Should not happen with current constants
+      if (!unitsPerCoin || unitsPerCoin <= 0) return prevStudents; 
 
       const materialPendingBefore = studentBefore.pendingContributions?.[material] || 0;
       const totalHistoricalContributionsBefore = studentBefore.contributions?.[material] || 0;
@@ -206,26 +216,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const updatedStudents = [...prevStudents];
       updatedStudents[studentIndex] = studentAfter;
 
-      const transactionLog = {
-        data: new Date().toISOString(),
-        alunoId: studentId,
-        alunoNome: studentAfter.name,
-        material: material,
-        quantidadeAdicionada: quantityAdded,
-        taxaConversaoAtual: `${unitsPerCoin} unidades por moeda`,
-        saldoMaterialPendenteAnterior: materialPendingBefore,
-        saldoMaterialPendenteAtual: materialPendingAfter,
-        moedasRecebidasNestaTroca: newCoinsEarnedThisTransaction,
-        totalMoedasAlunoAposTroca: studentAfter.narcisoCoins,
-        totalHistoricoMaterialAposTroca: studentAfter.contributions[material],
-      };
-      console.log("LOG DE CONTRIBUIÇÃO:", transactionLog);
-
+      // Log de transação (para referência futura)
+      // console.log("LOG DE CONTRIBUIÇÃO:", { /* ...detalhes... */ });
 
       updateLocalStorageStudents(updatedStudents);
       return updatedStudents;
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const getOverallStats = useCallback(() => {
@@ -233,7 +229,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     let totalCans = 0;
     let totalOil = 0;
     let totalCoins = 0;
-
     students.forEach(student => {
       totalLids += student.contributions?.[MATERIAL_TYPES.LIDS] || 0;
       totalCans += student.contributions?.[MATERIAL_TYPES.CANS] || 0;
@@ -243,13 +238,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return { totalLids, totalCans, totalOil, totalCoins };
   }, [students]);
 
-  console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: context value", {isAuthenticated, teacherName, studentsCount: students.length });
+  // console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: context value", {currentUser, isAuthenticated, teacherName, studentsCount: students.length });
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, teacherName, students, classes, login, logout, addStudent, updateStudent, deleteStudent, addContribution, getOverallStats }}>
+    <AuthContext.Provider value={{ currentUser, isAuthenticated, teacherName, students, classes, login, logout, addStudent, updateStudent, deleteStudent, addContribution, getOverallStats }}>
       {children}
     </AuthContext.Provider>
   );
 };
-
-    
