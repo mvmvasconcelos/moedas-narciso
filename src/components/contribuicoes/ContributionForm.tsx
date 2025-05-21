@@ -146,10 +146,10 @@ export function ContributionForm() {
                     type="button"
                     variant={selectedClass === cls.name ? "default" : "outline"}
                     onClick={() => handleClassSelect(cls.name)}
-                    className="w-full justify-start text-left whitespace-normal h-auto py-2 px-3"
+                    className="w-full h-auto py-3 px-2 flex flex-col items-center" // Changed to flex-col and items-center
                   >
-                    <UsersIcon className="mr-2 h-4 w-4 flex-shrink-0" />
-                    <span className="leading-snug">{cls.name}</span>
+                    <UsersIcon className="h-5 w-5 mb-1" /> {/* Adjusted icon size and added margin-bottom */}
+                    <span className="whitespace-normal text-center leading-snug text-xs sm:text-sm">{cls.name}</span>
                   </Button>
                 ))}
               </div>
