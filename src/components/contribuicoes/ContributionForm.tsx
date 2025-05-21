@@ -69,11 +69,8 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
   useEffect(() => {
     if (selectedClass) {
       setFilteredStudents(students.filter(s => s.className === selectedClass));
-      // Student selection and form reset for studentId happens in handleClassSelect
     } else {
       setFilteredStudents([]);
-      // form.setValue("studentId", ""); // Reset happens in handleClassSelect
-      // setSelectedStudent(null);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedClass, students]);
@@ -99,8 +96,8 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
     if (selectedClass === className) { // Clicked on the already selected class to deselect
       setSelectedClass(null);
       form.setValue("classId", "", { shouldValidate: true });
-      form.setValue("studentId", "");
-      setSelectedStudent(null);
+      form.setValue("studentId", ""); // Also reset studentId
+      setSelectedStudent(null); // And selectedStudent state
       form.setValue(materialType, 0);
     } else { // Clicked on a new class or no class was selected
       setSelectedClass(className);
@@ -114,7 +111,7 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
   function handleStudentSelect(studentId: string) {
     if (watchedStudentId === studentId) { // Clicked on the already selected student to deselect
         form.setValue("studentId", "", { shouldValidate: true });
-        setSelectedStudent(null);
+        // setSelectedStudent(null); // This is handled by the useEffect on watchedStudentId
         form.setValue(materialType, 0, {shouldValidate: true});
     } else {
         form.setValue("studentId", studentId, { shouldValidate: true });
@@ -174,42 +171,53 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
           <CardContent className="space-y-6 pt-6">
             <div>
               <FormLabel>Turma</FormLabel>
-              { !selectedClass ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-2">
-                  {classes.map((cls) => (
-                    <Button
-                      key={cls.id}
-                      type="button"
-                      variant={"outline"}
-                      onClick={() => handleClassSelect(cls.name)}
-                      className={cn(
-                        "w-full h-auto py-2 px-1.5 flex flex-col items-center whitespace-normal text-center leading-snug transition-all duration-200 ease-in-out",
-                        "hover:bg-primary hover:text-primary-foreground"
-                      )}
-                    >
-                        <UsersIcon className="h-4 w-4 sm:h-5 sm:w-5 mb-1 flex-shrink-0" />
-                        <span className="text-xs sm:text-sm">{cls.name}</span>
-                    </Button>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex justify-center mt-2">
-                  {classes.find(cls => cls.name === selectedClass) && (
-                    <Button
-                      key={selectedClass}
-                      type="button"
-                      variant="destructive"
-                      onClick={() => handleClassSelect(selectedClass)}
-                      className={cn(
-                        "w-full max-w-xs sm:max-w-sm h-auto py-3 px-4 flex flex-col items-center whitespace-normal text-center leading-snug"
-                      )}
-                    >
-                      <UsersIcon className="h-5 w-5 mb-1 flex-shrink-0" />
-                      <span className="text-sm">{selectedClass}</span>
-                    </Button>
-                  )}
-                </div>
-              )}
+              {/* Contêiner para o grid de todas as turmas */}
+              <div
+                className={cn(
+                  "grid grid-cols-2 sm:grid-cols-3 gap-3 mt-2 transition-all duration-300 ease-in-out overflow-hidden",
+                  selectedClass ? "opacity-0 max-h-0 pointer-events-none" : "opacity-100 max-h-[500px]"
+                )}
+              >
+                {classes.map((cls) => (
+                  <Button
+                    key={cls.id}
+                    type="button"
+                    variant={"outline"}
+                    onClick={() => handleClassSelect(cls.name)}
+                    className={cn(
+                      "w-full h-auto py-2 px-1.5 flex flex-col items-center whitespace-normal text-center leading-snug",
+                      "hover:bg-primary hover:text-primary-foreground"
+                    )}
+                  >
+                    <UsersIcon className="h-4 w-4 sm:h-5 sm:w-5 mb-1 flex-shrink-0" />
+                    <span className="text-xs sm:text-sm">{cls.name}</span>
+                  </Button>
+                ))}
+              </div>
+
+              {/* Contêiner para o botão da turma selecionada */}
+              <div
+                className={cn(
+                  "flex justify-center mt-2 transition-all duration-300 ease-in-out overflow-hidden",
+                  selectedClass ? "opacity-100 max-h-40" : "opacity-0 max-h-0 pointer-events-none"
+                )}
+              >
+                {selectedClass && classes.find(cls => cls.name === selectedClass) && (
+                  <Button
+                    key={selectedClass}
+                    type="button"
+                    variant="destructive"
+                    onClick={() => handleClassSelect(selectedClass)}
+                    className={cn(
+                      "w-full max-w-xs sm:max-w-sm h-auto py-3 px-4 flex flex-col items-center whitespace-normal text-center leading-snug"
+                    )}
+                  >
+                    <UsersIcon className="h-5 w-5 mb-1 flex-shrink-0" />
+                    <span className="text-sm">{selectedClass}</span>
+                  </Button>
+                )}
+              </div>
+              
               <FormField
                 control={form.control}
                 name="classId"
@@ -217,8 +225,9 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
               />
             </div>
 
+            {/* Seleção de Aluno - Grid */}
             {selectedClass && (
-              <div>
+              <div className="transition-opacity duration-300 ease-in-out opacity-100">
                 <FormLabel>Aluno</FormLabel>
                 {filteredStudents.length > 0 ? (
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mt-2">
