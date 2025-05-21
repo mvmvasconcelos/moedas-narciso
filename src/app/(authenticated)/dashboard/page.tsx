@@ -72,6 +72,11 @@ export default function DashboardPage() {
           isLoading={isLoading}
           className="w-full"
         />
+        <div className="mt-4 flex justify-center">
+          <Link href="/ranking" className="text-sm font-medium text-primary hover:underline">
+            Ver ranking dos alunos
+          </Link>
+        </div>
       </div>
 
       {/* Botões de Troca de Materiais */}
