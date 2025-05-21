@@ -41,7 +41,7 @@ export function SidebarNav() {
           {navItems.map((item) => {
             const Icon = item.icon;
             // Adjust isActive for /dashboard route as it's the new root for authenticated users
-            const isActive = (item.href === "/dashboard" && (pathname === "/dashboard" || pathname === "/")) || (item.href !== "/dashboard" && pathname === item.href);
+            const isActive = (item.href === "/dashboard" && (pathname === "/dashboard" || pathname.startsWith("/contribuicoes"))) || (item.href !== "/dashboard" && pathname.startsWith(item.href));
             return (
               <SidebarMenuItem key={item.href}>
                 <Link href={item.href} passHref legacyBehavior>
@@ -65,17 +65,17 @@ export function SidebarNav() {
           })}
         </SidebarMenu>
       </SidebarContent>
-      <SidebarFooter className="mt-auto border-t p-2 flex flex-col gap-2"> {/* Added flex flex-col gap-2 */}
+      <SidebarFooter className="mt-auto border-t p-2 flex flex-col gap-2">
         {teacherName && (
            <div className="px-2 py-1 text-xs text-sidebar-foreground/70 group-data-[collapsible=icon]:hidden truncate">
              Olá, {teacherName}
            </div>
         )}
-        <SidebarMenuItem>
+        <SidebarMenuItem className="list-none"> {/* Removed list style dot */}
           <SidebarMenuButton
             onClick={logout}
             tooltip={{children: "Sair", side: 'right', align: 'center' }}
-            className="justify-start w-full" // Ensure button takes full width
+            className="justify-start w-full" 
           >
             <LogOutIcon className="h-5 w-5" />
             <span className="group-data-[collapsible=icon]:hidden">Sair</span>
