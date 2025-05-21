@@ -1,14 +1,13 @@
 
 "use client";
 
+import Link from "next/link"; // Import Link
 import { Button } from "@/components/ui/button";
 import { LeafIcon, MenuIcon } from "lucide-react";
 import { useSidebar } from "@/components/ui/sidebar";
-// Removed useAuth and LogOutIcon imports as they are no longer used here
 
 export function Header() {
-  const { toggleSidebar } = useSidebar(); 
-  // Removed teacherName and logout from useAuth() as they are no longer used here
+  const { toggleSidebar } = useSidebar();
 
   return (
     <header className="sticky top-0 z-30 flex h-16 w-full items-center gap-4 border-b bg-background/80 backdrop-blur-sm px-4 md:px-6 shadow-sm">
@@ -17,11 +16,10 @@ export function Header() {
         <MenuIcon className="h-5 w-5" />
         <span className="sr-only">Abrir/Fechar menu</span>
       </Button>
-      <div className="flex items-center gap-2">
+      <Link href="/dashboard" className="flex items-center gap-2">
         <LeafIcon className="h-7 w-7 text-primary" />
         <h1 className="text-xl font-semibold text-primary">Moedas Narciso</h1>
-      </div>
-      {/* Removed the div containing teacher greeting and logout button */}
+      </Link>
     </header>
   );
 }
