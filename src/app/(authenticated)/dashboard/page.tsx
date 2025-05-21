@@ -44,8 +44,8 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="space-y-4"> {/* Reduced vertical spacing from space-y-6 */}
-        <div className="grid grid-cols-3 gap-4"> {/* Reduced horizontal gap from gap-6 */}
+      <div className="space-y-4">
+        <div className="grid grid-cols-3 gap-4">
           <StatCard
             title="Tampas"
             value={stats.totalLids}
@@ -70,6 +70,7 @@ export default function DashboardPage() {
           value={stats.totalCoins}
           icon={CoinsIcon}
           isLoading={isLoading}
+          className="w-full" 
         />
       </div>
 
@@ -80,11 +81,21 @@ export default function DashboardPage() {
         </h2>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           {materialButtons.map(({ material, label, icon: MaterialIcon }) => (
-            <Button key={material} size="lg" variant="outline" className="flex-1 sm:flex-initial" asChild>
-              <Link href={`/contribuicoes?material=${material}`}>
-                <RepeatIcon className="mr-2 h-5 w-5" />
-                <MaterialIcon className="mr-2 h-5 w-5" />
-                Trocar {label.replace(" (unidades)","")}
+            <Button 
+              key={material} 
+              variant="outline" 
+              className="flex-1 sm:flex-initial h-32 p-0" // Increased height, removed size prop, p-0
+              asChild
+            >
+              <Link 
+                href={`/contribuicoes?material=${material}`} 
+                className="flex flex-col items-center justify-center h-full w-full text-center p-2" // Flex column, center, padding
+              >
+                <div className="flex items-center mb-2"> {/* Group icons */}
+                  <RepeatIcon className="h-7 w-7" /> {/* Slightly larger icons */}
+                  <MaterialIcon className="ml-2 h-7 w-7" />
+                </div>
+                <span className="text-base">Trocar {label.replace(" (unidades)","")}</span>
               </Link>
             </Button>
           ))}
