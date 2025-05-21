@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useAuth } from "@/hooks/use-auth";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { Button } from "@/components/ui/button";
-import { CoinsIcon, PackageIcon, ArchiveIcon, DropletIcon, LayoutDashboardIcon, RepeatIcon, LucideIcon } from "lucide-react";
+import { CoinsIcon, PackageIcon, ArchiveIcon, DropletIcon, LayoutDashboardIcon, RepeatIcon, type LucideIcon } from "lucide-react";
 import { MATERIAL_LABELS, MATERIAL_TYPES, type MaterialType } from "@/lib/constants";
 
 export default function DashboardPage() {
@@ -44,22 +44,22 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="space-y-6">
-        <div className="grid grid-cols-3 gap-6">
+      <div className="space-y-4"> {/* Reduced vertical spacing from space-y-6 */}
+        <div className="grid grid-cols-3 gap-4"> {/* Reduced horizontal gap from gap-6 */}
           <StatCard
-            title={MATERIAL_LABELS[MATERIAL_TYPES.LIDS]}
+            title="Tampas"
             value={stats.totalLids}
             icon={PackageIcon}
             isLoading={isLoading}
           />
           <StatCard
-            title={MATERIAL_LABELS[MATERIAL_TYPES.CANS]}
+            title="Latas"
             value={stats.totalCans}
             icon={ArchiveIcon}
             isLoading={isLoading}
           />
           <StatCard
-            title={MATERIAL_LABELS[MATERIAL_TYPES.OIL].replace(" (unidades)", "")}
+            title="Óleo"
             value={stats.totalOil}
             icon={DropletIcon}
             isLoading={isLoading}
