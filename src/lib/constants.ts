@@ -15,10 +15,11 @@ export const MATERIAL_LABELS: Record<MaterialType, string> = {
   [MATERIAL_TYPES.OIL]: 'Óleo (unidades)',
 };
 
+// Updated conversion rates: coins earned per unit of material
 export const CONVERSION_RATES: Record<MaterialType, number> = {
-  [MATERIAL_TYPES.LIDS]: 1,
-  [MATERIAL_TYPES.CANS]: 5,
-  [MATERIAL_TYPES.OIL]: 10,
+  [MATERIAL_TYPES.LIDS]: 1 / 20, // 0.05 moedas por tampa
+  [MATERIAL_TYPES.CANS]: 1 / 30, // 1/30 moedas por lata
+  [MATERIAL_TYPES.OIL]: 1 / 2,   // 0.5 moedas por unidade de óleo
 };
 
 export interface Student {
@@ -60,10 +61,12 @@ export const MOCK_STUDENTS_INITIAL: Omit<Student, 'narcisoCoins' | 'id'>[] = [
   { name: 'Lucas Azevedo Sousa', className: '4º e 5º Anos', contributions: { tampas: 18, latas: 3, oleo: 1 } },
 ];
 
-export const calculateStudentCoins = (student: Omit<Student, 'narcisoCoins'>): number => {
-  const coinsFromLids = student.contributions.tampas * CONVERSION_RATES.tampas;
-  const coinsFromCans = student.contributions.latas * CONVERSION_RATES.latas;
-  const coinsFromOil = student.contributions.oleo * CONVERSION_RATES.oleo;
+export const calculateStudentCoins = (student: Omit<Student, 'narcisoCoins' | 'id' | 'className' | 'name'>): number => {
+  const coinsFromLids = (student.contributions[MATERIAL_TYPES.LIDS] || 0) * CONVERSION_RATES[MATERIAL_TYPES.LIDS];
+  const coinsFromCans = (student.contributions[MATERIAL_TYPES.CANS] || 0) * CONVERSION_RATES[MATERIAL_TYPES.CANS];
+  const coinsFromOil = (student.contributions[MATERIAL_TYPES.OIL] || 0) * CONVERSION_RATES[MATERIAL_TYPES.OIL];
+  // Summing up and ensuring a fixed number of decimal places, e.g., 2, if needed.
+  // For now, direct sum. Could use parseFloat().toFixed(2) if precise decimals are critical for display.
   return coinsFromLids + coinsFromCans + coinsFromOil;
 };
 
