@@ -64,7 +64,7 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
   });
 
   const watchedStudentId = form.watch("studentId");
-  const watchedMaterialQuantity = form.watch(materialType); // This is the new quantity being added
+  const watchedMaterialQuantity = form.watch(materialType);
 
   useEffect(() => {
     if (selectedClass) {
@@ -98,7 +98,6 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
 
   function handleStudentSelect(studentId: string) {
     form.setValue("studentId", studentId, { shouldValidate: true });
-    // student state will update via useEffect on watchedStudentId
     form.setValue(materialType, 0);
   }
 
@@ -113,7 +112,7 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
 
   function onSubmit(data: ContributionFormValues) {
     if (data.studentId && selectedStudent) {
-      const quantity = data[materialType]; // This is the new amount being added
+      const quantity = data[materialType];
       if (quantity !== undefined && quantity > 0) {
         addContribution(data.studentId, materialType, quantity as number);
         toast({
@@ -122,7 +121,6 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
         });
         form.setValue(materialType, 0, {shouldValidate: true});
 
-        // Re-fetch or update selectedStudent to show new balance correctly
         const updatedStudentData = students.find(s => s.id === data.studentId);
         if (updatedStudentData) {
           setSelectedStudent(updatedStudentData);
@@ -143,9 +141,7 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
   if (selectedStudent && watchedMaterialQuantity > 0 && MATERIAL_UNITS_PER_COIN[materialType]) {
     const unitsPerCoin = MATERIAL_UNITS_PER_COIN[materialType];
     const currentPendingForMaterial = selectedStudent.pendingContributions?.[materialType] || 0;
-
     const totalPendingAfterContribution = currentPendingForMaterial + watchedMaterialQuantity;
-
     coinsFromCurrentContribution = Math.floor(totalPendingAfterContribution / unitsPerCoin) - Math.floor(currentPendingForMaterial / unitsPerCoin);
   }
 
@@ -239,7 +235,7 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
                     <h3 className="text-lg font-medium">Adicionar {MATERIAL_LABELS[materialType]}:</h3>
                     <FormField
                       control={form.control}
-                      name={materialType} // Name matches the dynamic material type
+                      name={materialType}
                       render={({ field }) => (
                           <FormItem>
                           <FormLabel className="flex items-center sr-only">
@@ -286,20 +282,21 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
               </>
             )}
           </CardContent>
-          <CardFooter>
-            <Button
-              type="submit"
-              className="w-full md:w-auto ml-auto"
-              size="lg"
-              disabled={!selectedStudent || form.formState.isSubmitting || !watchedMaterialQuantity || watchedMaterialQuantity <= 0}
-            >
-              <SaveIcon className="mr-2 h-5 w-5" />
-              Registrar {MATERIAL_LABELS[materialType]}
-            </Button>
-          </CardFooter>
+          {selectedStudent && (
+            <CardFooter className="justify-center pt-6">
+              <Button
+                type="submit"
+                className="w-full sm:w-auto"
+                size="lg"
+                disabled={form.formState.isSubmitting || !watchedMaterialQuantity || watchedMaterialQuantity <= 0}
+              >
+                <SaveIcon className="mr-2 h-5 w-5" />
+                Registrar {MATERIAL_LABELS[materialType]}
+              </Button>
+            </CardFooter>
+          )}
         </form>
       </Form>
     </Card>
   );
 }
-

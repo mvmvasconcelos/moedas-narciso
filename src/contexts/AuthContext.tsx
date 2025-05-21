@@ -17,7 +17,7 @@ interface AuthContextType {
   login: (name: string) => void;
   logout: () => void;
   addStudent: (studentData: Omit<Student, 'id' | 'narcisoCoins' | 'contributions' | 'pendingContributions'>) => void;
-  updateStudent: (studentData: Omit<Student, 'id' | 'narcisoCoins' | 'contributions' | 'pendingContributions'>) => void;
+  updateStudent: (studentData: Partial<Omit<Student, 'id' | 'narcisoCoins' | 'contributions' | 'pendingContributions'>> & { id: string }) => void;
   deleteStudent: (studentId: string) => void;
   addContribution: (studentId: string, material: MaterialType, quantity: number) => void;
   getOverallStats: () => { totalLids: number; totalCans: number; totalOil: number; totalCoins: number };
@@ -44,11 +44,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const authData = JSON.parse(storedAuth);
         setIsAuthenticated(authData.isAuthenticated || false);
         setTeacherName(authData.teacherName || null);
-        console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: Loaded auth from localStorage", authData);
       } else {
         console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: No auth data in localStorage, setting to null.");
         setIsAuthenticated(false);
-        setTeacherName(null); // Explicitly set to null after checking
+        setTeacherName(null); 
       }
     } catch (error) {
       console.error("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: Failed to parse auth data from localStorage", error);
@@ -61,7 +60,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const storedStudents = localStorage.getItem(STUDENTS_STORAGE_KEY);
       if (storedStudents) {
         let parsedStudents: Student[] = JSON.parse(storedStudents);
-        // Ensure data integrity, especially for pendingContributions
         parsedStudents = parsedStudents.map(student => ({
           ...student,
           name: student.name || "Nome Desconhecido",
@@ -79,12 +77,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           narcisoCoins: student.narcisoCoins || 0,
         }));
         setStudents(parsedStudents);
-        console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: Loaded and validated students from localStorage");
       } else {
         const initialStudents = generateInitialStudents();
         setStudents(initialStudents);
         localStorage.setItem(STUDENTS_STORAGE_KEY, JSON.stringify(initialStudents));
-        console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: Initialized students and saved to localStorage");
       }
     } catch (error) {
       console.error("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: Failed to parse/validate students data from localStorage, re-initializing.", error);
@@ -160,9 +156,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const updatedStudents = prevStudents.map(s => {
         if (s.id === studentId) {
           const unitsPerCoin = MATERIAL_UNITS_PER_COIN[material];
-          if (unitsPerCoin <= 0) return s; // Avoid division by zero or invalid config
+          if (!unitsPerCoin || unitsPerCoin <= 0) return s; 
 
-          let currentMaterialPending = (s.pendingContributions && s.pendingContributions[material]) || 0;
+          let currentMaterialPending = (s.pendingContributions?.[material]) || 0;
           
           currentMaterialPending += quantity; 
           
@@ -172,11 +168,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           return {
             ...s,
             contributions: { 
-              ...s.contributions,
-              [material]: (s.contributions?.[material] || 0) + quantity,
+              ...(s.contributions || {}), // Ensure contributions object exists
+              [material]: ((s.contributions?.[material]) || 0) + quantity,
             },
             pendingContributions: { 
-              ...s.pendingContributions,
+              ...(s.pendingContributions || {}), // Ensure pendingContributions object exists
               [material]: updatedMaterialPending,
             },
             narcisoCoins: (s.narcisoCoins || 0) + newCoinsEarned, 
@@ -204,7 +200,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return { totalLids, totalCans, totalOil, totalCoins };
   }, [students]);
 
-  console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: context value", { isAuthenticated, teacherName: teacherName, studentsCount: students.length });
   return (
     <AuthContext.Provider value={{ isAuthenticated, teacherName, students, classes, login, logout, addStudent, updateStudent, deleteStudent, addContribution, getOverallStats }}>
       {children}
