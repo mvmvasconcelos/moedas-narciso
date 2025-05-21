@@ -84,14 +84,6 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
     }
   }, [watchedStudentId, students]);
 
-  useEffect(() => { 
-    if (watchedStudentId){
-        form.setValue(materialType, 0, { shouldValidate: true });
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [watchedStudentId]);
-
-
   function handleClassSelect(className: string) {
     if (selectedClass === className) { // Clicked on the already selected class to deselect
       setSelectedClass(null);
@@ -111,13 +103,12 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
   function handleStudentSelect(studentId: string) {
     if (watchedStudentId === studentId) { // Clicked on the already selected student to deselect
         form.setValue("studentId", "", { shouldValidate: true });
-        // setSelectedStudent(null); // This is handled by the useEffect on watchedStudentId
         form.setValue(materialType, 0, {shouldValidate: true});
-    } else {
+    } else { // Clicked a new student
         form.setValue("studentId", studentId, { shouldValidate: true });
+        form.setValue(materialType, 0, {shouldValidate: true}); // Reset quantity for new student
     }
   }
-
 
   const adjustQuantity = (amount: number) => {
     const currentValue = Number(form.getValues(materialType)) || 0;
@@ -141,7 +132,7 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
 
         const updatedStudentData = students.find(s => s.id === data.studentId);
         if (updatedStudentData) {
-          setSelectedStudent(updatedStudentData);
+          setSelectedStudent(updatedStudentData); // Refresh student data to show updated pending contributions/coins
         }
 
       } else {
@@ -163,7 +154,6 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
     coinsFromCurrentContribution = Math.floor(totalPendingAfterContribution / unitsPerCoin) - Math.floor(currentPendingForMaterial / unitsPerCoin);
   }
 
-
   return (
     <Card className="w-full max-w-2xl mx-auto shadow-xl">
       <Form {...form}>
@@ -171,11 +161,16 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
           <CardContent className="space-y-6 pt-6">
             <div>
               <FormLabel>Turma</FormLabel>
-              {/* Contêiner para o grid de todas as turmas */}
+              <FormField
+                control={form.control}
+                name="classId"
+                render={() => ( <FormItem><FormMessage className="mt-1 mb-2 text-xs" /></FormItem>)}
+              />
+              {/* Contêiner para o grid de todas as turmas (visível se NENHUMA turma selecionada) */}
               <div
                 className={cn(
-                  "grid grid-cols-2 sm:grid-cols-3 gap-3 mt-2 transition-all duration-300 ease-in-out overflow-hidden",
-                  selectedClass ? "opacity-0 max-h-0 pointer-events-none" : "opacity-100 max-h-[500px]"
+                  "grid grid-cols-2 sm:grid-cols-3 gap-2 mt-1 transition-all duration-500 ease-in-out overflow-hidden",
+                  selectedClass ? "opacity-0 max-h-0 invisible" : "opacity-100 max-h-[500px] visible"
                 )}
               >
                 {classes.map((cls) => (
@@ -195,19 +190,19 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
                 ))}
               </div>
 
-              {/* Contêiner para o botão da turma selecionada */}
+              {/* Contêiner para o botão da turma selecionada (visível se UMA turma ESTÁ selecionada) */}
               <div
                 className={cn(
-                  "flex justify-center mt-2 transition-all duration-300 ease-in-out overflow-hidden",
-                  selectedClass ? "opacity-100 max-h-40" : "opacity-0 max-h-0 pointer-events-none"
+                  "flex justify-center mt-1 transition-all duration-500 ease-in-out overflow-hidden",
+                  selectedClass ? "opacity-100 max-h-40 visible" : "opacity-0 max-h-0 invisible"
                 )}
               >
                 {selectedClass && classes.find(cls => cls.name === selectedClass) && (
                   <Button
-                    key={selectedClass}
+                    key={selectedClass} // Garante que o botão seja recriado ao mudar de turma
                     type="button"
                     variant="destructive"
-                    onClick={() => handleClassSelect(selectedClass)}
+                    onClick={() => handleClassSelect(selectedClass)} // Clicar para "desselecionar"
                     className={cn(
                       "w-full max-w-xs sm:max-w-sm h-auto py-3 px-4 flex flex-col items-center whitespace-normal text-center leading-snug"
                     )}
@@ -217,119 +212,154 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
                   </Button>
                 )}
               </div>
-              
-              <FormField
-                control={form.control}
-                name="classId"
-                render={() => ( <FormItem><FormMessage className="mt-2" /></FormItem>)}
-              />
             </div>
 
-            {/* Seleção de Aluno - Grid */}
+            {/* Container para Seleção de Aluno */}
             {selectedClass && (
-              <div className="transition-opacity duration-300 ease-in-out opacity-100">
+              <div className="mt-4"> {/* Outer container for student selection part */}
                 <FormLabel>Aluno</FormLabel>
-                {filteredStudents.length > 0 ? (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mt-2">
-                    {filteredStudents.map((std) => {
-                      const isStudentSelected = watchedStudentId === std.id;
-                      return (
-                        <Button
-                          key={std.id}
-                          type="button"
-                          variant={isStudentSelected ? "destructive" : "outline"}
-                          onClick={() => handleStudentSelect(std.id)}
-                           className={cn(
-                            "w-full h-auto py-2 px-1.5 flex flex-col items-center whitespace-normal text-center leading-tight",
-                            !isStudentSelected && "hover:bg-primary hover:text-primary-foreground"
-                          )}
-                        >
-                          <UserIcon className="h-4 w-4 mb-1 flex-shrink-0" />
-                          <span className="text-xs">{std.name}</span>
-                        </Button>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground mt-2">Nenhum aluno encontrado nesta turma.</p>
-                )}
                 <FormField
                   control={form.control}
                   name="studentId"
-                  render={() => (<FormItem><FormMessage className="mt-2" /></FormItem>)}
+                  render={() => ( <FormItem><FormMessage className="mt-1 mb-2 text-xs" /></FormItem>)}
                 />
+
+                {/* Grid de Alunos (visível se NENHUM aluno selecionado AINDA) */}
+                <div
+                  className={cn(
+                    "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mt-1 transition-all duration-500 ease-in-out overflow-hidden",
+                    watchedStudentId ? "opacity-0 max-h-0 invisible" : "opacity-100 max-h-[500px] visible"
+                  )}
+                >
+                  {filteredStudents.length > 0 ? (
+                    filteredStudents.map((std) => (
+                      <Button
+                        key={std.id}
+                        type="button"
+                        variant={"outline"}
+                        onClick={() => handleStudentSelect(std.id)}
+                        className={cn(
+                          "w-full h-auto py-2 px-1.5 flex flex-col items-center whitespace-normal text-center leading-tight",
+                          "hover:bg-primary hover:text-primary-foreground"
+                        )}
+                      >
+                        <UserIcon className="h-4 w-4 mb-1 flex-shrink-0" />
+                        <span className="text-xs">{std.name}</span>
+                      </Button>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground mt-2 col-span-full">Nenhum aluno encontrado nesta turma.</p>
+                  )}
+                </div>
+
+                {/* Botão do Aluno Selecionado (visível se UM aluno ESTÁ selecionado) */}
+                <div
+                  className={cn(
+                    "flex justify-center mt-1 transition-all duration-500 ease-in-out overflow-hidden",
+                    watchedStudentId && selectedStudent ? "opacity-100 max-h-40 visible" : "opacity-0 max-h-0 invisible"
+                  )}
+                >
+                  {selectedStudent && ( 
+                    <Button
+                      key={selectedStudent.id} // Garante que o botão seja recriado ao mudar de aluno
+                      type="button"
+                      variant="destructive"
+                      onClick={() => handleStudentSelect(selectedStudent.id)} // Click to deselect
+                      className={cn(
+                        "w-full max-w-xs sm:max-w-sm h-auto py-3 px-4 flex flex-col items-center whitespace-normal text-center leading-snug"
+                      )}
+                    >
+                      <UserIcon className="h-5 w-5 mb-1 flex-shrink-0" />
+                      <span className="text-sm">{selectedStudent.name}</span>
+                    </Button>
+                  )}
+                </div>
               </div>
             )}
 
-            {selectedStudent && (
-              <>
-                <div className="p-4 border rounded-md bg-card shadow-sm">
-                  <h3 className="text-sm font-medium text-muted-foreground">Saldo Atual de {selectedStudent.name}:</h3>
-                  <div className="flex items-center justify-between mt-1">
-                    <p className="text-2xl font-bold text-primary flex items-center">
-                      <CoinsIcon className="mr-2 h-6 w-6" /> {selectedStudent.narcisoCoins || 0}
-                      <span className="text-lg ml-1">Moedas</span>
-                    </p>
-                  </div>
-                  <div className="text-xs text-muted-foreground mt-1 flex items-center">
-                      <MaterialIcon className="mr-1 h-3 w-3" />
-                      Saldo pendente de {MATERIAL_LABELS[materialType].toLowerCase().replace(" (unidades)","")}: {selectedStudent.pendingContributions?.[materialType] || 0}
-                  </div>
-                </div>
-
-                <div className="space-y-4 pt-4 border-t">
-                    <h3 className="text-lg font-medium">Adicionar {MATERIAL_LABELS[materialType].replace(" (unidades)","")}:</h3>
-                    <FormField
-                      control={form.control}
-                      name={materialType}
-                      render={({ field }) => (
-                          <FormItem>
-                          <FormLabel className="flex items-center sr-only">
-                            <MaterialIcon className="mr-2 h-4 w-4 text-primary" />
-                            {MATERIAL_LABELS[materialType]}
-                          </FormLabel>
-                          <FormControl>
-                              <Input
-                                type="number"
-                                placeholder="Quantidade"
-                                {...field}
-                                onChange={e => field.onChange(Math.max(0, parseInt(e.target.value, 10) || 0))}
-                                value={field.value === undefined || field.value === null || isNaN(Number(field.value)) ? 0 : Number(field.value)}
-                                className="text-center text-xl h-12"
-                              />
-                          </FormControl>
-                          <FormMessage />
-                          </FormItem>
-                      )}
-                    />
-                     {selectedStudent && typeof watchedMaterialQuantity === 'number' && watchedMaterialQuantity > 0 && (
-                      <div className="mt-1 text-xs text-center text-primary font-medium">
-                        <CoinsIcon className="inline-block mr-1 h-3 w-3" />
-                        <span>+{ coinsFromCurrentContribution } Moedas Narciso por esta contribuição</span>
-                      </div>
-                    )}
-                    <div className="space-y-2">
-                        <div className="grid grid-cols-4 gap-2">
-                            {quantityButtons.map(val => (
-                                <Button key={`add-${val}`} type="button" variant="outline" onClick={() => adjustQuantity(val)}>
-                                    +{val}
-                                </Button>
-                            ))}
-                        </div>
-                        <div className="grid grid-cols-4 gap-2">
-                            {quantityButtons.map(val => (
-                                <Button key={`sub-${val}`} type="button" variant="outline" onClick={() => adjustQuantity(-val)}>
-                                    -{val}
-                                </Button>
-                            ))}
-                        </div>
+            {/* Seção de Detalhes e Entrada de Material (aparece se um aluno estiver selecionado) */}
+            <div
+              className={cn(
+                "space-y-6 pt-6 transition-all duration-500 ease-in-out overflow-hidden",
+                watchedStudentId && selectedStudent ? "opacity-100 max-h-[1000px] visible" : "opacity-0 max-h-0 invisible"
+              )}
+            >
+              {selectedStudent && (
+                <>
+                  <div className="p-4 border rounded-md bg-card shadow-sm">
+                    <h3 className="text-sm font-medium text-muted-foreground">Saldo Atual de {selectedStudent.name}:</h3>
+                    <div className="flex items-center justify-between mt-1">
+                      <p className="text-2xl font-bold text-primary flex items-center">
+                        <CoinsIcon className="mr-2 h-6 w-6" /> {selectedStudent.narcisoCoins || 0}
+                        <span className="text-lg ml-1">Moedas</span>
+                      </p>
                     </div>
-                </div>
-              </>
-            )}
+                    <div className="text-xs text-muted-foreground mt-1 flex items-center">
+                        <MaterialIcon className="mr-1 h-3 w-3" />
+                        Saldo pendente de {MATERIAL_LABELS[materialType].toLowerCase().replace(" (unidades)","")}: {selectedStudent.pendingContributions?.[materialType] || 0}
+                    </div>
+                  </div>
+
+                  <div className="space-y-4 pt-4 border-t">
+                      <h3 className="text-lg font-medium">Adicionar {MATERIAL_LABELS[materialType].replace(" (unidades)","")}:</h3>
+                      <FormField
+                        control={form.control}
+                        name={materialType}
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel className="flex items-center sr-only">
+                              <MaterialIcon className="mr-2 h-4 w-4 text-primary" />
+                              {MATERIAL_LABELS[materialType]}
+                            </FormLabel>
+                            <FormControl>
+                                <Input
+                                  type="number"
+                                  placeholder="Quantidade"
+                                  {...field}
+                                  onChange={e => field.onChange(Math.max(0, parseInt(e.target.value, 10) || 0))}
+                                  value={field.value === undefined || field.value === null || isNaN(Number(field.value)) ? 0 : Number(field.value)}
+                                  className="text-center text-xl h-12"
+                                />
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                      />
+                       {selectedStudent && typeof watchedMaterialQuantity === 'number' && watchedMaterialQuantity > 0 && (
+                        <div className="mt-1 text-xs text-center text-primary font-medium">
+                          <CoinsIcon className="inline-block mr-1 h-3 w-3" />
+                          <span>+{ coinsFromCurrentContribution } Moedas Narciso por esta contribuição</span>
+                        </div>
+                      )}
+                      <div className="space-y-2">
+                          <div className="grid grid-cols-4 gap-2">
+                              {quantityButtons.map(val => (
+                                  <Button key={`add-${val}`} type="button" variant="outline" onClick={() => adjustQuantity(val)}>
+                                      +{val}
+                                  </Button>
+                              ))}
+                          </div>
+                          <div className="grid grid-cols-4 gap-2">
+                              {quantityButtons.map(val => (
+                                  <Button key={`sub-${val}`} type="button" variant="outline" onClick={() => adjustQuantity(-val)}>
+                                      -{val}
+                                  </Button>
+                              ))}
+                          </div>
+                      </div>
+                  </div>
+                </>
+              )}
+            </div>
           </CardContent>
-          {selectedStudent && (
-            <CardFooter className="justify-center pt-6">
+          {/* Footer com Botão de Submissão (aparece se um aluno estiver selecionado) */}
+          <CardFooter
+            className={cn(
+              "justify-center pt-6 transition-all duration-500 ease-in-out overflow-hidden",
+               watchedStudentId && selectedStudent ? "opacity-100 max-h-40 visible" : "opacity-0 max-h-0 invisible"
+            )}
+          >
+            {selectedStudent && ( 
               <Button
                 type="submit"
                 className="w-full sm:w-auto"
@@ -339,12 +369,11 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
                 <SaveIcon className="mr-2 h-5 w-5" />
                 Registrar {MATERIAL_LABELS[materialType].replace(" (unidades)","")}
               </Button>
-            </CardFooter>
-          )}
+            )}
+          </CardFooter>
         </form>
       </Form>
     </Card>
   );
 }
-
     
