@@ -8,7 +8,7 @@ import { MATERIAL_TYPES, MATERIAL_LABELS } from "@/lib/constants";
 import { StudentRankCard } from "@/components/ranking/StudentRankCard";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { BarChart3Icon, CoinsIcon, PackageIcon, ArchiveIcon, DropletIcon, UsersIcon, TrophyIcon, AwardIcon, FilterIcon, LucideIcon } from "lucide-react"; // type LucideIcon importado
+import { BarChart3Icon, CoinsIcon, PackageIcon, ArchiveIcon, DropletIcon, UsersIcon, TrophyIcon, AwardIcon, FilterIcon, type LucideIcon } from "lucide-react"; // type LucideIcon importado
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
@@ -37,6 +37,13 @@ export default function RankingPage() {
 
   const topCoinStudent = useMemo(() => sortedByCoins[0], [sortedByCoins]);
   const nextFourCoinStudents = useMemo(() => sortedByCoins.slice(1, 5), [sortedByCoins]);
+
+  const getTopCoinStudentTitle = (student: Student | undefined | null): string => {
+    if (!student) return "#1 - Campeão(ã) de Moedas";
+    if (student.gender === 'masculino') return "#1 - Campeão de Moedas";
+    if (student.gender === 'feminino') return "#1 - Campeã de Moedas";
+    return "#1 - Campeão(ã) de Moedas";
+  };
 
   const findTopContributor = (material: MaterialType): Student | null => {
     if (students.length === 0) return null;
@@ -94,7 +101,7 @@ export default function RankingPage() {
     return MATERIAL_LABELS[criterion].replace(" (unidades)", "");
   };
   
-  const getCriterionIcon = (criterion: SortCriterion) => {
+  const getCriterionIcon = (criterion: SortCriterion): LucideIcon => {
     if (criterion === 'narcisoCoins') return CoinsIcon;
     if (criterion === MATERIAL_TYPES.LIDS) return PackageIcon;
     if (criterion === MATERIAL_TYPES.CANS) return ArchiveIcon;
@@ -133,7 +140,7 @@ export default function RankingPage() {
         {topCoinStudent ? (
           <StudentRankCard
             student={topCoinStudent}
-            title="#1 - Campeão(ã) de Moedas"
+            title={getTopCoinStudentTitle(topCoinStudent)}
             value={`${topCoinStudent.narcisoCoins} Moedas`}
             icon={CoinsIcon}
             variant="prominent"
@@ -143,7 +150,7 @@ export default function RankingPage() {
         ) : (
            <StudentRankCard
             student={null}
-            title="#1 - Campeão(ã) de Moedas"
+            title={getTopCoinStudentTitle(null)}
             value={"N/A"}
             icon={CoinsIcon}
             variant="prominent"
@@ -300,3 +307,6 @@ export default function RankingPage() {
     </div>
   );
 }
+
+
+    
