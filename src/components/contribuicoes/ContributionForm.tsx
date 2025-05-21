@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -68,15 +69,14 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
   useEffect(() => {
     if (selectedClass) {
       setFilteredStudents(students.filter(s => s.className === selectedClass));
-      form.setValue("studentId", ""); // Reset student selection
-      setSelectedStudent(null);
+      // Student selection and form reset for studentId happens in handleClassSelect
     } else {
       setFilteredStudents([]);
-      form.setValue("studentId", "");
-      setSelectedStudent(null);
+      // form.setValue("studentId", ""); // Reset happens in handleClassSelect
+      // setSelectedStudent(null);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedClass, students]); // form.setValue removed from deps to avoid loop
+  }, [selectedClass, students]);
 
   useEffect(() => {
     if (watchedStudentId) {
@@ -87,7 +87,7 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
     }
   }, [watchedStudentId, students]);
 
-  useEffect(() => { // Reset form material quantity when student changes
+  useEffect(() => { 
     if (watchedStudentId){
         form.setValue(materialType, 0, { shouldValidate: true });
     }
@@ -96,17 +96,31 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
 
 
   function handleClassSelect(className: string) {
-    setSelectedClass(className);
-    form.setValue("classId", className, { shouldValidate: true });
-    form.setValue("studentId", ""); // Also reset studentId field in form
-    setSelectedStudent(null); // Reset student object
-    form.setValue(materialType, 0); // Reset material quantity
+    if (selectedClass === className) { // Clicked on the already selected class to deselect
+      setSelectedClass(null);
+      form.setValue("classId", "", { shouldValidate: true });
+      form.setValue("studentId", "");
+      setSelectedStudent(null);
+      form.setValue(materialType, 0);
+    } else { // Clicked on a new class or no class was selected
+      setSelectedClass(className);
+      form.setValue("classId", className, { shouldValidate: true });
+      form.setValue("studentId", ""); 
+      setSelectedStudent(null); 
+      form.setValue(materialType, 0); 
+    }
   }
 
   function handleStudentSelect(studentId: string) {
-    form.setValue("studentId", studentId, { shouldValidate: true });
-    // form.setValue(materialType, 0); // Material quantity reset is now in useEffect
+    if (watchedStudentId === studentId) { // Clicked on the already selected student to deselect
+        form.setValue("studentId", "", { shouldValidate: true });
+        setSelectedStudent(null);
+        form.setValue(materialType, 0, {shouldValidate: true});
+    } else {
+        form.setValue("studentId", studentId, { shouldValidate: true });
+    }
   }
+
 
   const adjustQuantity = (amount: number) => {
     const currentValue = Number(form.getValues(materialType)) || 0;
@@ -126,9 +140,8 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
           title: "Sucesso!",
           description: `${quantity} ${MATERIAL_LABELS[materialType].toLowerCase().replace(" (unidades)","")} de ${selectedStudent?.name || 'aluno'} registradas.`,
         });
-        form.setValue(materialType, 0, {shouldValidate: true}); // Reset only material quantity
+        form.setValue(materialType, 0, {shouldValidate: true}); 
 
-        // Update selectedStudent data locally to reflect new totals
         const updatedStudentData = students.find(s => s.id === data.studentId);
         if (updatedStudentData) {
           setSelectedStudent(updatedStudentData);
@@ -146,7 +159,7 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
     DropletIcon;
 
   let coinsFromCurrentContribution = 0;
-  if (selectedStudent && watchedMaterialQuantity > 0 && MATERIAL_UNITS_PER_COIN[materialType]) {
+  if (selectedStudent && typeof watchedMaterialQuantity === 'number' && watchedMaterialQuantity > 0 && MATERIAL_UNITS_PER_COIN[materialType]) {
     const unitsPerCoin = MATERIAL_UNITS_PER_COIN[materialType];
     const currentPendingForMaterial = selectedStudent.pendingContributions?.[materialType] || 0;
     const totalPendingAfterContribution = currentPendingForMaterial + watchedMaterialQuantity;
@@ -161,35 +174,42 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
           <CardContent className="space-y-6 pt-6">
             <div>
               <FormLabel>Turma</FormLabel>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-2">
-                {classes.map((cls) => {
-                  const isClassSelectedCurrently = selectedClass === cls.name;
-                  return (
+              { !selectedClass ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-2">
+                  {classes.map((cls) => (
                     <Button
                       key={cls.id}
                       type="button"
-                      variant={isClassSelectedCurrently ? "destructive" : "outline"}
+                      variant={"outline"}
                       onClick={() => handleClassSelect(cls.name)}
                       className={cn(
-                        "w-full h-auto flex flex-col items-center whitespace-normal text-center leading-snug transition-all duration-200 ease-in-out",
-                        !selectedClass && "py-3 px-2", // Larger padding when no class is selected
-                        selectedClass && "py-2 px-1.5 sm:py-3 sm:px-2", // Smaller on mobile, revert on sm+ when class is selected
-                        !isClassSelectedCurrently && "hover:bg-primary hover:text-primary-foreground"
+                        "w-full h-auto py-2 px-1.5 flex flex-col items-center whitespace-normal text-center leading-snug transition-all duration-200 ease-in-out",
+                        "hover:bg-primary hover:text-primary-foreground"
                       )}
                     >
-                      <UsersIcon className={cn(
-                          "mb-1 flex-shrink-0 transition-all duration-200 ease-in-out",
-                          !selectedClass && "h-5 w-5", // Larger icon when no class is selected
-                          selectedClass && "h-4 w-4 sm:h-5 sm:w-5" // Smaller icon on mobile, revert on sm+
-                      )} />
-                      <span className={cn(
-                        "transition-all duration-200 ease-in-out",
-                        "text-xs sm:text-sm" // Consistent text size, visual change from padding/icon
-                      )}>{cls.name}</span>
+                        <UsersIcon className="h-4 w-4 sm:h-5 sm:w-5 mb-1 flex-shrink-0" />
+                        <span className="text-xs sm:text-sm">{cls.name}</span>
                     </Button>
-                  );
-                })}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex justify-center mt-2">
+                  {classes.find(cls => cls.name === selectedClass) && (
+                    <Button
+                      key={selectedClass}
+                      type="button"
+                      variant="destructive"
+                      onClick={() => handleClassSelect(selectedClass)}
+                      className={cn(
+                        "w-full max-w-xs sm:max-w-sm h-auto py-3 px-4 flex flex-col items-center whitespace-normal text-center leading-snug"
+                      )}
+                    >
+                      <UsersIcon className="h-5 w-5 mb-1 flex-shrink-0" />
+                      <span className="text-sm">{selectedClass}</span>
+                    </Button>
+                  )}
+                </div>
+              )}
               <FormField
                 control={form.control}
                 name="classId"
@@ -318,3 +338,4 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
   );
 }
 
+    
