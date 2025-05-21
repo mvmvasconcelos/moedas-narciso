@@ -69,7 +69,7 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
   useEffect(() => {
     if (selectedClass) {
       setFilteredStudents(students.filter(s => s.className === selectedClass));
-      form.setValue("studentId", ""); 
+      form.setValue("studentId", "");
       setSelectedStudent(null);
     } else {
       setFilteredStudents([]);
@@ -77,7 +77,7 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
       setSelectedStudent(null);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedClass, students]); 
+  }, [selectedClass, students, form.setValue]);
 
   useEffect(() => {
     if (watchedStudentId) {
@@ -91,15 +91,15 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
   function handleClassSelect(className: string) {
     setSelectedClass(className);
     form.setValue("classId", className, { shouldValidate: true });
-    form.setValue("studentId", ""); 
+    form.setValue("studentId", "");
     setSelectedStudent(null);
-    form.setValue(materialType, 0); 
+    form.setValue(materialType, 0);
   }
 
   function handleStudentSelect(studentId: string) {
     form.setValue("studentId", studentId, { shouldValidate: true });
     // student state will update via useEffect on watchedStudentId
-    form.setValue(materialType, 0); 
+    form.setValue(materialType, 0);
   }
 
   const adjustQuantity = (amount: number) => {
@@ -121,7 +121,7 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
           description: `${quantity} ${MATERIAL_LABELS[materialType].toLowerCase()} de ${selectedStudent?.name || 'aluno'} registradas.`,
         });
         form.setValue(materialType, 0, {shouldValidate: true});
-        
+
         // Re-fetch or update selectedStudent to show new balance correctly
         const updatedStudentData = students.find(s => s.id === data.studentId);
         if (updatedStudentData) {
@@ -133,8 +133,8 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
       }
     }
   }
-  
-  const MaterialIcon = 
+
+  const MaterialIcon =
     materialType === MATERIAL_TYPES.LIDS ? PackageIcon :
     materialType === MATERIAL_TYPES.CANS ? ArchiveIcon :
     DropletIcon;
@@ -142,10 +142,10 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
   let coinsFromCurrentContribution = 0;
   if (selectedStudent && watchedMaterialQuantity > 0 && MATERIAL_UNITS_PER_COIN[materialType]) {
     const unitsPerCoin = MATERIAL_UNITS_PER_COIN[materialType];
-    const currentPendingForMaterial = selectedStudent.pendingContributions[materialType] || 0;
-    
+    const currentPendingForMaterial = selectedStudent.pendingContributions?.[materialType] || 0;
+
     const totalPendingAfterContribution = currentPendingForMaterial + watchedMaterialQuantity;
-    
+
     coinsFromCurrentContribution = Math.floor(totalPendingAfterContribution / unitsPerCoin) - Math.floor(currentPendingForMaterial / unitsPerCoin);
   }
 
@@ -225,13 +225,13 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
                   <h3 className="text-sm font-medium text-muted-foreground">Saldo Atual de {selectedStudent.name}:</h3>
                   <div className="flex items-center justify-between mt-1">
                     <p className="text-2xl font-bold text-primary flex items-center">
-                      <CoinsIcon className="mr-2 h-6 w-6" /> {selectedStudent.narcisoCoins}
+                      <CoinsIcon className="mr-2 h-6 w-6" /> {selectedStudent.narcisoCoins || 0}
                       <span className="text-lg ml-1">Moedas</span>
                     </p>
                   </div>
                   <div className="text-xs text-muted-foreground mt-1 flex items-center">
                       <MaterialIcon className="mr-1 h-3 w-3" />
-                      Saldo pendente de {MATERIAL_LABELS[materialType].toLowerCase()}: {selectedStudent.pendingContributions[materialType] || 0}
+                      Saldo pendente de {MATERIAL_LABELS[materialType].toLowerCase()}: {selectedStudent.pendingContributions?.[materialType] || 0}
                   </div>
                 </div>
 
@@ -287,10 +287,10 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
             )}
           </CardContent>
           <CardFooter>
-            <Button 
-              type="submit" 
-              className="w-full md:w-auto ml-auto" 
-              size="lg" 
+            <Button
+              type="submit"
+              className="w-full md:w-auto ml-auto"
+              size="lg"
               disabled={!selectedStudent || form.formState.isSubmitting || !watchedMaterialQuantity || watchedMaterialQuantity <= 0}
             >
               <SaveIcon className="mr-2 h-5 w-5" />
@@ -302,3 +302,4 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
     </Card>
   );
 }
+

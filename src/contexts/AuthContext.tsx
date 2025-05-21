@@ -17,7 +17,7 @@ interface AuthContextType {
   login: (name: string) => void;
   logout: () => void;
   addStudent: (studentData: Omit<Student, 'id' | 'narcisoCoins' | 'contributions' | 'pendingContributions'>) => void;
-  updateStudent: (studentData: Omit<Student, 'narcisoCoins' | 'contributions' | 'pendingContributions'>) => void;
+  updateStudent: (studentData: Omit<Student, 'id' | 'narcisoCoins' | 'contributions' | 'pendingContributions'>) => void;
   deleteStudent: (studentId: string) => void;
   addContribution: (studentId: string, material: MaterialType, quantity: number) => void;
   getOverallStats: () => { totalLids: number; totalCans: number; totalOil: number; totalCoins: number };
@@ -60,8 +60,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const storedStudents = localStorage.getItem(STUDENTS_STORAGE_KEY);
       if (storedStudents) {
-        setStudents(JSON.parse(storedStudents));
-        console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: Loaded students from localStorage");
+        let parsedStudents: Student[] = JSON.parse(storedStudents);
+        // Ensure data integrity, especially for pendingContributions
+        parsedStudents = parsedStudents.map(student => ({
+          ...student,
+          name: student.name || "Nome Desconhecido",
+          className: student.className || "Turma Desconhecida",
+          contributions: student.contributions || { 
+            [MATERIAL_TYPES.LIDS]: 0, 
+            [MATERIAL_TYPES.CANS]: 0, 
+            [MATERIAL_TYPES.OIL]: 0 
+          },
+          pendingContributions: student.pendingContributions || { 
+            [MATERIAL_TYPES.LIDS]: 0, 
+            [MATERIAL_TYPES.CANS]: 0, 
+            [MATERIAL_TYPES.OIL]: 0 
+          },
+          narcisoCoins: student.narcisoCoins || 0,
+        }));
+        setStudents(parsedStudents);
+        console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: Loaded and validated students from localStorage");
       } else {
         const initialStudents = generateInitialStudents();
         setStudents(initialStudents);
@@ -69,7 +87,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: Initialized students and saved to localStorage");
       }
     } catch (error) {
-      console.error("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: Failed to parse students data from localStorage, re-initializing.", error);
+      console.error("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: Failed to parse/validate students data from localStorage, re-initializing.", error);
       const initialStudents = generateInitialStudents();
       setStudents(initialStudents);
       localStorage.setItem(STUDENTS_STORAGE_KEY, JSON.stringify(initialStudents));
@@ -101,9 +119,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const newStudent: Student = {
         ...studentData,
         id: `s${Date.now()}`,
-        contributions: { tampas: 0, latas: 0, oleo: 0 }, // Historical starts at 0
-        pendingContributions: { tampas: 0, latas: 0, oleo: 0 }, // Pending starts at 0
-        narcisoCoins: 0, // Coins start at 0
+        contributions: { 
+          [MATERIAL_TYPES.LIDS]: 0, 
+          [MATERIAL_TYPES.CANS]: 0, 
+          [MATERIAL_TYPES.OIL]: 0 
+        },
+        pendingContributions: { 
+          [MATERIAL_TYPES.LIDS]: 0, 
+          [MATERIAL_TYPES.CANS]: 0, 
+          [MATERIAL_TYPES.OIL]: 0 
+        },
+        narcisoCoins: 0,
       };
       const updatedStudents = [...prevStudents, newStudent];
       updateLocalStorageStudents(updatedStudents);
@@ -111,13 +137,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
   }, []);
 
-  const updateStudent = useCallback((studentData: Omit<Student, 'id' | 'narcisoCoins' | 'contributions' | 'pendingContributions'>) => {
+  const updateStudent = useCallback((studentData: Partial<Omit<Student, 'id' | 'narcisoCoins' | 'contributions' | 'pendingContributions'>> & { id: string }) => {
     setStudents(prevStudents => {
       const updatedStudents = prevStudents.map(s =>
-        s.id === studentData.id ? { ...s, name: studentData.name, className: studentData.className } : s
+        s.id === studentData.id ? { ...s, name: studentData.name || s.name, className: studentData.className || s.className } : s
       );
-      // Note: This simplified updateStudent doesn't touch contributions or coins.
-      // If class/name change should re-evaluate something, that logic would be here.
       updateLocalStorageStudents(updatedStudents);
       return updatedStudents;
     });
@@ -138,9 +162,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           const unitsPerCoin = MATERIAL_UNITS_PER_COIN[material];
           if (unitsPerCoin <= 0) return s; // Avoid division by zero or invalid config
 
-          let currentMaterialPending = s.pendingContributions[material] || 0;
+          let currentMaterialPending = (s.pendingContributions && s.pendingContributions[material]) || 0;
           
-          // Add new quantity to what was already pending for this material
           currentMaterialPending += quantity; 
           
           const newCoinsEarned = Math.floor(currentMaterialPending / unitsPerCoin);
@@ -148,18 +171,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           
           return {
             ...s,
-            // Update total historical contributions
             contributions: { 
               ...s.contributions,
-              [material]: (s.contributions[material] || 0) + quantity,
+              [material]: (s.contributions?.[material] || 0) + quantity,
             },
-            // Update pending for this material
             pendingContributions: { 
               ...s.pendingContributions,
               [material]: updatedMaterialPending,
             },
-            // Add newly earned coins to student's total
-            narcisoCoins: s.narcisoCoins + newCoinsEarned, 
+            narcisoCoins: (s.narcisoCoins || 0) + newCoinsEarned, 
           };
         }
         return s;
@@ -176,9 +196,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     let totalCoins = 0;
 
     students.forEach(student => {
-      totalLids += student.contributions[MATERIAL_TYPES.LIDS] || 0;
-      totalCans += student.contributions[MATERIAL_TYPES.CANS] || 0;
-      totalOil += student.contributions[MATERIAL_TYPES.OIL] || 0;
+      totalLids += student.contributions?.[MATERIAL_TYPES.LIDS] || 0;
+      totalCans += student.contributions?.[MATERIAL_TYPES.CANS] || 0;
+      totalOil += student.contributions?.[MATERIAL_TYPES.OIL] || 0;
       totalCoins += student.narcisoCoins || 0;
     });
     return { totalLids, totalCans, totalOil, totalCoins };
