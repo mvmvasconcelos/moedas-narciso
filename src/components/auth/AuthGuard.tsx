@@ -21,8 +21,7 @@ export function AuthGuard({ children }: { children: ReactNode }) {
       console.log("DEBUG: /src/components/auth/AuthGuard.tsx - Auth state loading (teacherName is undefined) (Mock Auth Version)");
       return; 
     }
-    
-    if (!isAuthenticated) { 
+      if (!isAuthenticated) { 
         console.log("DEBUG: /src/components/auth/AuthGuard.tsx - Not authenticated, redirecting to /login (Mock Auth Version)");
         router.replace('/login');
     } else { 

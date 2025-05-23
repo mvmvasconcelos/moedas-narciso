@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -46,10 +45,9 @@ export function SidebarNav() {
       </SidebarHeader>
       <SidebarContent className="p-2">
         <SidebarMenu>
-          {navItems.map((item) => {
-            const Icon = item.icon;
+          {navItems.map((item) => {            const Icon = item.icon;
             // Adjusted isActive logic to correctly highlight dashboard when on /contribuicoes
-            const isActive =
+            const isActive = 
               (item.href === "/dashboard" && (pathname === "/dashboard" || pathname.startsWith("/contribuicoes"))) ||
               (item.href !== "/dashboard" && pathname.startsWith(item.href));
 

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { Suspense } from 'react';
@@ -8,6 +7,13 @@ import { ClipboardPlusIcon, PackageIcon, ArchiveIcon, DropletIcon } from "lucide
 import { MATERIAL_TYPES, MATERIAL_LABELS, type MaterialType } from "@/lib/constants";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
+export default function ContribuicoesPage() {
+  return (
+    <Suspense fallback={<div>Carregando detalhes da contribuição...</div>}>
+      <ContribuicoesContent />
+    </Suspense>
+  );
+}
 
 function ContribuicoesContent() {
   const searchParams = useSearchParams();
@@ -24,7 +30,6 @@ function ContribuicoesContent() {
     else if (materialParam === MATERIAL_TYPES.CANS) PageIcon = ArchiveIcon;
     else if (materialParam === MATERIAL_TYPES.OIL) PageIcon = DropletIcon;
   }
-
 
   return (
     <div className="space-y-8">
@@ -53,14 +58,5 @@ function ContribuicoesContent() {
         </Alert>
       )}
     </div>
-  );
-}
-
-
-export default function ContribuicoesPage() {
-  return (
-    <Suspense fallback={<div>Carregando detalhes da contribuição...</div>}>
-      <ContribuicoesContent />
-    </Suspense>
   );
 }

@@ -1,4 +1,3 @@
-
 import type { LucideIcon } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from '@/components/ui/skeleton';
@@ -8,9 +7,10 @@ interface StatCardProps {
   value: string | number;
   icon: LucideIcon;
   isLoading?: boolean;
+  description?: string;
 }
 
-export function StatCard({ title, value, icon: Icon, isLoading = false }: StatCardProps) {
+export function StatCard({ title, value, icon: Icon, isLoading = false, description }: StatCardProps) {
   return (
     <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col justify-center items-center text-center p-4">
       <CardHeader className="p-0 flex flex-col items-center space-y-1 pb-2">
@@ -23,9 +23,16 @@ export function StatCard({ title, value, icon: Icon, isLoading = false }: StatCa
         {isLoading ? (
           <Skeleton className="h-7 w-3/4 mx-auto" />
         ) : (
-          <div className="text-2xl font-bold text-primary">
-            {value}
-          </div>
+          <>
+            <div className="text-2xl font-bold text-primary">
+              {value}
+            </div>
+            {description && (
+              <div className="text-xs text-muted-foreground mt-1">
+                {description}
+              </div>
+            )}
+          </>
         )}
       </CardContent>
     </Card>

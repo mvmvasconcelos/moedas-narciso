@@ -109,12 +109,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
       throw new Error("Email e senha são obrigatórios.");
     }
-    
-    const currentTeacherName = email.split('@')[0] || "Professor(a)";
+      const currentTeacherName = email.split('@')[0] || "Professor(a)";
     setIsAuthenticated(true);
     setTeacherName(currentTeacherName);
-    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ isAuthenticated: true, teacherName: currentTeacherName }));
-    toast({
+    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ isAuthenticated: true, teacherName: currentTeacherName }));    toast({
       title: "Login Bem-sucedido! (Mock)",
       description: `Bem-vindo(a) de volta, ${currentTeacherName}!`,
     });
@@ -198,8 +196,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       const updatedStudents = [...prevStudents];
       updatedStudents[studentIndex] = studentAfter;
-      
-      console.log("LOG DE CONTRIBUIÇÃO (LOCAL):", {
+        console.log("LOG DE CONTRIBUIÇÃO (LOCAL):", {
         studentId: studentAfter.id,
         studentName: studentAfter.name,
         material,
@@ -208,7 +205,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         unitsPerCoinAtTime: unitsPerCoin,
         pendingBalanceBefore: materialPendingBefore,
         pendingBalanceAfter: materialPendingAfter,
-        coinsEarnedThisTransaction,
+        coinsEarnedThisTransaction: newCoinsEarnedThisTransaction,
         totalCoinsAfterTransaction: studentAfter.narcisoCoins,
         teacherId: teacherName || 'N/A (localStorage auth)',
       });

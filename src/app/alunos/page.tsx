@@ -15,15 +15,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import type { Metadata } from 'next';
-
-// Cannot export metadata from client component.
-// export const metadata: Metadata = {
-//   title: 'Gerenciar Alunos - Moedas Narciso',
-// };
-
 
 export default function AlunosPage() {
+  return <AlunosContent />;
+}
+
+function AlunosContent() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
 
@@ -71,7 +68,7 @@ export default function AlunosPage() {
       </div>
 
       <Card className="shadow-lg">
-        <CardContent className="pt-6"> {/* Added pt-6 for padding */}
+        <CardContent className="pt-6">
           <StudentsTable onEditStudent={handleOpenForm} />
         </CardContent>
       </Card>

@@ -1,0 +1,15 @@
+Passo a passo para fazer o deploy novamente:
+
+1. Entre no container Docker:
+   ```powershell
+   docker run -it --rm -v ${PWD}:/app vercel-cli sh
+   ```
+
+2. Dentro do container, limpe os caches e faça o deploy:
+   ```sh
+   rm -rf .next
+   rm -rf .vercel/output
+   vercel --prod
+   ```
+
+3. Acesse a URL gerada após o deploy e teste o login

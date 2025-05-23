@@ -1,20 +1,23 @@
-
 "use client";
 
-import { useState, useMemo, useEffect } from "react"; // Adicionado useEffect
+import { useState, useMemo, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import type { Student, Class, MaterialType, GenderType } from "@/lib/constants";
 import { MATERIAL_TYPES, MATERIAL_LABELS } from "@/lib/constants";
 import { StudentRankCard } from "@/components/ranking/StudentRankCard";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { BarChart3Icon, CoinsIcon, PackageIcon, ArchiveIcon, DropletIcon, UsersIcon, TrophyIcon, AwardIcon, FilterIcon, type LucideIcon } from "lucide-react"; // type LucideIcon importado
+import { BarChart3Icon, CoinsIcon, PackageIcon, ArchiveIcon, DropletIcon, UsersIcon, TrophyIcon, AwardIcon, FilterIcon, type LucideIcon } from "lucide-react"; 
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
 type SortCriterion = MaterialType | 'narcisoCoins';
 
 export default function RankingPage() {
+  return <RankingContent />;
+}
+
+function RankingContent() {
   const { students, classes, teacherName } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
 
@@ -217,96 +220,103 @@ export default function RankingPage() {
 
       <section className="space-y-6">
         <h2 className="text-2xl font-semibold tracking-tight text-foreground flex items-center">
-          <UsersIcon className="mr-2 h-6 w-6 text-teal-500" />
+          <UsersIcon className="mr-2 h-6 w-6 text-emerald-500" />
           Ranking por Turma
         </h2>
+        <div className="flex flex-wrap gap-2 mb-6">
+          {classes.map((cls) => (
+            <Button
+              key={cls.id}
+              variant={selectedClass?.id === cls.id ? "default" : "outline"}
+              onClick={() => handleClassSelect(cls)}
+              className={cn(
+                selectedClass?.id === cls.id && "bg-primary text-primary-foreground"
+              )}
+            >
+              {cls.name}
+            </Button>
+          ))}
+        </div>
         
-        <Card>
-          <CardHeader>
-            <CardTitle>Selecione uma Turma</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className={cn(
-                "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3 gap-3 transition-all duration-500 ease-in-out",
-                 selectedClass ? "opacity-0 max-h-0 invisible" : "opacity-100 max-h-[500px] visible mb-4"
-            )}>
-              {classes.map((cls) => (
-                <Button
-                  key={cls.id}
-                  variant={selectedClass?.id === cls.id ? "default" : "outline"}
-                  onClick={() => handleClassSelect(cls)}
-                  className="w-full h-auto py-2 px-1.5 flex flex-col items-center whitespace-normal text-center leading-snug hover:bg-primary hover:text-primary-foreground"
-                >
-                  <UsersIcon className="h-4 w-4 mb-1 flex-shrink-0" />
-                  <span className="text-xs sm:text-sm">{cls.name}</span>
-                </Button>
-              ))}
-            </div>
-            <div className={cn(
-                "flex justify-center transition-all duration-500 ease-in-out",
-                selectedClass ? "opacity-100 max-h-40 visible mb-4" : "opacity-0 max-h-0 invisible"
-            )}>
-                {selectedClass && (
-                    <Button
-                        variant="destructive"
-                        onClick={() => handleClassSelect(selectedClass)} // Permite deselecionar
-                        className="w-full max-w-xs sm:max-w-sm h-auto py-3 px-4 flex flex-col items-center whitespace-normal text-center leading-snug"
-                    >
-                        <UsersIcon className="h-5 w-5 mb-1 flex-shrink-0" />
-                        <span className="text-sm">{selectedClass.name}</span>
-                    </Button>
-                )}
-            </div>
-
-            {selectedClass && (
-              <div className="mt-4 pt-4 border-t">
-                <h3 className="text-sm font-medium text-muted-foreground mb-2 text-center">Filtrar Ranking da Turma por:</h3>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {filterCriteria.map(crit => {
-                    const FilterCritIcon = crit.icon;
-                    return (
-                      <Button
-                        key={crit.value}
-                        variant={classSortCriterion === crit.value ? "default" : "outline"}
-                        onClick={() => setClassSortCriterion(crit.value)}
-                        size="sm"
-                        className="flex-1"
-                      >
-                        <FilterCritIcon className="mr-1.5 h-4 w-4" />
-                        {crit.label}
-                      </Button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
         {selectedClass && (
-          <div className="mt-6 space-y-3">
-            {rankedStudentsInClass.length > 0 ? (
-              rankedStudentsInClass.map((student, index) => (
-                <StudentRankCard
-                  key={student.id}
-                  student={student}
-                  title={`#${index + 1} em ${getCriterionLabel(classSortCriterion)} na turma`}
-                  value={`${getCriterionValue(student, classSortCriterion)} ${getCriterionLabel(classSortCriterion)}`}
-                  icon={getCriterionIcon(classSortCriterion)}
-                  variant="small"
-                  isLoading={isLoading}
-                  avatarSeed={student.name}
-                />
-              ))
-            ) : (
-              <p className="text-center text-muted-foreground">Nenhum aluno para exibir nesta turma ou critério.</p>
-            )}
-          </div>
+          <Card className="shadow-lg">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-xl">Turma {selectedClass.name}</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="flex gap-2 mb-4">
+                {filterCriteria.map((criterion) => (
+                  <Button
+                    key={criterion.value}
+                    variant={classSortCriterion === criterion.value ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setClassSortCriterion(criterion.value)}
+                    className={cn(
+                      "min-w-24",
+                      classSortCriterion === criterion.value && "bg-primary text-primary-foreground"
+                    )}
+                  >
+                    <criterion.icon className="h-4 w-4 mr-1" />
+                    {criterion.label}
+                  </Button>
+                ))}
+              </div>
+
+              {rankedStudentsInClass.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  Não há alunos cadastrados nesta turma.
+                </div>
+              ) : (
+                <table className="w-full">
+                  <thead>
+                    <tr>
+                      <th className="text-left pl-4 py-2">#</th>
+                      <th className="text-left py-2">Aluno</th>
+                      <th className="text-right py-2 pr-4">
+                        <div className="flex items-center justify-end gap-1">
+                          {getCriterionLabel(classSortCriterion)}
+                          {getCriterionIcon(classSortCriterion)({ className: "h-4 w-4" })}
+                        </div>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rankedStudentsInClass.map((student, index) => (
+                      <tr 
+                        key={student.id} 
+                        className={cn(
+                          "border-t", 
+                          index === 0 && "border-t-primary bg-primary/5",
+                          index === 1 && "border-t-gray-300 bg-gray-50",
+                          index === 2 && "border-t-amber-200 bg-amber-50"
+                        )}
+                      >
+                        <td className="pl-4 py-2 text-sm">
+                          <span 
+                            className={cn(
+                              "inline-block w-6 h-6 rounded-full text-center leading-6",
+                              index === 0 && "bg-primary text-white font-medium",
+                              index === 1 && "bg-gray-200",
+                              index === 2 && "bg-amber-200",
+                              index > 2 && "text-muted-foreground"
+                            )}
+                          >
+                            {index + 1}
+                          </span>
+                        </td>
+                        <td className="py-2">{student.name}</td>
+                        <td className="text-right py-2 pr-4 font-medium">
+                          {getCriterionValue(student, classSortCriterion)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </CardContent>
+          </Card>
         )}
       </section>
     </div>
   );
 }
-
-
-    
