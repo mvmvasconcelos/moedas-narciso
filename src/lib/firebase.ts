@@ -1,27 +1,26 @@
 
-// Import the functions you need from the SDKs you need
+// Este arquivo está intencionalmente limpo para remover a dependência do Firebase.
+// A inicialização do Firebase e a configuração foram removidas.
+// A aplicação usará um sistema mockado/local para autenticação e dados.
+
+// Se você decidir reintegrar o Firebase no futuro, este arquivo precisará
+// ser preenchido com a configuração do seu projeto Firebase e a inicialização
+// dos serviços Firebase (Auth, Firestore, etc.).
+
+// Exemplo de como seria com o Firebase (NÃO USAR AGORA):
+/*
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
 import { getFirestore, type Firestore } from "firebase/firestore";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
 
-// Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "xxx",
-  authDomain: "moedas-narciso.firebaseapp.com",
-  projectId: "moedas-narciso",
-  storageBucket: "moedas-narciso.firebasestorage.app",
-  messagingSenderId: "725003401777",
-  appId: "1:725003401777:web:1675e0970cb4d5295ab310"
+  // Suas credenciais do Firebase aqui
 };
 
-// Initialize Firebase
 let app: FirebaseApp;
 let auth: Auth;
 let db: Firestore;
 
-// Garante que o Firebase seja inicializado apenas uma vez (importante para Next.js e HMR)
 if (!getApps().length) {
   app = initializeApp(firebaseConfig);
 } else {
@@ -32,3 +31,11 @@ auth = getAuth(app);
 db = getFirestore(app);
 
 export { app, auth, db };
+*/
+
+// Por enquanto, não exportamos nada ou exportamos objetos vazios/mockados
+// se outros arquivos ainda tentarem importar daqui, embora o ideal seja
+// remover essas importações se não forem mais necessárias.
+export const app = undefined;
+export const auth = undefined;
+export const db = undefined;

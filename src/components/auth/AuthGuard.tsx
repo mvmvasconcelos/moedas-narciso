@@ -7,32 +7,31 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { Skeleton } from '@/components/ui/skeleton';
 
-console.log("DEBUG: /src/components/auth/AuthGuard.tsx - FILE PARSED");
+console.log("DEBUG: /src/components/auth/AuthGuard.tsx - FILE PARSED (Mock Auth Version)");
 
 export function AuthGuard({ children }: { children: ReactNode }) {
-  console.log("DEBUG: /src/components/auth/AuthGuard.tsx - AuthGuard rendering");
-  const { isAuthenticated, currentUser } = useAuth(); 
+  console.log("DEBUG: /src/components/auth/AuthGuard.tsx - AuthGuard rendering (Mock Auth Version)");
+  const { isAuthenticated, teacherName } = useAuth(); 
   const router = useRouter();
 
   useEffect(() => {
-    console.log("DEBUG: /src/components/auth/AuthGuard.tsx - useEffect triggered", { isAuthenticated, currentUser });
+    console.log("DEBUG: /src/components/auth/AuthGuard.tsx - useEffect triggered (Mock Auth Version)", { isAuthenticated, teacherName });
     
-    if (currentUser === undefined) {
-      // Auth state is still loading from Firebase
-      console.log("DEBUG: /src/components/auth/AuthGuard.tsx - Auth state loading (currentUser is undefined)");
+    if (teacherName === undefined) {
+      console.log("DEBUG: /src/components/auth/AuthGuard.tsx - Auth state loading (teacherName is undefined) (Mock Auth Version)");
       return; 
     }
     
-    if (!isAuthenticated) { // currentUser is null
-        console.log("DEBUG: /src/components/auth/AuthGuard.tsx - Not authenticated, redirecting to /login");
+    if (!isAuthenticated) { 
+        console.log("DEBUG: /src/components/auth/AuthGuard.tsx - Not authenticated, redirecting to /login (Mock Auth Version)");
         router.replace('/login');
-    } else { // currentUser is a User object
-        console.log("DEBUG: /src/components/auth/AuthGuard.tsx - Authenticated, allowing access.");
+    } else { 
+        console.log("DEBUG: /src/components/auth/AuthGuard.tsx - Authenticated, allowing access. (Mock Auth Version)");
     }
-  }, [isAuthenticated, currentUser, router]);
+  }, [isAuthenticated, teacherName, router]);
 
-  if (currentUser === undefined) { 
-    console.log("DEBUG: /src/components/auth/AuthGuard.tsx - Rendering Skeleton because currentUser is undefined");
+  if (teacherName === undefined) { 
+    console.log("DEBUG: /src/components/auth/AuthGuard.tsx - Rendering Skeleton because teacherName is undefined (Mock Auth Version)");
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-4">
         <Skeleton className="h-12 w-12 rounded-full mb-4" />
@@ -43,12 +42,11 @@ export function AuthGuard({ children }: { children: ReactNode }) {
   }
   
   if (isAuthenticated) {
-    console.log("DEBUG: /src/components/auth/AuthGuard.tsx - Authenticated, rendering children");
+    console.log("DEBUG: /src/components/auth/AuthGuard.tsx - Authenticated, rendering children (Mock Auth Version)");
     return <>{children}</>;
   }
 
-  // Fallback rendering while redirecting (should be transient)
-  console.log("DEBUG: /src/components/auth/AuthGuard.tsx - Not authenticated, rendering redirect message (fallback)");
+   console.log("DEBUG: /src/components/auth/AuthGuard.tsx - Not authenticated, rendering redirect message (fallback) (Mock Auth Version)");
    return (
      <div className="flex flex-col items-center justify-center min-h-screen p-4">
         <p>Redirecionando para o login...</p>

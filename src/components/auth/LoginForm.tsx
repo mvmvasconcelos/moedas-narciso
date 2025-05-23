@@ -14,7 +14,7 @@ export function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
+  const { login } = useAuth(); // Agora usa o AuthContext com lógica mockada/local
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -29,13 +29,12 @@ export function LoginForm() {
     }
     setIsLoading(true);
     try {
-      await login(email, password);
-      // Se o login for bem-sucedido, onAuthStateChanged no AuthContext
-      // e os useEffects em HomePage/AuthGuard cuidarão do redirecionamento.
-    } catch (error) {
-      // O toast de erro já é tratado dentro da função login do AuthContext.
-      // Podemos adicionar logs específicos do LoginForm se necessário.
-      console.error("LoginForm: Login attempt failed", error);
+      await login(email, password); // Chama a função de login mockada
+      // O redirecionamento é tratado dentro da função de login do AuthContext mockado
+    } catch (error: any) {
+      // O toast de erro já é tratado dentro da função login do AuthContext mockado (se ela lançar um erro específico).
+      // No nosso caso, a função login mockada não deve lançar erro se os campos estiverem preenchidos.
+      console.error("LoginForm: Login attempt failed (mock auth)", error.message);
     } finally {
       setIsLoading(false);
     }

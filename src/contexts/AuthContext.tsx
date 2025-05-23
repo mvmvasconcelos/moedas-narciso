@@ -6,19 +6,13 @@ import React, { createContext, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Student, Class, MaterialType, GenderType } from '@/lib/constants';
 import { MOCK_CLASSES, generateInitialStudents, MATERIAL_TYPES, MATERIAL_UNITS_PER_COIN } from '@/lib/constants';
-import { auth } from '@/lib/firebase'; 
-import { 
-  onAuthStateChanged, 
-  signInWithEmailAndPassword, 
-  signOut, 
-  type User as FirebaseUser 
-} from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
 
+console.log("DEBUG: src/contexts/AuthContext.tsx - FILE PARSED (Mock Auth Version)");
+
 interface AuthContextType {
-  currentUser: FirebaseUser | null | undefined; 
-  isAuthenticated: boolean; 
-  teacherName: string | null; 
+  isAuthenticated: boolean;
+  teacherName: string | null | undefined; // undefined para estado de carregamento inicial
   students: Student[];
   classes: Class[];
   login: (email: string, pass: string) => Promise<void>;
@@ -32,30 +26,38 @@ interface AuthContextType {
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const AUTH_STORAGE_KEY = 'moedasNarcisoAuth';
 const STUDENTS_STORAGE_KEY = 'moedasNarcisoStudents';
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [currentUser, setCurrentUser] = useState<FirebaseUser | null | undefined>(undefined);
+  console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider rendering (Mock Auth Version)");
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [teacherName, setTeacherName] = useState<string | null | undefined>(undefined);
   const [students, setStudents] = useState<Student[]>([]);
   const classes = MOCK_CLASSES;
   const router = useRouter();
   const { toast } = useToast();
 
-  const isAuthenticated = currentUser !== null && currentUser !== undefined;
-  const teacherName = currentUser?.email?.split('@')[0] || currentUser?.displayName || null;
-
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        setCurrentUser(user);
- router.push('/dashboard');
+    console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: useEffect for localStorage (Mock Auth Version)");
+    try {
+      const storedAuth = localStorage.getItem(AUTH_STORAGE_KEY);
+      if (storedAuth) {
+        const authData = JSON.parse(storedAuth);
+        setIsAuthenticated(authData.isAuthenticated || false);
+        setTeacherName(authData.teacherName || null);
+        console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: Loaded auth from localStorage", authData);
       } else {
-        console.log("DEBUG: src/contexts/AuthContext.tsx - onAuthStateChanged: User is signed out");
-        setCurrentUser(null);
+        setIsAuthenticated(false);
+        setTeacherName(null);
+        console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: No auth data in localStorage, setting to not authenticated.");
       }
-    });
+    } catch (error) {
+      console.error("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: Error loading auth from localStorage", error);
+      setIsAuthenticated(false);
+      setTeacherName(null);
+    }
 
-    // Load students from localStorage (this will be replaced by Firestore later)
     try {
       const storedStudents = localStorage.getItem(STUDENTS_STORAGE_KEY);
       if (storedStudents) {
@@ -78,18 +80,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           narcisoCoins: typeof student.narcisoCoins === 'number' ? student.narcisoCoins : 0,
         }));
         setStudents(parsedStudents);
+        console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: Loaded students from localStorage");
       } else {
         const initialStudents = generateInitialStudents();
         setStudents(initialStudents);
         localStorage.setItem(STUDENTS_STORAGE_KEY, JSON.stringify(initialStudents));
+        console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: No students in localStorage, generated initial students.");
       }
     } catch (error) {
+      console.error("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: Error loading students from localStorage", error);
       const initialStudents = generateInitialStudents();
       setStudents(initialStudents);
       localStorage.setItem(STUDENTS_STORAGE_KEY, JSON.stringify(initialStudents));
     }
-    return () => unsubscribe(); 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const updateLocalStorageStudents = (updatedStudents: Student[]) => {
@@ -97,50 +100,40 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const login = async (email: string, pass: string) => {
-    try {
-      await signInWithEmailAndPassword(auth, email, pass);
-      // onAuthStateChanged will handle setting currentUser.
-      // Navigation to /dashboard will be handled by HomePage or AuthGuard based on new auth state.
-      // Forcing a navigation here can sometimes conflict if onAuthStateChanged is also triggering navigation.
-    } catch (error: any) {
-      console.error("DEBUG: src/contexts/AuthContext.tsx - Firebase login error", error.code, error.message);
-      let errorMessage = "Falha no login. Verifique suas credenciais ou tente novamente mais tarde.";
-      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-        errorMessage = "E-mail ou senha inválidos.";
-      } else if (error.code === 'auth/invalid-email') {
-        errorMessage = "Formato de e-mail inválido.";
-      } else if (error.code === 'auth/network-request-failed') {
-        errorMessage = "Erro de rede. Verifique sua conexão ou tente mais tarde.";
-      }
+    console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: login called (Mock Auth Version)", email);
+    if (!email || !pass) {
       toast({
         variant: "destructive",
-        title: "Erro de Login",
-        description: errorMessage,
+        title: "Campos Obrigatórios",
+        description: "Por favor, preencha o email e a senha.",
       });
-      throw error; 
+      throw new Error("Email e senha são obrigatórios.");
     }
+    
+    const currentTeacherName = email.split('@')[0] || "Professor(a)";
+    setIsAuthenticated(true);
+    setTeacherName(currentTeacherName);
+    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ isAuthenticated: true, teacherName: currentTeacherName }));
+    toast({
+      title: "Login Bem-sucedido! (Mock)",
+      description: `Bem-vindo(a) de volta, ${currentTeacherName}!`,
+    });
+    router.push('/dashboard');
   };
 
   const logout = async () => {
-    try {
-      await signOut(auth);
-      // onAuthStateChanged will set currentUser to null.
-      // Navigation to /login will be handled by HomePage or AuthGuard.
-      // router.push('/login'); 
- } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Erro de Logout",
-        description: "Não foi possível sair. Tente novamente.",
-      });
-    }
+    console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: logout called (Mock Auth Version)");
+    setIsAuthenticated(false);
+    setTeacherName(null);
+    localStorage.removeItem(AUTH_STORAGE_KEY);
+    router.push('/login');
   };
 
   const addStudent = useCallback((studentData: Omit<Student, 'id' | 'narcisoCoins' | 'contributions' | 'pendingContributions'>) => {
     setStudents(prevStudents => {
       const newStudent: Student = {
         ...studentData,
-        id: `s${Date.now()}`,
+        id: `s${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
         contributions: { [MATERIAL_TYPES.LIDS]: 0, [MATERIAL_TYPES.CANS]: 0, [MATERIAL_TYPES.OIL]: 0 },
         pendingContributions: { [MATERIAL_TYPES.LIDS]: 0, [MATERIAL_TYPES.CANS]: 0, [MATERIAL_TYPES.OIL]: 0 },
         narcisoCoins: 0,
@@ -205,14 +198,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       const updatedStudents = [...prevStudents];
       updatedStudents[studentIndex] = studentAfter;
-
-      // Log de transação (para referência futura)
-      // console.log("LOG DE CONTRIBUIÇÃO:", { /* ...detalhes... */ });
+      
+      console.log("LOG DE CONTRIBUIÇÃO (LOCAL):", {
+        studentId: studentAfter.id,
+        studentName: studentAfter.name,
+        material,
+        quantityAdded,
+        date: new Date().toISOString(),
+        unitsPerCoinAtTime: unitsPerCoin,
+        pendingBalanceBefore: materialPendingBefore,
+        pendingBalanceAfter: materialPendingAfter,
+        coinsEarnedThisTransaction,
+        totalCoinsAfterTransaction: studentAfter.narcisoCoins,
+        teacherId: teacherName || 'N/A (localStorage auth)',
+      });
 
       updateLocalStorageStudents(updatedStudents);
       return updatedStudents;
     });
-  }, []);
+  }, [teacherName]);
 
   const getOverallStats = useCallback(() => {
     let totalLids = 0;
@@ -228,10 +232,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return { totalLids, totalCans, totalOil, totalCoins };
   }, [students]);
 
-  // console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: context value", {currentUser, isAuthenticated, teacherName, studentsCount: students.length });
+  // console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: context value (Mock Auth Version)", {isAuthenticated, teacherName, studentsCount: students.length});
 
   return (
-    <AuthContext.Provider value={{ currentUser, isAuthenticated, teacherName, students, classes, login, logout, addStudent, updateStudent, deleteStudent, addContribution, getOverallStats }}>
+    <AuthContext.Provider value={{ isAuthenticated, teacherName, students, classes, login, logout, addStudent, updateStudent, deleteStudent, addContribution, getOverallStats }}>
       {children}
     </AuthContext.Provider>
   );
