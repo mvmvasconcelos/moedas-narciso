@@ -11,7 +11,7 @@ export type MaterialKey = keyof typeof MATERIAL_TYPES;
 export const MATERIAL_LABELS: Record<MaterialType, string> = {
   [MATERIAL_TYPES.LIDS]: 'Tampas',
   [MATERIAL_TYPES.CANS]: 'Latas',
-  [MATERIAL_TYPES.OIL]: 'Óleo (unidades)',
+  [MATERIAL_TYPES.OIL]: 'Óleo (litros)',
 };
 
 export const MATERIAL_UNITS_PER_COIN: Record<MaterialType, number> = {

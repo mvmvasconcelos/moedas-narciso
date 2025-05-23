@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/use-auth";
 import { StatCard } from "@/components/dashboard/StatCard";
@@ -25,12 +25,12 @@ function DashboardContent() {
     }
   }, [getOverallStats, teacherName]);
 
-  // Lista de materiais para os botões de troca
-  const materialButtons = [
+  // Lista de materiais para os botões de troca - memoizado para evitar recriação a cada renderização
+  const materialButtons = useMemo(() => [
     { material: MATERIAL_TYPES.LIDS, label: MATERIAL_LABELS[MATERIAL_TYPES.LIDS], icon: PackageIcon },
     { material: MATERIAL_TYPES.CANS, label: MATERIAL_LABELS[MATERIAL_TYPES.CANS], icon: ArchiveIcon },
     { material: MATERIAL_TYPES.OIL, label: MATERIAL_LABELS[MATERIAL_TYPES.OIL], icon: DropletIcon },
-  ];
+  ], []);
 
   return (
     <div>

@@ -1,14 +1,14 @@
-
 "use client";
 
 import type { ReactNode } from 'react';
-import React, { createContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Student, Class, MaterialType, GenderType } from '@/lib/constants';
-import { MOCK_CLASSES, generateInitialStudents, MATERIAL_TYPES, MATERIAL_UNITS_PER_COIN } from '@/lib/constants';
+import { MOCK_CLASSES, MATERIAL_TYPES, MATERIAL_UNITS_PER_COIN } from '@/lib/constants';
 import { useToast } from "@/hooks/use-toast";
+import { DataService } from '@/lib/dataService';
 
-console.log("DEBUG: src/contexts/AuthContext.tsx - FILE PARSED (Mock Auth Version)");
+// Removendo logs desnecessários de debug para melhorar o desempenho
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -26,11 +26,7 @@ interface AuthContextType {
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const AUTH_STORAGE_KEY = 'moedasNarcisoAuth';
-const STUDENTS_STORAGE_KEY = 'moedasNarcisoStudents';
-
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider rendering (Mock Auth Version)");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [teacherName, setTeacherName] = useState<string | null | undefined>(undefined);
   const [students, setStudents] = useState<Student[]>([]);
@@ -38,69 +34,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const router = useRouter();
   const { toast } = useToast();
 
+  // Carregar dados de autenticação e estudantes ao inicializar
   useEffect(() => {
-    console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: useEffect for localStorage (Mock Auth Version)");
     try {
-      const storedAuth = localStorage.getItem(AUTH_STORAGE_KEY);
-      if (storedAuth) {
-        const authData = JSON.parse(storedAuth);
-        setIsAuthenticated(authData.isAuthenticated || false);
-        setTeacherName(authData.teacherName || null);
-        console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: Loaded auth from localStorage", authData);
-      } else {
-        setIsAuthenticated(false);
-        setTeacherName(null);
-        console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: No auth data in localStorage, setting to not authenticated.");
-      }
+      const authData = DataService.getAuthData();
+      setIsAuthenticated(authData.isAuthenticated || false);
+      setTeacherName(authData.teacherName || null);
+      
+      const loadedStudents = DataService.getStudents();
+      setStudents(loadedStudents);
     } catch (error) {
-      console.error("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: Error loading auth from localStorage", error);
+      console.error("Erro ao carregar dados:", error);
       setIsAuthenticated(false);
       setTeacherName(null);
     }
-
-    try {
-      const storedStudents = localStorage.getItem(STUDENTS_STORAGE_KEY);
-      if (storedStudents) {
-        let parsedStudents: Student[] = JSON.parse(storedStudents);
-        parsedStudents = parsedStudents.map(student => ({
-          id: student.id || `s_fallback_${Date.now()}_${Math.random().toString(36).substring(7)}`,
-          name: student.name || "Nome Desconhecido",
-          className: student.className || "Turma Desconhecida",
-          gender: student.gender || 'prefiroNaoInformar',
-          contributions: student.contributions || {
-            [MATERIAL_TYPES.LIDS]: 0,
-            [MATERIAL_TYPES.CANS]: 0,
-            [MATERIAL_TYPES.OIL]: 0
-          },
-          pendingContributions: student.pendingContributions || {
-            [MATERIAL_TYPES.LIDS]: 0,
-            [MATERIAL_TYPES.CANS]: 0,
-            [MATERIAL_TYPES.OIL]: 0
-          },
-          narcisoCoins: typeof student.narcisoCoins === 'number' ? student.narcisoCoins : 0,
-        }));
-        setStudents(parsedStudents);
-        console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: Loaded students from localStorage");
-      } else {
-        const initialStudents = generateInitialStudents();
-        setStudents(initialStudents);
-        localStorage.setItem(STUDENTS_STORAGE_KEY, JSON.stringify(initialStudents));
-        console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: No students in localStorage, generated initial students.");
-      }
-    } catch (error) {
-      console.error("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: Error loading students from localStorage", error);
-      const initialStudents = generateInitialStudents();
-      setStudents(initialStudents);
-      localStorage.setItem(STUDENTS_STORAGE_KEY, JSON.stringify(initialStudents));
-    }
   }, []);
-
-  const updateLocalStorageStudents = (updatedStudents: Student[]) => {
-    localStorage.setItem(STUDENTS_STORAGE_KEY, JSON.stringify(updatedStudents));
-  };
-
   const login = async (email: string, pass: string) => {
-    console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: login called (Mock Auth Version)", email);
     if (!email || !pass) {
       toast({
         variant: "destructive",
@@ -109,22 +58,39 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
       throw new Error("Email e senha são obrigatórios.");
     }
-      const currentTeacherName = email.split('@')[0] || "Professor(a)";
-    setIsAuthenticated(true);
-    setTeacherName(currentTeacherName);
-    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ isAuthenticated: true, teacherName: currentTeacherName }));    toast({
-      title: "Login Bem-sucedido! (Mock)",
-      description: `Bem-vindo(a) de volta, ${currentTeacherName}!`,
-    });
-    router.push('/dashboard');
-  };
 
+    try {
+      // Usar o método login do DataService
+      const { isAuthenticated: authSuccess, teacherName: currentTeacherName } = await DataService.login(email, pass);
+      
+      setIsAuthenticated(authSuccess);
+      setTeacherName(currentTeacherName);
+      
+      toast({
+        title: "Login Bem-sucedido! (Mock)",
+        description: `Bem-vindo(a) de volta, ${currentTeacherName}!`,
+      });
+      
+      router.push('/dashboard');
+    } catch (error) {
+      console.error("Erro ao fazer login:", error);
+      toast({
+        variant: "destructive",
+        title: "Erro no Login",
+        description: "Não foi possível fazer login. Tente novamente.",
+      });
+    }
+  };
+  
   const logout = async () => {
-    console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: logout called (Mock Auth Version)");
-    setIsAuthenticated(false);
-    setTeacherName(null);
-    localStorage.removeItem(AUTH_STORAGE_KEY);
-    router.push('/login');
+    try {
+      await DataService.logout();
+      setIsAuthenticated(false);
+      setTeacherName(null);
+      router.push('/login');
+    } catch (error) {
+      console.error("Erro ao fazer logout:", error);
+    }
   };
 
   const addStudent = useCallback((studentData: Omit<Student, 'id' | 'narcisoCoins' | 'contributions' | 'pendingContributions'>) => {
@@ -137,7 +103,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         narcisoCoins: 0,
       };
       const updatedStudents = [...prevStudents, newStudent];
-      updateLocalStorageStudents(updatedStudents);
+      DataService.setStudents(updatedStudents);
       return updatedStudents;
     });
   }, []);
@@ -147,7 +113,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const updatedStudents = prevStudents.map(s =>
         s.id === studentData.id ? { ...s, ...studentData } : s
       );
-      updateLocalStorageStudents(updatedStudents);
+      DataService.setStudents(updatedStudents);
       return updatedStudents;
     });
   }, []);
@@ -155,7 +121,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const deleteStudent = useCallback((studentId: string) => {
     setStudents(prevStudents => {
       const updatedStudents = prevStudents.filter(s => s.id !== studentId);
-      updateLocalStorageStudents(updatedStudents);
+      DataService.setStudents(updatedStudents);
       return updatedStudents;
     });
   }, []);
@@ -192,42 +158,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           [material]: materialPendingAfter,
         },
         narcisoCoins: totalCoinsBefore + newCoinsEarnedThisTransaction,
-      };
-
-      const updatedStudents = [...prevStudents];
+      };      const updatedStudents = [...prevStudents];
       updatedStudents[studentIndex] = studentAfter;
-        console.log("LOG DE CONTRIBUIÇÃO (LOCAL):", {
-        studentId: studentAfter.id,
-        studentName: studentAfter.name,
-        material,
-        quantityAdded,
-        date: new Date().toISOString(),
-        unitsPerCoinAtTime: unitsPerCoin,
-        pendingBalanceBefore: materialPendingBefore,
-        pendingBalanceAfter: materialPendingAfter,
-        coinsEarnedThisTransaction: newCoinsEarnedThisTransaction,
-        totalCoinsAfterTransaction: studentAfter.narcisoCoins,
-        teacherId: teacherName || 'N/A (localStorage auth)',
-      });
-
-      updateLocalStorageStudents(updatedStudents);
+      
+      // Removido o console.log de contribuição para melhorar o desempenhoDataService.saveStudents(updatedStudents);
       return updatedStudents;
     });
   }, [teacherName]);
 
-  const getOverallStats = useCallback(() => {
-    let totalLids = 0;
-    let totalCans = 0;
-    let totalOil = 0;
-    let totalCoins = 0;
-    students.forEach(student => {
-      totalLids += student.contributions?.[MATERIAL_TYPES.LIDS] || 0;
-      totalCans += student.contributions?.[MATERIAL_TYPES.CANS] || 0;
-      totalOil += student.contributions?.[MATERIAL_TYPES.OIL] || 0;
-      totalCoins += student.narcisoCoins || 0;
-    });
-    return { totalLids, totalCans, totalOil, totalCoins };
+  // Otimizado com useMemo para calcular os totais apenas quando students muda
+  const overallStats = useMemo(() => {
+    // Usando reduce em vez de forEach para melhorar performance
+    const { lids, cans, oil, coins } = students.reduce((acc, student) => {
+      return {
+        lids: acc.lids + (student.contributions?.[MATERIAL_TYPES.LIDS] || 0),
+        cans: acc.cans + (student.contributions?.[MATERIAL_TYPES.CANS] || 0),
+        oil: acc.oil + (student.contributions?.[MATERIAL_TYPES.OIL] || 0),
+        coins: acc.coins + (student.narcisoCoins || 0)
+      };
+    }, { lids: 0, cans: 0, oil: 0, coins: 0 });
+    
+    return { totalLids: lids, totalCans: cans, totalOil: oil, totalCoins: coins };
   }, [students]);
+  
+  // Retorna os dados pré-calculados para evitar recálculos
+  const getOverallStats = useCallback(() => {
+    return overallStats;
+  }, [overallStats]);
 
   // console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: context value (Mock Auth Version)", {isAuthenticated, teacherName, studentsCount: students.length});
 

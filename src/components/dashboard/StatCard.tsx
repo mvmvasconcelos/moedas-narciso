@@ -1,4 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
+import { memo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -10,7 +11,8 @@ interface StatCardProps {
   description?: string;
 }
 
-export function StatCard({ title, value, icon: Icon, isLoading = false, description }: StatCardProps) {
+// Função base antes da memoização
+function StatCardBase({ title, value, icon: Icon, isLoading = false, description }: StatCardProps) {
   return (
     <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col justify-center items-center text-center p-4">
       <CardHeader className="p-0 flex flex-col items-center space-y-1 pb-2">
@@ -38,3 +40,6 @@ export function StatCard({ title, value, icon: Icon, isLoading = false, descript
     </Card>
   );
 }
+
+// Exporta o componente memoizado para evitar re-renderizações desnecessárias
+export const StatCard = memo(StatCardBase);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, memo } from "react";
 import type { Student } from "@/lib/constants";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
@@ -36,7 +36,8 @@ interface StudentsTableProps {
   onEditStudent: (student: Student) => void;
 }
 
-export function StudentsTable({ onEditStudent }: StudentsTableProps) {
+// Função interna para o componente antes da memoização
+function StudentsTableBase({ onEditStudent }: StudentsTableProps) {
   const { students, deleteStudent } = useAuth();
   const [studentToDelete, setStudentToDelete] = useState<Student | null>(null);
 
@@ -148,3 +149,6 @@ export function StudentsTable({ onEditStudent }: StudentsTableProps) {
     </>
   );
 }
+
+// Exporta o componente memoizado para evitar re-renderizações desnecessárias
+export const StudentsTable = memo(StudentsTableBase);
