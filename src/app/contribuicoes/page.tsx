@@ -25,7 +25,7 @@ function ContribuicoesContent() {
   let PageIcon = ClipboardPlusIcon;
 
   if (isValidMaterial && materialParam) {
-    pageTitle = `Registrar Contribuições de ${MATERIAL_LABELS[materialParam].replace(" (unidades)","")}`;
+    pageTitle = `Registrar trocas de ${MATERIAL_LABELS[materialParam].replace(" (unidades)","")}`;
     if (materialParam === MATERIAL_TYPES.LIDS) PageIcon = PackageIcon;
     else if (materialParam === MATERIAL_TYPES.CANS) PageIcon = ArchiveIcon;
     else if (materialParam === MATERIAL_TYPES.OIL) PageIcon = DropletIcon;

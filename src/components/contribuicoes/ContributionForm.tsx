@@ -79,6 +79,7 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedClass, students, form, materialType]); // Added form and materialType to dependencies
 
+  // Atualizar o estudante selecionado quando watchedStudentId muda ou quando há mudanças nos estudantes
   useEffect(() => {
     if (watchedStudentId) {
       const student = students.find(s => s.id === watchedStudentId);
@@ -87,6 +88,16 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
       setSelectedStudent(null);
     }
   }, [watchedStudentId, students]);
+  
+  // Efeito adicional para garantir que o estudante selecionado esteja sempre atualizado
+  useEffect(() => {
+    if (selectedStudent) {
+      const currentStudentData = students.find(s => s.id === selectedStudent.id);
+      if (currentStudentData && JSON.stringify(currentStudentData) !== JSON.stringify(selectedStudent)) {
+        setSelectedStudent(currentStudentData);
+      }
+    }
+  }, [students, selectedStudent]);
 
   function handleClassSelect(className: string) {
     if (selectedClass === className) { 
@@ -130,14 +141,19 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
     if (data.studentId && selectedStudent) {
       const quantity = data[materialType];
       if (quantity !== undefined && quantity > 0) {
+        // Chamar addContribution e obter estudante atualizado
         addContribution(data.studentId, materialType, quantity as number);
+        
+        // Notificar o usuário
         toast({
           title: "Sucesso!",
           description: `${quantity} ${MATERIAL_LABELS[materialType].toLowerCase().replace(" (unidades)","")} de ${selectedStudent?.name || 'aluno'} registradas.`,
         });
+        
+        // Resetar o campo de quantidade
         form.setValue(materialType, 0, {shouldValidate: true}); 
 
-        // Re-fetch student data to update pending contributions display
+        // Buscar os dados atualizados do estudante imediatamente após a contribuição
         const updatedStudentData = students.find(s => s.id === data.studentId);
         if (updatedStudentData) {
           setSelectedStudent(updatedStudentData);

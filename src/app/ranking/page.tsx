@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import type { Student, Class, MaterialType, GenderType } from "@/lib/constants";
 import { MATERIAL_TYPES, MATERIAL_LABELS } from "@/lib/constants";
@@ -275,7 +275,10 @@ function RankingContent() {
                       <th className="text-right py-2 pr-4">
                         <div className="flex items-center justify-end gap-1">
                           {getCriterionLabel(classSortCriterion)}
-                          {getCriterionIcon(classSortCriterion)({ className: "h-4 w-4" })}
+                          {(() => {
+                            const IconComponent = getCriterionIcon(classSortCriterion);
+                            return <IconComponent className="h-4 w-4" />;
+                          })()}
                         </div>
                       </th>
                     </tr>

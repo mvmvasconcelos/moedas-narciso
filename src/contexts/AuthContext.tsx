@@ -103,7 +103,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         narcisoCoins: 0,
       };
       const updatedStudents = [...prevStudents, newStudent];
-      DataService.setStudents(updatedStudents);
+      DataService.saveStudents(updatedStudents);
       return updatedStudents;
     });
   }, []);
@@ -113,7 +113,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const updatedStudents = prevStudents.map(s =>
         s.id === studentData.id ? { ...s, ...studentData } : s
       );
-      DataService.setStudents(updatedStudents);
+      DataService.saveStudents(updatedStudents);
       return updatedStudents;
     });
   }, []);
@@ -121,7 +121,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const deleteStudent = useCallback((studentId: string) => {
     setStudents(prevStudents => {
       const updatedStudents = prevStudents.filter(s => s.id !== studentId);
-      DataService.setStudents(updatedStudents);
+      DataService.saveStudents(updatedStudents);
       return updatedStudents;
     });
   }, []);
@@ -158,10 +158,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           [material]: materialPendingAfter,
         },
         narcisoCoins: totalCoinsBefore + newCoinsEarnedThisTransaction,
-      };      const updatedStudents = [...prevStudents];
+      };      
+      const updatedStudents = [...prevStudents];
       updatedStudents[studentIndex] = studentAfter;
       
-      // Removido o console.log de contribuição para melhorar o desempenhoDataService.saveStudents(updatedStudents);
+      // Salvar as mudanças no localStorage
+      DataService.saveStudents(updatedStudents);
       return updatedStudents;
     });
   }, [teacherName]);
