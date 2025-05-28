@@ -1,0 +1,14 @@
+# Container para deploy na Vercel
+FROM node:18-alpine
+
+# Instalar o Vercel CLI globalmente
+RUN npm install -g vercel
+
+# Definir o diretório de trabalho
+WORKDIR /app
+
+# Não precisamos copiar nada pois usaremos volume
+# O ponto de montagem será usado para acessar os arquivos do projeto
+
+# Comando padrão quando o container iniciar
+CMD ["sh"]
