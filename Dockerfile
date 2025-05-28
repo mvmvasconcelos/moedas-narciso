@@ -1,18 +1,15 @@
 FROM node:18-alpine
 
-# Instalar o Vercel CLI globalmente
-RUN npm install -g vercel
-
 # Definir o diretório de trabalho
 WORKDIR /app
 
-# Copiar arquivos de dependências primeiro para aproveitar o cache do Docker
+# Copiar apenas os arquivos de dependências primeiro
 COPY package.json package-lock.json* ./
 
-# Instalar dependências
-RUN npm ci || npm install
+# Instalar as dependências do projeto
+RUN npm install
 
-# Copiar o restante dos arquivos do projeto
+# Copiar o restante do código para dentro do container
 COPY . .
 
 # Expor a porta 3000

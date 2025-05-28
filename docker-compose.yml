@@ -1,17 +1,13 @@
-version: '3.8'
-
 services:
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: node:18-alpine
     ports:
       - "3000:3000"
     volumes:
       - .:/app
-      # Evita a sincronização de node_modules entre host e container
-      - /app/node_modules
+    working_dir: /app
     environment:
       - NODE_ENV=development
-    # Comando para permitir o hot-reload
-    command: sh -c "npm run dev -- -p 3000"
+      - NEXT_PUBLIC_SUPABASE_URL=https://dvnzjlkbldfssegeoaxj.supabase.co
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR2bnpqbGtibGRmc3NlZ2VvYXhqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgyNzAzMDEsImV4cCI6MjA2Mzg0NjMwMX0.pOZeKsQtk147WkpWDBEf9gwYsQoMJ1s6Fv8ZshoVRf4
+    command: sh -c "npm ci && npm run dev"

@@ -43,13 +43,9 @@ export class DataService {
     }
   }
     // Aliases para manter compatibilidade com o código existente
-  static removeAuthData = DataService.clearAuthData;
-  static login = async (email: string, password: string): Promise<{ isAuthenticated: boolean; teacherName: string | null }> => {
-    // Mock de autenticação - será substituído pela implementação do Supabase
-    const currentTeacherName = email.split('@')[0] || "Professor(a)";
-    const authData = { isAuthenticated: true, teacherName: currentTeacherName };
-    DataService.saveAuthData(authData);
-    return authData;
+  static removeAuthData = DataService.clearAuthData;  static login = async (email: string, password: string): Promise<{ isAuthenticated: boolean; teacherName: string | null }> => {
+    // Método descontinuado - não deve ser usado
+    throw new Error("Método de login local descontinuado. Use a autenticação do Supabase através do AuthContext.");
   };
   static logout = async (): Promise<void> => {
     DataService.clearAuthData();

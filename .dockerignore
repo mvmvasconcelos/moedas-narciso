@@ -1,0 +1,46 @@
+# Arquivos e diretórios que devem ser ignorados ao construir a imagem Docker
+
+# Diretórios de dependências
+node_modules
+npm-debug.log
+
+# Diretórios de build
+.next
+out
+dist
+build
+
+# Arquivos de cache
+.npm
+.cache
+.eslintcache
+.vercel
+
+# Arquivos de ambiente
+.env
+.env.*
+!.env.example
+
+# Arquivos Git
+.git
+.gitignore
+
+# Arquivos Docker
+.dockerignore
+Dockerfile
+docker-compose.yml
+
+# Arquivos de sistema
+.DS_Store
+Thumbs.db
+
+# Diretórios de desenvolvimento
+.vscode
+.idea
+*.swp
+*.swo
+
+# Outros arquivos
+README.md
+LICENSE
+*.log
