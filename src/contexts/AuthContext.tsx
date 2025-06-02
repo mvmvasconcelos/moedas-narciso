@@ -9,9 +9,11 @@ import { useToast } from "@/hooks/use-toast";
 import { DataService } from '@/lib/dataService';
 import { supabase, getCurrentUser, getTeacherProfile } from '@/lib/supabase';
 
+// Removendo logs desnecessários de debug para melhorar o desempenho
+
 interface AuthContextType {
   isAuthenticated: boolean;
-  teacherName: string | null | undefined;
+  teacherName: string | null | undefined; // undefined para estado de carregamento inicial
   students: Student[];
   classes: Class[];
   login: (email: string, pass: string) => Promise<void>;
@@ -25,19 +27,18 @@ interface AuthContextType {
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [teacherName, setTeacherName] = useState<string | null | undefined>(undefined);
   const [students, setStudents] = useState<Student[]>([]);
   const classes = MOCK_CLASSES;
   const router = useRouter();
-  const { toast } = useToast();
-
-  useEffect(() => {
-    async function checkAuth() {
+  const { toast } = useToast();  // Carregar dados de autenticação e estudantes ao inicializar  useEffect(() => {
+    const checkAuth = async () => {
       try {
         console.log("Verificando autenticação com o Supabase...");
         
+        // Verificar sessão no Supabase
         const user = await getCurrentUser();
         
         if (user) {
@@ -46,6 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             email: user.email
           });
           
+          // Usuário está autenticado no Supabase, verificar na tabela 'teachers'
           const profile = await getTeacherProfile();
           
           if (!profile) {
@@ -53,9 +55,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             toast({
               variant: "destructive",
               title: "Erro de Configuração da Conta",
-              description: "Sua conta de usuário não tem um perfil de professor associado. Entre em contato com o administrador."
+              description: "Sua conta de usuário não tem um perfil de professor associado. Entre em contato com o administrador.",
             });
             
+            // Deslogar o usuário
             await supabase.auth.signOut();
             setIsAuthenticated(false);
             setTeacherName(null);
@@ -67,13 +70,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setIsAuthenticated(true);
           setTeacherName(profile.name || user.email?.split('@')[0] || "Professor(a)");
           
+          // Ainda usamos o localStorage para os dados dos estudantes (isso será migrado em uma fase futura)
           const loadedStudents = DataService.getStudents();
           setStudents(loadedStudents);
         } else {
+          // Não há sessão ativa no Supabase
           console.log("Nenhuma sessão ativa encontrada no Supabase");
           setIsAuthenticated(false);
           setTeacherName(null);
           
+          // Se estiver em uma rota protegida, redirecionar para login
           if (window.location.pathname !== '/login') {
             router.push('/login');
           }
@@ -86,38 +92,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         toast({
           variant: "destructive",
           title: "Erro ao Verificar Autenticação",
-          description: "Ocorreu um erro ao verificar sua sessão. Tente fazer login novamente."
+          description: "Ocorreu um erro ao verificar sua sessão. Tente fazer login novamente.",
         });
         
         router.push('/login');
       }
-    }
+    };
     
-    checkAuth();
-  }, [router, toast]);
-
+    checkAuth();  }, [router, toast]);
+  
   const login = async (email: string, pass: string) => {
     if (!email || !pass) {
       toast({
         variant: "destructive",
         title: "Campos Obrigatórios",
-        description: "Por favor, preencha o email e a senha."
+        description: "Por favor, preencha o email e a senha.",
       });
       throw new Error("Email e senha são obrigatórios.");
-    }
-    
-    if (email.trim() === '' || pass.trim() === '') {
-      toast({
-        variant: "destructive",
-        title: "Campos Inválidos",
-        description: "Email e senha não podem conter apenas espaços."
-      });
-      throw new Error("Email e senha não podem estar vazios.");
     }
     
     try {
       console.log("Tentando login no Supabase com:", { email });
       
+      // Verificar se as variáveis de ambiente do Supabase estão configuradas
       console.log("Configuração do Supabase:", {
         url: process.env.NEXT_PUBLIC_SUPABASE_URL ? "Configurado" : "Não configurado",
         key: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? "Configurado" : "Não configurado",
@@ -125,40 +122,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         keyLength: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.length || 0
       });
       
+      // Primeiro tenta autenticar com Supabase
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
-        password: pass
+        password: pass,
       });
       
       if (error) {
         console.error("Erro detalhado do Supabase:", {
           code: error.code,
           message: error.message,
-          status: error.status,
-          name: error.name,
-          error: JSON.stringify(error)
+          status: error.status
         });
-        
-        console.log("Tentando autenticar com:", {
-          email,
-          urlConfigurada: process.env.NEXT_PUBLIC_SUPABASE_URL,
-          keyLength: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.length
-        });
-        
         throw error;
-      }
-      
+      }        // Se autenticado com sucesso no Supabase
       if (data.user) {
         const profile = await getTeacherProfile();
         
+        // Verifica se o usuário tem um perfil na tabela 'teachers'
         if (!profile) {
           console.error("Usuário não encontrado na tabela teachers:", data.user.id);
           toast({
             variant: "destructive",
             title: "Erro de Configuração",
-            description: "Usuário autenticado, mas não encontrado na tabela 'teachers'. Entre em contato com o administrador."
+            description: "Usuário autenticado, mas não encontrado na tabela 'teachers'. Entre em contato com o administrador.",
           });
           
+          // Deslogar o usuário, já que não tem perfil configurado
           await supabase.auth.signOut();
           throw new Error("Usuário não encontrado na tabela teachers");
         }
@@ -168,27 +158,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsAuthenticated(true);
         setTeacherName(teacherNameValue);
         
+        // Não salvamos mais no localStorage - Supabase gerencia a sessão
+        
         toast({
           title: "Login Bem-sucedido!",
-          description: `Bem-vindo(a) de volta, ${teacherNameValue}!`
+          description: `Bem-vindo(a) de volta, ${teacherNameValue}!`,
         });
         
         router.push('/dashboard');
-      }
-    } catch (error: any) {
+      }} catch (error: any) {
       console.error("Erro ao fazer login com Supabase:", error);
       
-      console.log("Erro completo:", {
-        message: error.message,
-        code: error.code,
-        name: error.name,
-        stack: error.stack,
-        details: error.details,
-        error: JSON.stringify(error)
-      });
-      
+      // Sem fallback para o método antigo - exibir erro com informações detalhadas
       let errorMessage = "Credenciais inválidas ou problema de conexão com o Supabase.";
       
+      // Mensagens específicas para erros comuns
       if (error.message === "Invalid login credentials") {
         errorMessage = "Credenciais inválidas. Verifique seu email e senha.";
       } else if (error.message?.includes("network")) {
@@ -202,18 +186,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       toast({
         variant: "destructive",
         title: "Erro no Login",
-        description: errorMessage
+        description: errorMessage,
       });
     }
-  };
-  
-  const logout = async () => {
+  };  const logout = async () => {
     try {
+      // Desloga do Supabase
       const { error } = await supabase.auth.signOut();
       
       if (error) {
         console.error("Erro ao deslogar do Supabase:", error);
       }
+      
+      // Não utilizamos mais DataService para autenticação
       
       setIsAuthenticated(false);
       setTeacherName(null);
@@ -230,7 +215,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         id: `s${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
         contributions: { [MATERIAL_TYPES.LIDS]: 0, [MATERIAL_TYPES.CANS]: 0, [MATERIAL_TYPES.OIL]: 0 },
         pendingContributions: { [MATERIAL_TYPES.LIDS]: 0, [MATERIAL_TYPES.CANS]: 0, [MATERIAL_TYPES.OIL]: 0 },
-        narcisoCoins: 0
+        narcisoCoins: 0,
       };
       const updatedStudents = [...prevStudents, newStudent];
       DataService.saveStudents(updatedStudents);
@@ -267,7 +252,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       studentBefore.narcisoCoins = studentBefore.narcisoCoins || 0;
 
       const unitsPerCoin = MATERIAL_UNITS_PER_COIN[material];
-      if (!unitsPerCoin || unitsPerCoin <= 0) return prevStudents;
+      if (!unitsPerCoin || unitsPerCoin <= 0) return prevStudents; 
 
       const materialPendingBefore = studentBefore.pendingContributions?.[material] || 0;
       const totalHistoricalContributionsBefore = studentBefore.contributions?.[material] || 0;
@@ -281,53 +266,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ...studentBefore,
         contributions: {
           ...(studentBefore.contributions),
-          [material]: totalHistoricalContributionsBefore + quantityAdded
+          [material]: totalHistoricalContributionsBefore + quantityAdded,
         },
         pendingContributions: {
           ...(studentBefore.pendingContributions),
-          [material]: materialPendingAfter
+          [material]: materialPendingAfter,
         },
-        narcisoCoins: totalCoinsBefore + newCoinsEarnedThisTransaction
-      };
-
+        narcisoCoins: totalCoinsBefore + newCoinsEarnedThisTransaction,
+      };      
       const updatedStudents = [...prevStudents];
       updatedStudents[studentIndex] = studentAfter;
       
+      // Salvar as mudanças no localStorage
       DataService.saveStudents(updatedStudents);
       return updatedStudents;
     });
-  }, []);
+  }, [teacherName]);
 
+  // Otimizado com useMemo para calcular os totais apenas quando students muda
   const overallStats = useMemo(() => {
-    const { lids, cans, oil, coins } = students.reduce((acc, student) => ({
-      lids: acc.lids + (student.contributions?.[MATERIAL_TYPES.LIDS] || 0),
-      cans: acc.cans + (student.contributions?.[MATERIAL_TYPES.CANS] || 0),
-      oil: acc.oil + (student.contributions?.[MATERIAL_TYPES.OIL] || 0),
-      coins: acc.coins + (student.narcisoCoins || 0)
-    }), { lids: 0, cans: 0, oil: 0, coins: 0 });
+    // Usando reduce em vez de forEach para melhorar performance
+    const { lids, cans, oil, coins } = students.reduce((acc, student) => {
+      return {
+        lids: acc.lids + (student.contributions?.[MATERIAL_TYPES.LIDS] || 0),
+        cans: acc.cans + (student.contributions?.[MATERIAL_TYPES.CANS] || 0),
+        oil: acc.oil + (student.contributions?.[MATERIAL_TYPES.OIL] || 0),
+        coins: acc.coins + (student.narcisoCoins || 0)
+      };
+    }, { lids: 0, cans: 0, oil: 0, coins: 0 });
     
     return { totalLids: lids, totalCans: cans, totalOil: oil, totalCoins: coins };
   }, [students]);
   
-  const getOverallStats = useCallback(() => overallStats, [overallStats]);
+  // Retorna os dados pré-calculados para evitar recálculos
+  const getOverallStats = useCallback(() => {
+    return overallStats;
+  }, [overallStats]);
+
+  // console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: context value (Mock Auth Version)", {isAuthenticated, teacherName, studentsCount: students.length});
 
   return (
-    <AuthContext.Provider 
-      value={{
-        isAuthenticated,
-        teacherName,
-        students,
-        classes,
-        login,
-        logout,
-        addStudent,
-        updateStudent,
-        deleteStudent,
-        addContribution,
-        getOverallStats
-      }}
-    >
+    <AuthContext.Provider value={{ isAuthenticated, teacherName, students, classes, login, logout, addStudent, updateStudent, deleteStudent, addContribution, getOverallStats }}>
       {children}
     </AuthContext.Provider>
   );
-}
+};
