@@ -488,6 +488,171 @@ CREATE TRIGGER sync_teacher_email_on_insert
 
 ---
 
+## 🔧 **Sistema de Ajustes Manuais de Saldo**
+
+### Arquitetura: Abordagem 2 + Interface Inteligente
+
+O sistema de ajustes manuais foi projetado para permitir correções de saldo dos alunos **preservando a integridade dos dados reais** e mantendo **auditoria completa** de todas as modificações.
+
+#### 🏗️ **Componentes da Arquitetura:**
+
+##### 1. **Tabela `student_adjustments` (Auditoria Completa)**
+```sql
+CREATE TABLE student_adjustments (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  student_id UUID REFERENCES students(id) ON DELETE CASCADE,
+  adjustment_type VARCHAR NOT NULL CHECK (adjustment_type IN ('narciso_coins', 'pending_tampas', 'pending_latas', 'pending_oleo')),
+  previous_value INTEGER NOT NULL,
+  adjustment_value INTEGER NOT NULL,
+  new_value INTEGER NOT NULL,
+  reason TEXT,
+  teacher_id UUID REFERENCES teachers(id),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+##### 2. **Campos de Ajuste na Tabela `students`**
+```sql
+-- Adicionados à tabela students existente:
+ALTER TABLE students ADD COLUMN adjustment_narciso_coins INTEGER DEFAULT 0;
+ALTER TABLE students ADD COLUMN adjustment_pending_tampas INTEGER DEFAULT 0;
+ALTER TABLE students ADD COLUMN adjustment_pending_latas INTEGER DEFAULT 0;
+ALTER TABLE students ADD COLUMN adjustment_pending_oleo INTEGER DEFAULT 0;
+```
+
+##### 3. **Views Inteligentes (Valores Efetivos)**
+```sql
+-- View que combina valores reais + ajustes para a interface
+CREATE VIEW v_students_effective_values AS
+SELECT 
+    s.*,
+    (s.narciso_coins + COALESCE(s.adjustment_narciso_coins, 0)) as effective_narciso_coins,
+    (s.pending_tampas + COALESCE(s.adjustment_pending_tampas, 0)) as effective_pending_tampas,
+    (s.pending_latas + COALESCE(s.adjustment_pending_latas, 0)) as effective_pending_latas,
+    (s.pending_oleo + COALESCE(s.adjustment_pending_oleo, 0)) as effective_pending_oleo
+FROM students s;
+```
+
+#### 🔄 **Funcionamento do Sistema:**
+
+##### **Para fazer um ajuste:**
+
+1. **Interface registra na tabela de auditoria:
+```sql
+-- Exemplo: Ajustar +5 moedas para o aluno
+INSERT INTO student_adjustments (
+    student_id, 
+    adjustment_type, 
+    previous_value, 
+    adjustment_value, 
+    new_value, 
+    reason, 
+    teacher_id
+) VALUES (
+    'student-uuid',
+    'narciso_coins',
+    10, -- valor anterior
+    5,  -- ajuste
+    15, -- novo valor efetivo
+    'Correção por erro de sistema',
+    'teacher-uuid'
+);
+```
+
+2. **Trigger automático sincroniza campos de ajuste:
+```sql
+-- Função de sincronização automática
+CREATE OR REPLACE FUNCTION sync_student_adjustments()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Recalcular o ajuste total para este aluno/tipo
+    UPDATE students 
+    SET adjustment_narciso_coins = (
+        SELECT COALESCE(SUM(adjustment_value), 0) 
+        FROM student_adjustments 
+        WHERE student_id = NEW.student_id 
+        AND adjustment_type = 'narciso_coins'
+    )
+    WHERE id = NEW.student_id
+    AND NEW.adjustment_type = 'narciso_coins';
+    
+    -- Repetir para outros tipos de ajuste...
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger para sincronizar ajustes
+CREATE TRIGGER sync_adjustments_on_insert
+    AFTER INSERT ON student_adjustments
+    FOR EACH ROW
+    EXECUTE FUNCTION sync_student_adjustments();
+```
+
+##### **Para consultar dados:**
+
+```sql
+-- A aplicação sempre usa a view para mostrar valores efetivos
+SELECT 
+    name,
+    effective_narciso_coins as narciso_coins,
+    effective_pending_tampas as pending_tampas,
+    effective_pending_latas as pending_latas,
+    effective_pending_oleo as pending_oleo
+FROM v_students_effective_values 
+WHERE id = 'student-uuid';
+
+-- Para auditoria/histórico de ajustes
+SELECT 
+    sa.adjustment_type,
+    sa.previous_value,
+    sa.adjustment_value,
+    sa.new_value,
+    sa.reason,
+    t.name as teacher_name,
+    sa.created_at
+FROM student_adjustments sa
+JOIN teachers t ON sa.teacher_id = t.id
+WHERE sa.student_id = 'student-uuid'
+ORDER BY sa.created_at DESC;
+```
+
+#### ✅ **Vantagens desta Arquitetura:**
+
+1. **🔒 Preservação de Dados Reais**: Valores originais nunca são alterados
+2. **📋 Auditoria Completa**: Histórico detalhado de todos os ajustes
+3. **🔄 Sincronização Automática**: Triggers mantêm consistência
+4. **⚡ Performance**: Views otimizadas para consultas da interface
+5. **🔍 Transparência**: Fácil distinção entre dados reais e ajustados
+6. **🛡️ Reversibilidade**: Possível desfazer ajustes individualmente
+7. **👥 Rastreabilidade**: Saber quem fez qual ajuste e quando
+
+#### 🎯 **Casos de Uso:**
+
+- **Correção de Erros**: Aluno teve materiais registrados incorretamente
+- **Premiações Especiais**: Bônus de moedas por eventos especiais
+- **Ajustes de Migração**: Correções durante importação de dados antigos
+- **Penalizações**: Redução de saldo por comportamento inadequado (com devida justificativa)
+
+#### 🚨 **Controles de Segurança:**
+
+```sql
+-- Apenas professores podem fazer ajustes
+CREATE POLICY "Only teachers can create adjustments" ON student_adjustments
+FOR INSERT WITH CHECK (
+    auth.uid() IN (SELECT id FROM teachers WHERE role = 'teacher')
+);
+
+-- Ajustes são imutáveis (apenas INSERT, nunca UPDATE/DELETE)
+CREATE POLICY "Adjustments are immutable" ON student_adjustments
+FOR UPDATE USING (false);
+
+CREATE POLICY "Adjustments cannot be deleted" ON student_adjustments
+FOR DELETE USING (false);
+```
+
+---
+
 ## Executar Tudo de Uma Vez
 
 **⚠️ IMPORTANTE:** Execute este SQL completo no SQL Editor do Supabase para criar toda a estrutura de uma vez.
@@ -815,8 +980,151 @@ CREATE TRIGGER sync_teacher_email_on_insert
     FOR EACH ROW
     EXECUTE FUNCTION sync_teacher_email();
 
+-- 7. SISTEMA DE AJUSTES MANUAIS DE SALDO
+-- -----------------------------------
+
+-- Tabela para auditoria completa de ajustes
+CREATE TABLE IF NOT EXISTS student_adjustments (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  student_id UUID REFERENCES students(id) ON DELETE CASCADE,
+  adjustment_type VARCHAR NOT NULL CHECK (adjustment_type IN ('narciso_coins', 'pending_tampas', 'pending_latas', 'pending_oleo')),
+  previous_value INTEGER NOT NULL,
+  adjustment_value INTEGER NOT NULL,
+  new_value INTEGER NOT NULL,
+  reason TEXT,
+  teacher_id UUID REFERENCES teachers(id),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Adicionar campos de ajuste à tabela students (se não existirem)
+ALTER TABLE students 
+ADD COLUMN IF NOT EXISTS adjustment_narciso_coins INTEGER DEFAULT 0;
+
+ALTER TABLE students 
+ADD COLUMN IF NOT EXISTS adjustment_pending_tampas INTEGER DEFAULT 0;
+
+ALTER TABLE students 
+ADD COLUMN IF NOT EXISTS adjustment_pending_latas INTEGER DEFAULT 0;
+
+ALTER TABLE students 
+ADD COLUMN IF NOT EXISTS adjustment_pending_oleo INTEGER DEFAULT 0;
+
+-- Habilitar RLS na tabela de ajustes
+ALTER TABLE student_adjustments ENABLE ROW LEVEL SECURITY;
+
+-- Políticas de segurança para ajustes
+DROP POLICY IF EXISTS "Only teachers can create adjustments" ON student_adjustments;
+CREATE POLICY "Only teachers can create adjustments" ON student_adjustments
+FOR INSERT WITH CHECK (
+    auth.uid() IN (SELECT id FROM teachers WHERE role = 'teacher')
+);
+
+DROP POLICY IF EXISTS "Teachers can view all adjustments" ON student_adjustments;
+CREATE POLICY "Teachers can view all adjustments" ON student_adjustments
+FOR SELECT USING (
+    auth.uid() IN (SELECT id FROM teachers WHERE role = 'teacher')
+);
+
+-- Ajustes são imutáveis (apenas INSERT, nunca UPDATE/DELETE)
+DROP POLICY IF EXISTS "Adjustments are immutable" ON student_adjustments;
+CREATE POLICY "Adjustments are immutable" ON student_adjustments
+FOR UPDATE USING (false);
+
+DROP POLICY IF EXISTS "Adjustments cannot be deleted" ON student_adjustments;
+CREATE POLICY "Adjustments cannot be deleted" ON student_adjustments
+FOR DELETE USING (false);
+
+-- Função para sincronizar ajustes automaticamente
+CREATE OR REPLACE FUNCTION sync_student_adjustments()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Recalcular o ajuste total para este aluno/tipo
+    IF NEW.adjustment_type = 'narciso_coins' THEN
+        UPDATE students 
+        SET adjustment_narciso_coins = (
+            SELECT COALESCE(SUM(adjustment_value), 0) 
+            FROM student_adjustments 
+            WHERE student_id = NEW.student_id 
+            AND adjustment_type = 'narciso_coins'
+        )
+        WHERE id = NEW.student_id;
+    ELSIF NEW.adjustment_type = 'pending_tampas' THEN
+        UPDATE students 
+        SET adjustment_pending_tampas = (
+            SELECT COALESCE(SUM(adjustment_value), 0) 
+            FROM student_adjustments 
+            WHERE student_id = NEW.student_id 
+            AND adjustment_type = 'pending_tampas'
+        )
+        WHERE id = NEW.student_id;
+    ELSIF NEW.adjustment_type = 'pending_latas' THEN
+        UPDATE students 
+        SET adjustment_pending_latas = (
+            SELECT COALESCE(SUM(adjustment_value), 0) 
+            FROM student_adjustments 
+            WHERE student_id = NEW.student_id 
+            AND adjustment_type = 'pending_latas'
+        )
+        WHERE id = NEW.student_id;
+    ELSIF NEW.adjustment_type = 'pending_oleo' THEN
+        UPDATE students 
+        SET adjustment_pending_oleo = (
+            SELECT COALESCE(SUM(adjustment_value), 0) 
+            FROM student_adjustments 
+            WHERE student_id = NEW.student_id 
+            AND adjustment_type = 'pending_oleo'
+        )
+        WHERE id = NEW.student_id;
+    END IF;
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger para sincronizar ajustes
+CREATE TRIGGER sync_adjustments_on_insert
+    AFTER INSERT ON student_adjustments
+    FOR EACH ROW
+    EXECUTE FUNCTION sync_student_adjustments();
+
+-- View para valores efetivos (reais + ajustes) usada pela interface
+CREATE OR REPLACE VIEW v_students_effective_values AS
+SELECT 
+    s.*,
+    (s.narciso_coins + COALESCE(s.adjustment_narciso_coins, 0)) as effective_narciso_coins,
+    (s.pending_tampas + COALESCE(s.adjustment_pending_tampas, 0)) as effective_pending_tampas,
+    (s.pending_latas + COALESCE(s.adjustment_pending_latas, 0)) as effective_pending_latas,
+    (s.pending_oleo + COALESCE(s.adjustment_pending_oleo, 0)) as effective_pending_oleo,
+    -- Indicadores se há ajustes aplicados
+    CASE WHEN COALESCE(s.adjustment_narciso_coins, 0) != 0 THEN true ELSE false END as has_coin_adjustments,
+    CASE WHEN COALESCE(s.adjustment_pending_tampas, 0) != 0 THEN true ELSE false END as has_tampas_adjustments,
+    CASE WHEN COALESCE(s.adjustment_pending_latas, 0) != 0 THEN true ELSE false END as has_latas_adjustments,
+    CASE WHEN COALESCE(s.adjustment_pending_oleo, 0) != 0 THEN true ELSE false END as has_oleo_adjustments
+FROM students s;
+
+-- Atualizar view de ranking para usar valores efetivos
+CREATE OR REPLACE VIEW v_student_coin_ranking_with_adjustments AS
+SELECT 
+    s.id,
+    s.name,
+    s.class_id,
+    c.name as class_name,
+    s.effective_narciso_coins as narciso_coins,
+    ROW_NUMBER() OVER (ORDER BY s.effective_narciso_coins DESC) as rank_position,
+    s.has_coin_adjustments
+FROM v_students_effective_values s
+JOIN classes c ON s.class_id = c.id
+ORDER BY s.effective_narciso_coins DESC;
+
+-- Índices para performance das consultas de ajuste
+CREATE INDEX IF NOT EXISTS idx_student_adjustments_student_id ON student_adjustments(student_id);
+CREATE INDEX IF NOT EXISTS idx_student_adjustments_type ON student_adjustments(adjustment_type);
+CREATE INDEX IF NOT EXISTS idx_student_adjustments_teacher_id ON student_adjustments(teacher_id);
+CREATE INDEX IF NOT EXISTS idx_student_adjustments_created_at ON student_adjustments(created_at);
+
 -- ===================================================================
 -- ✅ ESTRUTURA COMPLETA CRIADA COM SUCESSO!
+-- ✅ SISTEMA DE AJUSTES MANUAIS IMPLEMENTADO!
 -- ===================================================================
 ```
 
@@ -865,13 +1173,258 @@ USING (
 );
 ```
 
-## Quando Evoluir a Estrutura
+---
 
-**Considere aumentar a complexidade apenas se:**
-- Mais de 10.000 alunos simultâneos
-- Mais de 100.000 contribuições por mês
-- Múltiplas escolas no mesmo sistema
-- Necessidade de auditoria complexa
-- Regras de negócio muito complexas
+## 📋 **Exemplos Práticos: Sistema de Ajustes Manuais**
 
-**Para o escopo atual (uma escola), esta estrutura é perfeita!** 🎯
+### 🔧 **Como Fazer Ajustes na Prática
+
+#### **Exemplo 1: Correção de Erro - Adicionar 5 Moedas**
+
+```sql
+-- 1. Consultar situação atual do aluno
+SELECT 
+    name,
+    narciso_coins as moedas_reais,
+    adjustment_narciso_coins as ajuste_atual,
+    effective_narciso_coins as moedas_efetivas
+FROM v_students_effective_values 
+WHERE name = 'João Silva';
+
+-- Resultado esperado:
+-- name: João Silva, moedas_reais: 10, ajuste_atual: 0, moedas_efetivas: 10
+
+-- 2. Registrar o ajuste (substitua os UUIDs pelos reais)
+INSERT INTO student_adjustments (
+    student_id, 
+    adjustment_type, 
+    previous_value, 
+    adjustment_value, 
+    new_value, 
+    reason, 
+    teacher_id
+) VALUES (
+    'uuid-do-joao', -- Substituir pelo UUID real do aluno
+    'narciso_coins',
+    10, -- valor efetivo anterior 
+    5,  -- quantidade de ajuste (+5 moedas)
+    15, -- novo valor efetivo (10 + 5)
+    'Correção: materiais registrados incorretamente na semana passada',
+    'uuid-do-professor' -- Substituir pelo UUID real do professor
+);
+
+-- 3. Verificar resultado (o trigger sincroniza automaticamente)
+SELECT 
+    name,
+    narciso_coins as moedas_reais,
+    adjustment_narciso_coins as ajuste_atual,
+    effective_narciso_coins as moedas_efetivas,
+    has_coin_adjustments as tem_ajustes
+FROM v_students_effective_values 
+WHERE name = 'João Silva';
+
+-- Resultado esperado:
+-- name: João Silva, moedas_reais: 10, ajuste_atual: 5, moedas_efetivas: 15, tem_ajustes: true
+```
+
+#### **Exemplo 2: Bônus Especial - Adicionar 3 Moedas por Evento**
+
+```sql
+-- Adicionar bônus para vários alunos participantes do evento
+INSERT INTO student_adjustments (student_id, adjustment_type, previous_value, adjustment_value, new_value, reason, teacher_id)
+SELECT 
+    s.id as student_id,
+    'narciso_coins' as adjustment_type,
+    s.effective_narciso_coins as previous_value,
+    3 as adjustment_value,
+    s.effective_narciso_coins + 3 as new_value,
+    'Bônus: Participação na Feira de Sustentabilidade 2025' as reason,
+    'uuid-do-professor' as teacher_id
+FROM v_students_effective_values s
+WHERE s.class_id = 'uuid-da-turma-3ano'; -- Substituir pelo UUID real da turma
+```
+
+#### **Exemplo 3: Correção de Saldo Pendente - Ajustar Tampas**
+
+```sql
+-- Aluno tinha 15 tampas pendentes, mas deveria ter 8
+-- Ajuste: -7 tampas pendentes
+
+INSERT INTO student_adjustments (
+    student_id, 
+    adjustment_type, 
+    previous_value, 
+    adjustment_value, 
+    new_value, 
+    reason, 
+    teacher_id
+) VALUES (
+    'uuid-da-maria',
+    'pending_tampas',
+    15, -- valor atual de tampas pendentes
+    -7, -- reduzir 7 tampas
+    8,  -- novo valor: 15 - 7 = 8
+    'Correção: recontagem de tampas pendentes',
+    'uuid-do-professor'
+);
+```
+
+### 📊 **Como Consultar Histórico de Ajustes**
+
+#### **Ver Todos os Ajustes de um Aluno:**
+
+```sql
+SELECT 
+    sa.adjustment_type as tipo_ajuste,
+    sa.previous_value as valor_anterior,
+    sa.adjustment_value as valor_ajuste,
+    sa.new_value as valor_novo,
+    sa.reason as motivo,
+    t.name as professor,
+    sa.created_at as data_ajuste
+FROM student_adjustments sa
+JOIN teachers t ON sa.teacher_id = t.id
+JOIN students s ON sa.student_id = s.id
+WHERE s.name = 'João Silva'
+ORDER BY sa.created_at DESC;
+```
+
+#### **Ver Ajustes Recentes (Últimos 7 dias):**
+
+```sql
+SELECT 
+    s.name as aluno,
+    sa.adjustment_type as tipo,
+    sa.adjustment_value as ajuste,
+    sa.reason as motivo,
+    t.name as professor,
+    sa.created_at as quando
+FROM student_adjustments sa
+JOIN students s ON sa.student_id = s.id
+JOIN teachers t ON sa.teacher_id = t.id
+WHERE sa.created_at >= NOW() - INTERVAL '7 days'
+ORDER BY sa.created_at DESC;
+```
+
+#### **Auditoria: Quem Fez Mais Ajustes:**
+
+```sql
+SELECT 
+    t.name as professor,
+    COUNT(*) as total_ajustes,
+    SUM(CASE WHEN sa.adjustment_value > 0 THEN 1 ELSE 0 END) as ajustes_positivos,
+    SUM(CASE WHEN sa.adjustment_value < 0 THEN 1 ELSE 0 END) as ajustes_negativos
+FROM student_adjustments sa
+JOIN teachers t ON sa.teacher_id = t.id
+WHERE sa.created_at >= NOW() - INTERVAL '30 days'
+GROUP BY t.id, t.name
+ORDER BY total_ajustes DESC;
+```
+
+### 🎯 **Como a Interface Deve Usar o Sistema**
+
+#### **Para Mostrar Dados dos Alunos (sempre usar valores efetivos):**
+
+```sql
+-- ✅ CORRETO: Usar a view com valores efetivos
+SELECT 
+    id,
+    name,
+    class_id,
+    effective_narciso_coins as narciso_coins,
+    effective_pending_tampas as pending_tampas,
+    effective_pending_latas as pending_latas,
+    effective_pending_oleo as pending_oleo,
+    has_coin_adjustments,
+    has_tampas_adjustments,
+    has_latas_adjustments,
+    has_oleo_adjustments
+FROM v_students_effective_values
+ORDER BY effective_narciso_coins DESC;
+
+-- ❌ INCORRETO: Nunca consultar direto a tabela students
+-- SELECT * FROM students; -- Isso mostra valores sem ajustes!
+```
+
+#### **Para Ranking (usar ranking com ajustes):**
+
+```sql
+-- Ranking considerando ajustes
+SELECT 
+    name as aluno,
+    class_name as turma,
+    narciso_coins as moedas,
+    rank_position as posicao,
+    has_coin_adjustments as tem_ajustes
+FROM v_student_coin_ranking_with_adjustments
+LIMIT 10;
+```
+
+### 🔒 **Segurança e Controles**
+
+#### **Verificar Permissões:**
+
+```sql
+-- Apenas professores podem fazer ajustes
+-- Este INSERT falhará se o usuário não for professor
+INSERT INTO student_adjustments (student_id, adjustment_type, previous_value, adjustment_value, new_value, reason, teacher_id)
+VALUES ('uuid-aluno', 'narciso_coins', 10, 5, 15, 'Teste', auth.uid());
+```
+
+#### **Verificar Imutabilidade:**
+
+```sql
+-- Estas operações FALHARÃO devido às políticas de segurança
+UPDATE student_adjustments SET reason = 'Novo motivo' WHERE id = 'uuid-ajuste'; -- ❌ FALHARÁ
+DELETE FROM student_adjustments WHERE id = 'uuid-ajuste'; -- ❌ FALHARÁ
+```
+
+### 📈 **Relatórios de Gestão**
+
+#### **Resumo de Ajustes por Mês:**
+
+```sql
+SELECT 
+    DATE_TRUNC('month', created_at) as mes,
+    adjustment_type as tipo,
+    COUNT(*) as quantidade_ajustes,
+    SUM(adjustment_value) as soma_ajustes,
+    AVG(adjustment_value) as media_ajustes
+FROM student_adjustments
+WHERE created_at >= NOW() - INTERVAL '6 months'
+GROUP BY DATE_TRUNC('month', created_at), adjustment_type
+ORDER BY mes DESC, tipo;
+```
+
+#### **Alunos com Mais Ajustes:**
+
+```sql
+SELECT 
+    s.name as aluno,
+    COUNT(sa.id) as total_ajustes,
+    SUM(CASE WHEN sa.adjustment_type = 'narciso_coins' THEN sa.adjustment_value ELSE 0 END) as total_ajuste_moedas
+FROM students s
+JOIN student_adjustments sa ON s.id = sa.student_id
+GROUP BY s.id, s.name
+HAVING COUNT(sa.id) > 2 -- Alunos com mais de 2 ajustes
+ORDER BY total_ajustes DESC;
+```
+
+---
+
+## ✅ **Sistema Completo Implementado**
+
+O sistema de ajustes manuais está agora **totalmente implementado** e pronto para uso. Principais características:
+
+- 🔒 **Segurança**: Apenas professores podem fazer ajustes
+- 📋 **Auditoria**: Histórico completo de todas as modificações  
+- 🔄 **Automação**: Triggers mantêm tudo sincronizado
+- ⚡ **Performance**: Views otimizadas para consultas rápidas
+- 🛡️ **Integridade**: Dados reais nunca são alterados
+- 📊 **Transparência**: Interface sempre mostra valores efetivos
+
+**Para usar o sistema**, a aplicação deve:
+1. **Sempre consultar** `v_students_effective_values` em vez de `students`
+2. **Registrar ajustes** via `INSERT` na tabela `student_adjustments` 
+3. **Mostrar histórico** consultando `student_adjustments` com JOINs
+4. **Usar ranking** da view `v_student_coin_ranking_with_adjustments`
