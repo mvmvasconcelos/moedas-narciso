@@ -1,4 +1,3 @@
-
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -14,52 +13,79 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import type { Student, MaterialType } from "@/lib/constants";
-import { MATERIAL_LABELS, MATERIAL_TYPES, MATERIAL_UNITS_PER_COIN } from "@/lib/constants";
+import type { Student, MaterialType, Class } from "@/lib/constants";
+import { MATERIAL_LABELS, MATERIAL_TYPES } from "@/lib/constants";
+import { DataService } from "@/lib/dataService";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { CoinsIcon, PackageIcon, ArchiveIcon, DropletIcon, SaveIcon, UsersIcon, UserIcon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 // Props for the component
-interface ContributionFormProps {
+interface ExchangeFormProps {
   materialType: MaterialType;
 }
 
 // Schema generation function
-const createContributionFormSchema = (materialType: MaterialType) => {
+const createExchangeFormSchema = (materialType: MaterialType) => {
   return z.object({
     classId: z.string().min(1, "Selecione uma turma."),
     studentId: z.string().min(1, "Selecione um aluno."),
     [materialType]: z.coerce.number().min(1, `A quantidade de ${MATERIAL_LABELS[materialType].toLowerCase().replace(" (unidades)","")} deve ser maior que zero.`),
-    ...(materialType !== MATERIAL_TYPES.LIDS && { [MATERIAL_TYPES.LIDS]: z.coerce.number().optional() }),
-    ...(materialType !== MATERIAL_TYPES.CANS && { [MATERIAL_TYPES.CANS]: z.coerce.number().optional() }),
-    ...(materialType !== MATERIAL_TYPES.OIL && { [MATERIAL_TYPES.OIL]: z.coerce.number().optional() }),
   });
 };
 
 
-export function ContributionForm({ materialType }: ContributionFormProps) {
-  const { classes, students, addContribution } = useAuth();
+export function ExchangeForm({ materialType }: ExchangeFormProps) {
+  const { classes, students, registerExchange } = useAuth();
   const { toast } = useToast();
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
   const [filteredStudents, setFilteredStudents] = useState<Student[]>([]);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
 
-  const currentSchema = createContributionFormSchema(materialType);
-  type ContributionFormValues = z.infer<typeof currentSchema>;
+  /**
+   * Ordena as turmas para garantir uma ordem pedagógica consistente:
+   * 1. Turmas de "Pré" aparecem primeiro (Pré Manhã, depois Pré Tarde)
+   * 2. Anos são ordenados numericamente (1º ano, 2º ano, etc.)
+   * 3. Turmas sem padrão reconhecido ficam por último
+   */
+  const sortedClasses = useMemo(() => {
+    if (!classes || classes.length === 0) return [];
+    
+    return [...classes].sort((a, b) => {
+      const getOrderWeight = (className: string): number => {
+        const nameLower = className.toLowerCase();
+        
+        // Os Prés têm prioridade máxima
+        if (nameLower.includes('pré')) {
+          return nameLower.includes('manhã') ? 1 : 2; // Pré Manhã vem antes de Pré Tarde
+        }
+        
+        // Extrair o número do ano (1º, 2º, etc.)
+        const yearMatch = className.match(/(\d+)º/);
+        if (yearMatch && yearMatch[1]) {
+          return 10 + parseInt(yearMatch[1], 10); // 1º ano = 11, 2º ano = 12, etc.
+        }
+        
+        // Se não conseguir determinar, coloca no final
+        return 100;
+      };
+      
+      return getOrderWeight(a.name) - getOrderWeight(b.name);
+    });
+  }, [classes]);
 
-  const form = useForm<ContributionFormValues>({
+  const currentSchema = createExchangeFormSchema(materialType);
+  type ExchangeFormValues = z.infer<typeof currentSchema>;
+
+  const form = useForm<ExchangeFormValues>({
     resolver: zodResolver(currentSchema),
     defaultValues: {
       classId: "",
       studentId: "",
       [materialType]: 0,
-      ...(materialType !== MATERIAL_TYPES.LIDS && { [MATERIAL_TYPES.LIDS]: 0 }),
-      ...(materialType !== MATERIAL_TYPES.CANS && { [MATERIAL_TYPES.CANS]: 0 }),
-      ...(materialType !== MATERIAL_TYPES.OIL && { [MATERIAL_TYPES.OIL]: 0 }),
     },
   });
 
@@ -68,7 +94,27 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
 
   useEffect(() => {
     if (selectedClass) {
-      setFilteredStudents(students.filter(s => s.className === selectedClass));
+      // Verificar quais alunos têm essa classe
+      const matchingStudents = students.filter(s => s.className === selectedClass);
+      
+      if (matchingStudents.length === 0) {
+        // Se não encontrar alunos com o nome exato, buscar por correspondência parcial
+        const studentsWithSimilarClass = students.filter(
+          s => s.className && s.className.includes(selectedClass) || 
+               selectedClass.includes(s.className)
+        );
+        
+        // Se encontrar alunos com correspondência parcial, usá-los
+        if (studentsWithSimilarClass.length > 0) {
+          setFilteredStudents(studentsWithSimilarClass);
+        } else {
+          setFilteredStudents([]);
+        }
+      } else {
+        // Se encontrar alunos com correspondência exata, usá-los
+        setFilteredStudents(matchingStudents);
+      }
+      
       // Reset student selection and material quantity when class changes
       form.setValue("studentId", "", { shouldValidate: true });
       setSelectedStudent(null);
@@ -137,32 +183,69 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
 
   const quantityButtons = [1, 5, 10, 50];
 
-  function onSubmit(data: ContributionFormValues) {
-    if (data.studentId && selectedStudent) {
-      const quantity = data[materialType];
-      if (quantity !== undefined && quantity > 0) {
-        // Chamar addContribution e obter estudante atualizado
-        addContribution(data.studentId, materialType, quantity as number);
-        
-        // Notificar o usuário
+  // Função para processar a submissão do formulário
+  const processSubmit = async () => {
+    try {
+      if (!selectedStudent || !selectedStudent.id) return;
+      
+      const material = materialType as "tampas" | "latas" | "oleo";
+      const quantity = watchedMaterialQuantity as number;
+      
+      if (!material || !quantity || quantity <= 0) {
         toast({
-          title: "Sucesso!",
-          description: `${quantity} ${MATERIAL_LABELS[materialType].toLowerCase().replace(" (unidades)","")} de ${selectedStudent?.name || 'aluno'} registradas.`,
+          variant: "destructive",
+          title: "Quantidade inválida",
+          description: `A quantidade de ${MATERIAL_LABELS[material].toLowerCase().replace(" (unidades)","")} deve ser maior que zero.`
         });
-        
-        // Resetar o campo de quantidade
-        form.setValue(materialType, 0, {shouldValidate: true}); 
-
-        // Buscar os dados atualizados do estudante imediatamente após a contribuição
-        const updatedStudentData = students.find(s => s.id === data.studentId);
-        if (updatedStudentData) {
-          setSelectedStudent(updatedStudentData);
-        }
-
-      } else {
-        form.setError(materialType, { type: "manual", message: `A quantidade de ${MATERIAL_LABELS[materialType].toLowerCase().replace(" (unidades)","")} deve ser maior que zero.` });
+        return;
       }
+
+      // Chamar a função de registro do contexto de autenticação e verificar sucesso
+      const success = await registerExchange(selectedStudent.id, material, quantity);
+      
+      if (!success) {
+        throw new Error("Falha ao registrar a troca no sistema");
+      }
+
+      toast({
+        title: "Troca registrada!",
+        description: `${quantity} ${MATERIAL_LABELS[material].toLowerCase()} de ${selectedStudent.name} registrados com sucesso.`,
+      });
+      
+      // Resetar o valor do campo de material
+      form.setValue(material, 0, {shouldValidate: true}); 
+
+      // Atualizar dados do aluno
+      const updatedStudentData = students.find(s => s.id === selectedStudent.id);
+      if (updatedStudentData) {
+        setSelectedStudent(updatedStudentData);
+      }
+    } catch (error) {
+      // Mostrar mensagem de erro para o usuário com detalhes quando disponível
+      let errorMessage = "Ocorreu um erro ao tentar registrar a troca. Tente novamente.";
+      
+      // Verificar se é um erro do Supabase com detalhes adicionais
+      if (error instanceof Error && error.message) {
+        if (error.message.includes("not-authorized")) {
+          errorMessage = "Você não tem permissão para registrar trocas.";
+        } else if (error.message.includes("student-not-found")) {
+          errorMessage = "Aluno não encontrado no sistema.";
+        } else if (error.message.includes("database")) {
+          errorMessage = "Erro de conexão com o banco de dados. Tente novamente em alguns instantes.";
+        }
+      }
+      
+      toast({
+        variant: "destructive",
+        title: "Erro ao registrar troca",
+        description: errorMessage,
+      });
     }
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    processSubmit();
   }
 
   const MaterialIcon =
@@ -170,20 +253,49 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
     materialType === MATERIAL_TYPES.CANS ? ArchiveIcon :
     DropletIcon;
 
-  let coinsFromCurrentContribution = 0;
-  if (selectedStudent && typeof watchedMaterialQuantity === 'number' && watchedMaterialQuantity > 0 && MATERIAL_UNITS_PER_COIN[materialType]) {
-    const unitsPerCoin = MATERIAL_UNITS_PER_COIN[materialType];
-    const currentPendingForMaterial = selectedStudent.pendingContributions?.[materialType] || 0;
+  // Estado para armazenar as taxas de conversão
+  const [conversionRates, setConversionRates] = useState({
+    [MATERIAL_TYPES.LIDS]: 20,
+    [MATERIAL_TYPES.CANS]: 30,
+    [MATERIAL_TYPES.OIL]: 2
+  });
+  
+  // Buscar taxas de conversão atuais
+  useEffect(() => {
+    const fetchConversionRates = async () => {
+      try {
+        const rates = await DataService.getCurrentConversionRates();
+        setConversionRates(rates);
+      } catch (error) {
+        console.error("Erro ao buscar taxas de conversão:", error);
+      }
+    };
+    
+    fetchConversionRates();
+  }, []);
+
+  // Calcula quantas moedas o aluno receberá com esta contribuição
+  const coinsFromCurrentContribution = useMemo(() => {
+    if (!selectedStudent || 
+        typeof watchedMaterialQuantity !== 'number' || 
+        watchedMaterialQuantity <= 0) {
+      return 0;
+    }
+    
+    const unitsPerCoin = conversionRates[materialType];
+    const currentPendingForMaterial = selectedStudent.pendingExchanges?.[materialType] || 0;
     const totalPendingAfterContribution = currentPendingForMaterial + watchedMaterialQuantity;
-    coinsFromCurrentContribution = Math.floor(totalPendingAfterContribution / unitsPerCoin) - Math.floor(currentPendingForMaterial / unitsPerCoin);
-  }
+    
+    return Math.floor(totalPendingAfterContribution / unitsPerCoin) - 
+           Math.floor(currentPendingForMaterial / unitsPerCoin);
+  }, [selectedStudent, watchedMaterialQuantity, materialType]);
 
   return (
     <Card className="w-full shadow-xl"> {/* Removed max-w-2xl and mx-auto */}
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)}>
+        <form onSubmit={handleSubmit}>
           <CardContent className="space-y-6 pt-6">
-            {/* Seção de Seleção de Turma */}
+            {/* Formulário modificado para usar handleSubmit diretamente */}
             <div>
               <FormLabel>Turma</FormLabel>
               <FormField
@@ -198,7 +310,7 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
                   selectedClass ? "opacity-0 max-h-0 invisible" : "opacity-100 max-h-[500px] visible"
                 )}
               >
-                {classes.map((cls) => (
+                {sortedClasses.map((cls) => (
                   <Button
                     key={cls.id}
                     type="button"
@@ -222,9 +334,9 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
                   selectedClass ? "opacity-100 max-h-40 visible" : "opacity-0 max-h-0 invisible"
                 )}
               >
-                {selectedClass && classes.find(cls => cls.name === selectedClass) && (
+                {selectedClass && sortedClasses.find(cls => cls.name === selectedClass) && (
                   <Button
-                    key={classes.find(cls => cls.name === selectedClass)!.id} 
+                    key={sortedClasses.find(cls => cls.name === selectedClass)!.id} 
                     type="button"
                     variant="destructive"
                     onClick={() => handleClassSelect(selectedClass)} 
@@ -324,7 +436,7 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
                     </div>
                     <div className="text-xs text-muted-foreground mt-1 flex items-center">
                         <MaterialIcon className="mr-1 h-3 w-3" />
-                        Saldo pendente de {MATERIAL_LABELS[materialType].toLowerCase().replace(" (unidades)","")}: {selectedStudent.pendingContributions?.[materialType] || 0}
+                        Saldo pendente de {MATERIAL_LABELS[materialType].toLowerCase().replace(" (unidades)","")}: {selectedStudent.pendingExchanges?.[materialType] || 0}
                     </div>
                   </div>
 
@@ -356,7 +468,7 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
                        {selectedStudent && typeof watchedMaterialQuantity === 'number' && watchedMaterialQuantity > 0 && (
                         <div className="mt-1 text-xs text-center text-primary font-medium">
                           <CoinsIcon className="inline-block mr-1 h-3 w-3" />
-                          <span>+{ coinsFromCurrentContribution } Moedas Narciso por esta contribuição</span>
+                          <span>+{ coinsFromCurrentContribution } Moedas Narciso por esta troca</span>
                         </div>
                       )}
                       <div className="space-y-2">
@@ -404,4 +516,4 @@ export function ContributionForm({ materialType }: ContributionFormProps) {
     </Card>
   );
 }
-    
+

@@ -3,12 +3,12 @@
 ## Core Features:
 
 - Autenticação do Professor: Login seguro para professores protegerem os dados dos alunos.
-- Registro de Contribuições: Interface simplificada para registrar rapidamente as contribuições recicláveis (tampas, latas, óleo) de cada aluno.
+- Registro de Trocas: Interface simplificada para registrar rapidamente as trocas de materiais recicláveis (tampas, latas, óleo) de cada aluno.
 - Cálculo de Moedas Narciso: Cálculo automático de Moedas Narciso com base nas taxas de conversão predefinidas para cada tipo de reciclável.
 - Exibição do Saldo de Pontos: Exibição em tempo real do saldo de Moedas Narciso de cada aluno, incentivando a participação.
 - Gerenciamento de Alunos: Ferramentas de administração para gerenciar contas de alunos (adicionar, editar, excluir) e atribuí-los às turmas.
 - Painel de Estatísticas: Tela inicial com resumo das estatísticas de coleta (tampas, latas, óleo) e moedas distribuídas.
-- Tela de Troca Detalhada: Navegação para telas de troca de materiais, seleção de turmas e alunos, e entrada de valores de contribuições.
+- Tela de Troca Detalhada: Navegação para telas de troca de materiais, seleção de turmas e alunos, e entrada de valores para trocas.
 
 ## Style Guidelines:
 

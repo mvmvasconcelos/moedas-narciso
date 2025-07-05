@@ -1,28 +1,34 @@
 "use client";
 
-import type { ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import React, { createContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Student, Class, MaterialType, GenderType } from '@/lib/constants';
-import { MOCK_CLASSES, MATERIAL_TYPES, MATERIAL_UNITS_PER_COIN } from '@/lib/constants';
+import { MOCK_CLASSES, MATERIAL_TYPES } from '@/lib/constants';
 import { useToast } from "@/hooks/use-toast";
 import { DataService } from '@/lib/dataService';
+import { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase, getCurrentUser, getTeacherProfile } from '@/lib/supabase';
 
-// Removendo logs desnecessários de debug para melhorar o desempenho
+interface Stats {
+  totalLids: number;
+  totalCans: number;
+  totalOil: number;
+  totalCoins: number;
+}
 
 interface AuthContextType {
   isAuthenticated: boolean;
-  teacherName: string | null | undefined; // undefined para estado de carregamento inicial
+  teacherName: string | null | undefined;
   students: Student[];
   classes: Class[];
   login: (email: string, pass: string) => Promise<void>;
   logout: () => Promise<void>;
-  addStudent: (studentData: Omit<Student, 'id' | 'narcisoCoins' | 'contributions' | 'pendingContributions'>) => void;
-  updateStudent: (studentData: Partial<Omit<Student, 'id' | 'narcisoCoins' | 'contributions' | 'pendingContributions'>> & { id: string; gender?: GenderType }) => void;
+  addStudent: (studentData: Omit<Student, 'id' | 'narcisoCoins' | 'exchanges' | 'pendingExchanges'>) => void;
+  updateStudent: (studentData: Partial<Omit<Student, 'id' | 'narcisoCoins' | 'exchanges' | 'pendingExchanges'>> & { id: string; gender?: GenderType }) => void;
   deleteStudent: (studentId: string) => void;
-  addContribution: (studentId: string, material: MaterialType, quantity: number) => void;
-  getOverallStats: () => { totalLids: number; totalCans: number; totalOil: number; totalCoins: number };
+  registerExchange: (studentId: string, material: MaterialType, quantity: number) => Promise<boolean>;
+  getOverallStats: () => Stats;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -31,175 +37,142 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [teacherName, setTeacherName] = useState<string | null | undefined>(undefined);
   const [students, setStudents] = useState<Student[]>([]);
-  const classes = MOCK_CLASSES;
+  const [classes, setClasses] = useState<Class[]>(MOCK_CLASSES); // Inicializar com mock, mas depois atualizar com dados reais
   const router = useRouter();
-  const { toast } = useToast();  // Carregar dados de autenticação e estudantes ao inicializar  useEffect(() => {
+  const { toast } = useToast();
+  // Função para inicializar os dados do sistema
+  const initializeData = async () => {
+    try {
+      const [studentsData, classesData] = await Promise.all([
+        DataService.getStudents(),
+        DataService.getClasses()
+      ]);
+
+      setStudents(studentsData);
+      
+      // Se houver classes no banco de dados, use-as em vez das mockadas
+      if (classesData && classesData.length > 0) {
+        setClasses(classesData);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar dados iniciais:', error);
+      toast({
+        variant: "destructive",
+        title: "Erro ao Carregar Dados",
+        description: "Não foi possível carregar os dados do sistema."
+      });
+    }
+  };
+
+  // Carregar dados de autenticação e estudantes ao inicializar
+  useEffect(() => {
     const checkAuth = async () => {
       try {
-        console.log("Verificando autenticação com o Supabase...");
-        
-        // Verificar sessão no Supabase
         const user = await getCurrentUser();
-        
         if (user) {
-          console.log("Usuário autenticado encontrado no Supabase:", {
-            id: user.id,
-            email: user.email
-          });
-          
-          // Usuário está autenticado no Supabase, verificar na tabela 'teachers'
           const profile = await getTeacherProfile();
           
           if (!profile) {
-            console.warn("Usuário autenticado no Supabase, mas sem registro na tabela 'teachers':", user.id);
             toast({
               variant: "destructive",
               title: "Erro de Configuração da Conta",
-              description: "Sua conta de usuário não tem um perfil de professor associado. Entre em contato com o administrador.",
+              description: "Usuário sem perfil configurado."
             });
-            
-            // Deslogar o usuário
             await supabase.auth.signOut();
-            setIsAuthenticated(false);
-            setTeacherName(null);
-            router.push('/login');
             return;
           }
-          
-          console.log("Perfil de professor encontrado:", profile);
+
           setIsAuthenticated(true);
           setTeacherName(profile.name || user.email?.split('@')[0] || "Professor(a)");
           
-          // Ainda usamos o localStorage para os dados dos estudantes (isso será migrado em uma fase futura)
-          const loadedStudents = DataService.getStudents();
-          setStudents(loadedStudents);
-        } else {
-          // Não há sessão ativa no Supabase
-          console.log("Nenhuma sessão ativa encontrada no Supabase");
-          setIsAuthenticated(false);
-          setTeacherName(null);
-          
-          // Se estiver em uma rota protegida, redirecionar para login
-          if (window.location.pathname !== '/login') {
-            router.push('/login');
-          }
+          // Inicializar dados do sistema após autenticação
+          await initializeData();
         }
       } catch (error) {
-        console.error("Erro ao verificar autenticação com o Supabase:", error);
+        console.error("Erro ao verificar autenticação:", error);
         setIsAuthenticated(false);
         setTeacherName(null);
-        
-        toast({
-          variant: "destructive",
-          title: "Erro ao Verificar Autenticação",
-          description: "Ocorreu um erro ao verificar sua sessão. Tente fazer login novamente.",
-        });
-        
         router.push('/login');
       }
     };
-    
-    checkAuth();  }, [router, toast]);
-  
-  const login = async (email: string, pass: string) => {
-    if (!email || !pass) {
-      toast({
-        variant: "destructive",
-        title: "Campos Obrigatórios",
-        description: "Por favor, preencha o email e a senha.",
-      });
-      throw new Error("Email e senha são obrigatórios.");
+
+    checkAuth();
+  }, [router, toast]);
+
+  // Configurar atualizações em tempo real
+  useEffect(() => {
+    let channels: RealtimeChannel[] = [];
+
+    if (isAuthenticated) {
+      // Canal para trocas
+      const exchangesChannel = supabase
+        .channel('exchanges')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'exchanges' },
+          () => {
+            console.log('Mudança detectada em exchanges');
+            initializeData();
+          }
+        )
+        .subscribe();
+
+      // Canal para ajustes
+      const adjustmentsChannel = supabase
+        .channel('adjustments')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'student_adjustments' },
+          () => {
+            console.log('Mudança detectada em ajustes');
+            initializeData();
+          }
+        )
+        .subscribe();
+
+      channels = [exchangesChannel, adjustmentsChannel];
     }
-    
-    try {
-      console.log("Tentando login no Supabase com:", { email });
-      
-      // Verificar se as variáveis de ambiente do Supabase estão configuradas
-      console.log("Configuração do Supabase:", {
-        url: process.env.NEXT_PUBLIC_SUPABASE_URL ? "Configurado" : "Não configurado",
-        key: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? "Configurado" : "Não configurado",
-        urlLength: process.env.NEXT_PUBLIC_SUPABASE_URL?.length || 0,
-        keyLength: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.length || 0
+
+    return () => {
+      channels.forEach(channel => {
+        supabase.removeChannel(channel);
       });
-      
-      // Primeiro tenta autenticar com Supabase
-      const { data, error } = await supabase.auth.signInWithPassword({
+    };
+  }, [isAuthenticated]);
+
+  const login = async (email: string, pass: string) => {
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password: pass,
       });
-      
-      if (error) {
-        console.error("Erro detalhado do Supabase:", {
-          code: error.code,
-          message: error.message,
-          status: error.status
-        });
-        throw error;
-      }        // Se autenticado com sucesso no Supabase
-      if (data.user) {
-        const profile = await getTeacherProfile();
-        
-        // Verifica se o usuário tem um perfil na tabela 'teachers'
-        if (!profile) {
-          console.error("Usuário não encontrado na tabela teachers:", data.user.id);
-          toast({
-            variant: "destructive",
-            title: "Erro de Configuração",
-            description: "Usuário autenticado, mas não encontrado na tabela 'teachers'. Entre em contato com o administrador.",
-          });
-          
-          // Deslogar o usuário, já que não tem perfil configurado
-          await supabase.auth.signOut();
-          throw new Error("Usuário não encontrado na tabela teachers");
-        }
-        
-        const teacherNameValue = profile.name || data.user.email?.split('@')[0] || "Professor(a)";
-        
-        setIsAuthenticated(true);
-        setTeacherName(teacherNameValue);
-        
-        // Não salvamos mais no localStorage - Supabase gerencia a sessão
-        
-        toast({
-          title: "Login Bem-sucedido!",
-          description: `Bem-vindo(a) de volta, ${teacherNameValue}!`,
-        });
-        
-        router.push('/dashboard');
-      }} catch (error: any) {
-      console.error("Erro ao fazer login com Supabase:", error);
-      
-      // Sem fallback para o método antigo - exibir erro com informações detalhadas
-      let errorMessage = "Credenciais inválidas ou problema de conexão com o Supabase.";
-      
-      // Mensagens específicas para erros comuns
-      if (error.message === "Invalid login credentials") {
-        errorMessage = "Credenciais inválidas. Verifique seu email e senha.";
-      } else if (error.message?.includes("network")) {
-        errorMessage = "Erro de conexão com o Supabase. Verifique sua internet.";
-      } else if (error.code === "user-not-found") {
-        errorMessage = "Usuário não encontrado. Verifique seu email ou cadastre-se.";
-      } else if (error.code === "auth/too-many-requests") {
-        errorMessage = "Muitas tentativas de login. Tente novamente mais tarde.";
-      }
-      
+
+      if (error) throw error;
+
+      const user = await getCurrentUser();
+      if (!user) throw new Error("Usuário não encontrado após login");
+
+      const profile = await getTeacherProfile();
+      if (!profile) throw new Error("Perfil de professor não encontrado");
+
+      setIsAuthenticated(true);
+      setTeacherName(profile.name || user.email?.split('@')[0] || "Professor(a)");
+      router.push('/dashboard');
+
+    } catch (error: any) {
+      console.error("Erro no login:", error);
       toast({
         variant: "destructive",
         title: "Erro no Login",
-        description: errorMessage,
+        description: error.message || "Falha ao fazer login",
       });
+      throw error;
     }
-  };  const logout = async () => {
+  };
+
+  const logout = async () => {
     try {
-      // Desloga do Supabase
-      const { error } = await supabase.auth.signOut();
-      
-      if (error) {
-        console.error("Erro ao deslogar do Supabase:", error);
-      }
-      
-      // Não utilizamos mais DataService para autenticação
-      
+      await supabase.auth.signOut();
       setIsAuthenticated(false);
       setTeacherName(null);
       router.push('/login');
@@ -208,105 +181,133 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const addStudent = useCallback((studentData: Omit<Student, 'id' | 'narcisoCoins' | 'contributions' | 'pendingContributions'>) => {
-    setStudents(prevStudents => {
-      const newStudent: Student = {
+  const addStudent = useCallback(async (studentData: Omit<Student, 'id' | 'narcisoCoins' | 'exchanges' | 'pendingExchanges'>) => {
+    try {
+      // Adicionar campos obrigatórios com valores padrão
+      const fullStudentData: Omit<Student, 'id'> = {
         ...studentData,
-        id: `s${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
-        contributions: { [MATERIAL_TYPES.LIDS]: 0, [MATERIAL_TYPES.CANS]: 0, [MATERIAL_TYPES.OIL]: 0 },
-        pendingContributions: { [MATERIAL_TYPES.LIDS]: 0, [MATERIAL_TYPES.CANS]: 0, [MATERIAL_TYPES.OIL]: 0 },
         narcisoCoins: 0,
+        exchanges: {
+          tampas: 0,
+          latas: 0,
+          oleo: 0
+        },
+        pendingExchanges: {
+          tampas: 0,
+          latas: 0,
+          oleo: 0
+        }
       };
-      const updatedStudents = [...prevStudents, newStudent];
-      DataService.saveStudents(updatedStudents);
-      return updatedStudents;
-    });
-  }, []);
-
-  const updateStudent = useCallback((studentData: Partial<Omit<Student, 'id' | 'narcisoCoins' | 'contributions' | 'pendingContributions'>> & { id: string; gender?: GenderType }) => {
-    setStudents(prevStudents => {
-      const updatedStudents = prevStudents.map(s =>
-        s.id === studentData.id ? { ...s, ...studentData } : s
-      );
-      DataService.saveStudents(updatedStudents);
-      return updatedStudents;
-    });
-  }, []);
-
-  const deleteStudent = useCallback((studentId: string) => {
-    setStudents(prevStudents => {
-      const updatedStudents = prevStudents.filter(s => s.id !== studentId);
-      DataService.saveStudents(updatedStudents);
-      return updatedStudents;
-    });
-  }, []);
-
-  const addContribution = useCallback((studentId: string, material: MaterialType, quantityAdded: number) => {
-    setStudents(prevStudents => {
-      const studentIndex = prevStudents.findIndex(s => s.id === studentId);
-      if (studentIndex === -1) return prevStudents;
-
-      const studentBefore = { ...prevStudents[studentIndex] };
-      studentBefore.pendingContributions = studentBefore.pendingContributions || { tampas: 0, latas: 0, oleo: 0 };
-      studentBefore.contributions = studentBefore.contributions || { tampas: 0, latas: 0, oleo: 0 };
-      studentBefore.narcisoCoins = studentBefore.narcisoCoins || 0;
-
-      const unitsPerCoin = MATERIAL_UNITS_PER_COIN[material];
-      if (!unitsPerCoin || unitsPerCoin <= 0) return prevStudents; 
-
-      const materialPendingBefore = studentBefore.pendingContributions?.[material] || 0;
-      const totalHistoricalContributionsBefore = studentBefore.contributions?.[material] || 0;
-      const totalCoinsBefore = studentBefore.narcisoCoins || 0;
-
-      const currentTotalMaterialPending = materialPendingBefore + quantityAdded;
-      const newCoinsEarnedThisTransaction = Math.floor(currentTotalMaterialPending / unitsPerCoin);
-      const materialPendingAfter = currentTotalMaterialPending % unitsPerCoin;
-
-      const studentAfter: Student = {
-        ...studentBefore,
-        contributions: {
-          ...(studentBefore.contributions),
-          [material]: totalHistoricalContributionsBefore + quantityAdded,
-        },
-        pendingContributions: {
-          ...(studentBefore.pendingContributions),
-          [material]: materialPendingAfter,
-        },
-        narcisoCoins: totalCoinsBefore + newCoinsEarnedThisTransaction,
-      };      
-      const updatedStudents = [...prevStudents];
-      updatedStudents[studentIndex] = studentAfter;
       
-      // Salvar as mudanças no localStorage
-      DataService.saveStudents(updatedStudents);
-      return updatedStudents;
-    });
-  }, [teacherName]);
+      // Usar o DataService para adicionar aluno
+      const newStudent = await DataService.addStudent(fullStudentData);
+      
+      // Atualizar estado local dos estudantes
+      const updatedStudents = await DataService.getStudents();
+      setStudents(updatedStudents);
+      
+      return newStudent;
+    } catch (error) {
+      console.error("Erro ao adicionar aluno:", error);
+      throw error;
+    }
+  }, []);
 
-  // Otimizado com useMemo para calcular os totais apenas quando students muda
-  const overallStats = useMemo(() => {
-    // Usando reduce em vez de forEach para melhorar performance
-    const { lids, cans, oil, coins } = students.reduce((acc, student) => {
-      return {
-        lids: acc.lids + (student.contributions?.[MATERIAL_TYPES.LIDS] || 0),
-        cans: acc.cans + (student.contributions?.[MATERIAL_TYPES.CANS] || 0),
-        oil: acc.oil + (student.contributions?.[MATERIAL_TYPES.OIL] || 0),
-        coins: acc.coins + (student.narcisoCoins || 0)
-      };
-    }, { lids: 0, cans: 0, oil: 0, coins: 0 });
+  const updateStudent = useCallback(async (studentData: Partial<Omit<Student, 'id' | 'narcisoCoins' | 'exchanges' | 'pendingExchanges'>> & { id: string }) => {
+    try {
+      console.log('AuthContext: Iniciando atualização de aluno:', studentData);
+      
+      // Usar o DataService para atualizar aluno
+      const updatedStudent = await DataService.updateStudent(studentData as Student);
+      
+      console.log('AuthContext: Aluno atualizado com sucesso:', updatedStudent);
+      
+      // Atualizar estado local dos estudantes
+      const updatedStudents = await DataService.getStudents();
+      setStudents(updatedStudents);
+      
+      return updatedStudent;
+    } catch (error) {
+      console.error("AuthContext: Erro ao atualizar aluno:", error);
+      if (error instanceof Error) {
+        throw error;
+      } else {
+        throw new Error(`Erro desconhecido: ${JSON.stringify(error)}`);
+      }
+    }
+  }, []);
+
+  const deleteStudent = useCallback(async (studentId: string) => {
+    try {
+      // Usar o DataService para deletar aluno
+      await DataService.deleteStudent(studentId);
+      
+      // Atualizar estado local dos estudantes
+      const updatedStudents = await DataService.getStudents();
+      setStudents(updatedStudents);
+      
+    } catch (error) {
+      console.error("Erro ao deletar aluno:", error);
+      throw error;
+    }
+  }, []);
+  // Método addExchange foi removido por ser redundante com registerExchange
+
+  const registerExchange = useCallback(async (studentId: string, material: MaterialType, quantity: number) => {
+    try {
+      const user = await getCurrentUser();
+      if (!user) throw new Error("Usuário não autenticado");
+
+      // Usar o DataService para registrar a troca
+      await DataService.registerExchange(studentId, material, quantity, user.id);
+
+      // Atualizar estado local dos estudantes
+      const updatedStudents = await DataService.getStudents();
+      setStudents(updatedStudents);
+
+      return true;
+    } catch (error) {
+      console.error("Erro ao registrar troca:", error);
+      throw error;
+    }
+  }, []);
+
+  // Cálculo otimizado dos totais
+  const overallStats = useMemo((): Stats => {
+    const initial: Stats = {
+      totalLids: 0,
+      totalCans: 0,
+      totalOil: 0,
+      totalCoins: 0
+    };
+
+    if (!Array.isArray(students)) return initial;
     
-    return { totalLids: lids, totalCans: cans, totalOil: oil, totalCoins: coins };
+    return students.reduce((acc, student) => ({
+      totalLids: acc.totalLids + (student?.exchanges?.[MATERIAL_TYPES.LIDS] || 0),
+      totalCans: acc.totalCans + (student?.exchanges?.[MATERIAL_TYPES.CANS] || 0),
+      totalOil: acc.totalOil + (student?.exchanges?.[MATERIAL_TYPES.OIL] || 0),
+      totalCoins: acc.totalCoins + (student?.narcisoCoins || 0)
+    }), initial);
   }, [students]);
-  
-  // Retorna os dados pré-calculados para evitar recálculos
-  const getOverallStats = useCallback(() => {
-    return overallStats;
-  }, [overallStats]);
 
-  // console.log("DEBUG: src/contexts/AuthContext.tsx - AuthProvider: context value (Mock Auth Version)", {isAuthenticated, teacherName, studentsCount: students.length});
-
+  const getOverallStats = useCallback((): Stats => overallStats, [overallStats]);
   return (
-    <AuthContext.Provider value={{ isAuthenticated, teacherName, students, classes, login, logout, addStudent, updateStudent, deleteStudent, addContribution, getOverallStats }}>
+    <AuthContext.Provider 
+      value={{ 
+        isAuthenticated, 
+        teacherName, 
+        students, 
+        classes, 
+        login, 
+        logout, 
+        addStudent, 
+        updateStudent, 
+        deleteStudent,
+        registerExchange,
+        getOverallStats
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

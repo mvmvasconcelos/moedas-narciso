@@ -7,7 +7,7 @@ import { Toaster } from '@/components/ui/toaster';
 
 export const metadata: Metadata = {
   title: 'Moedas Narciso',
-  description: 'Plataforma de gerenciamento de contribuições recicláveis e Moedas Narciso.',
+  description: 'Plataforma de gerenciamento de trocas de materiais recicláveis e Moedas Narciso.',
 };
 
 export default function RootLayout({
@@ -15,7 +15,6 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  console.log("RootLayout rendering");
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <body className="font-sans antialiased" suppressHydrationWarning>

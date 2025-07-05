@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { Student } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { StudentForm } from "@/components/alunos/StudentForm";
 import { StudentsTable } from "@/components/alunos/StudentsTable";
 import { PlusCircleIcon, UsersIcon } from "lucide-react";

@@ -24,6 +24,34 @@ function RankingContent() {
   const [selectedClass, setSelectedClass] = useState<Class | null>(null);
   const [classSortCriterion, setClassSortCriterion] = useState<SortCriterion>('narcisoCoins');
 
+  // Ordenar classes para garantir que Prés apareçam primeiro, seguido pelos anos em ordem numérica
+  const sortedClasses = useMemo(() => {
+    if (!classes || classes.length === 0) return [];
+    
+    return [...classes].sort((a, b) => {
+      // Função para extrair o "peso" de ordenação de uma turma
+      const getOrderWeight = (className: string): number => {
+        const nameLower = className.toLowerCase();
+        
+        // Os Prés têm prioridade máxima
+        if (nameLower.includes('pré')) {
+          return nameLower.includes('manhã') ? 1 : 2; // Pré Manhã vem antes de Pré Tarde
+        }
+        
+        // Extrair o número do ano (1º, 2º, etc.)
+        const yearMatch = className.match(/(\d+)º/);
+        if (yearMatch && yearMatch[1]) {
+          return 10 + parseInt(yearMatch[1], 10); // 1º ano = 11, 2º ano = 12, etc.
+        }
+        
+        // Se não conseguir determinar, coloca no final
+        return 100;
+      };
+      
+      return getOrderWeight(a.name) - getOrderWeight(b.name);
+    });
+  }, [classes]);
+
   useEffect(() => {
     if (teacherName !== undefined && students.length > 0) {
         setIsLoading(false);
@@ -50,7 +78,7 @@ function RankingContent() {
 
   const findTopContributor = (material: MaterialType): Student | null => {
     if (students.length === 0) return null;
-    return [...students].sort((a, b) => (b.contributions[material] || 0) - (a.contributions[material] || 0))[0];
+    return [...students].sort((a, b) => (b.exchanges?.[material] || 0) - (a.exchanges?.[material] || 0))[0];
   };
 
   const topLidsContributor = useMemo(() => findTopContributor(MATERIAL_TYPES.LIDS), [students]);
@@ -85,7 +113,7 @@ function RankingContent() {
       if (classSortCriterion === 'narcisoCoins') {
         return (b.narcisoCoins || 0) - (a.narcisoCoins || 0);
       }
-      return (b.contributions[classSortCriterion] || 0) - (a.contributions[classSortCriterion] || 0);
+      return (b.exchanges?.[classSortCriterion] || 0) - (a.exchanges?.[classSortCriterion] || 0);
     });
   }, [students, selectedClass, classSortCriterion]);
 
@@ -96,7 +124,7 @@ function RankingContent() {
   
   const getCriterionValue = (student: Student, criterion: SortCriterion) => {
     if (criterion === 'narcisoCoins') return student.narcisoCoins || 0;
-    return student.contributions[criterion] || 0;
+    return student.exchanges?.[criterion] || 0;
   };
 
   const getCriterionLabel = (criterion: SortCriterion) => {
@@ -130,7 +158,7 @@ function RankingContent() {
             Ranking Geral
           </h1>
           <p className="text-muted-foreground">
-            Destaques de contribuições e Moedas Narciso.
+            Destaques de trocas e Moedas Narciso.
           </p>
         </div>
       </div>
@@ -183,13 +211,13 @@ function RankingContent() {
       <section className="space-y-6">
         <h2 className="text-2xl font-semibold tracking-tight text-foreground flex items-center">
           <AwardIcon className="mr-2 h-6 w-6 text-sky-500" />
-          Maiores Contribuidores por Material
+          Maiores Trocadores por Material
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <StudentRankCard
             student={topLidsContributor}
             title={getMaterialTitle(MATERIAL_TYPES.LIDS, topLidsContributor?.gender)}
-            value={`${topLidsContributor?.contributions[MATERIAL_TYPES.LIDS] || 0} ${MATERIAL_LABELS[MATERIAL_TYPES.LIDS].replace(" (unidades)","")}`}
+            value={`${topLidsContributor?.exchanges?.[MATERIAL_TYPES.LIDS] || 0} ${MATERIAL_LABELS[MATERIAL_TYPES.LIDS].replace(" (unidades)","")}`}
             icon={PackageIcon}
             variant="default"
             isLoading={isLoading}
@@ -198,7 +226,7 @@ function RankingContent() {
           <StudentRankCard
             student={topCansContributor}
             title={getMaterialTitle(MATERIAL_TYPES.CANS, topCansContributor?.gender)}
-            value={`${topCansContributor?.contributions[MATERIAL_TYPES.CANS] || 0} ${MATERIAL_LABELS[MATERIAL_TYPES.CANS].replace(" (unidades)","")}`}
+            value={`${topCansContributor?.exchanges?.[MATERIAL_TYPES.CANS] || 0} ${MATERIAL_LABELS[MATERIAL_TYPES.CANS].replace(" (unidades)","")}`}
             icon={ArchiveIcon}
             variant="default"
             isLoading={isLoading}
@@ -207,7 +235,7 @@ function RankingContent() {
           <StudentRankCard
             student={topOilContributor}
             title={getMaterialTitle(MATERIAL_TYPES.OIL, topOilContributor?.gender)}
-            value={`${topOilContributor?.contributions[MATERIAL_TYPES.OIL] || 0} ${MATERIAL_LABELS[MATERIAL_TYPES.OIL].replace(" (unidades)","")}`}
+            value={`${topOilContributor?.exchanges?.[MATERIAL_TYPES.OIL] || 0} ${MATERIAL_LABELS[MATERIAL_TYPES.OIL].replace(" (unidades)","")}`}
             icon={DropletIcon}
             variant="default"
             isLoading={isLoading}
@@ -224,7 +252,7 @@ function RankingContent() {
           Ranking por Turma
         </h2>
         <div className="flex flex-wrap gap-2 mb-6">
-          {classes.map((cls) => (
+          {sortedClasses.map((cls) => (
             <Button
               key={cls.id}
               variant={selectedClass?.id === cls.id ? "default" : "outline"}

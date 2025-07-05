@@ -1,0 +1,377 @@
+// Serviço de dados que abstrai o acesso ao armazenamento
+// Atualmente usa localStorage, mas pode ser facilmente migrado para Supabase no futuro
+
+import { type Student, type MaterialType, MATERIAL_TYPES } from './constants';
+import { supabase } from './supabase';
+import { type Database } from '../types/database.types';
+
+export const STUDENTS_STORAGE_KEY = 'moedasNarcisoStudents';
+export const AUTH_STORAGE_KEY = 'moedasNarcisoAuth';
+
+// Interface para autenticação
+interface AuthData {
+  username: string;
+  isAuthenticated: boolean;
+}
+
+// Interface para troca de materiais
+interface Exchange {
+  id?: string;
+  student_id: string;
+  material_id: MaterialType;
+  quantity: number;
+  teacher_id: string;
+  created_at?: string;
+}
+
+// Classe que gerencia as operações de dados
+export class DataService {
+  // MÉTODOS DE CARREGAMENTO DE DADOS
+  static async getStudents(): Promise<Student[]> {
+    try {
+      const { data, error } = await supabase
+        .from('v_students_effective_values')
+        .select('*')
+        .order('name');
+          if (error) {
+        console.error("Erro ao buscar estudantes:", error);
+        throw error;
+      }
+      
+      // Converter dados do Supabase para o formato do frontend, usando os valores efetivos da view
+      const students = (data || []).map(row => ({        id: row.id,
+        name: row.name,
+        className: row.class_name,
+        gender: row.gender,
+        exchanges: {
+          [MATERIAL_TYPES.LIDS]: row.exchange_tampas || 0,
+          [MATERIAL_TYPES.CANS]: row.exchange_latas || 0,
+          [MATERIAL_TYPES.OIL]: row.exchange_oleo || 0
+        },
+        pendingExchanges: {
+          [MATERIAL_TYPES.LIDS]: row.pending_tampas || 0,
+          [MATERIAL_TYPES.CANS]: row.pending_latas || 0,
+          [MATERIAL_TYPES.OIL]: row.pending_oleo || 0
+        },
+        narcisoCoins: row.narciso_coins || 0
+      }));
+
+      return students;
+    } catch (error) {
+      console.error("Erro ao buscar estudantes (fallback para localStorage):", error);
+      return DataService.getStudentsFromLocalStorage();
+    }
+  }
+  static async getClasses() {
+    try {      const { data, error } = await supabase
+        .from('classes')
+        .select(`
+          id,
+          name,
+          teacher_id`)
+        .order('name');
+      
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Erro ao carregar turmas:', error);
+      throw error;
+    }
+  }
+
+  // Métodos para gerenciamento de alunos
+  static async addStudent(student: Omit<Student, 'id'>) {
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const userId = sessionData.session?.user.id;
+
+      if (!userId) {
+        throw new Error('Usuário não autenticado');
+      }
+
+      const { data: profile } = await supabase
+        .from('teachers')
+        .select('role')
+        .eq('id', userId)
+        .single();
+
+      if (profile?.role !== 'teacher') {
+        throw new Error('Apenas professores podem gerenciar alunos');
+      }
+
+      const { data, error } = await supabase
+        .from('students')
+        .insert([{
+          name: student.name,
+          class_name: student.className,
+          gender: student.gender,
+          narciso_coins: 0,
+          pending_tampas: 0,
+          pending_latas: 0,
+          pending_oleo: 0
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Erro ao adicionar aluno:', error);
+      throw error;
+    }
+  }
+
+  static async updateStudent(student: Student) {
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const userId = sessionData.session?.user.id;
+
+      if (!userId) {
+        throw new Error('Usuário não autenticado');
+      }
+
+      const { data: profile } = await supabase
+        .from('teachers')
+        .select('role')
+        .eq('id', userId)
+        .single();
+
+      if (profile?.role !== 'teacher') {
+        throw new Error('Apenas professores podem gerenciar alunos');
+      }
+
+      const { data, error } = await supabase
+        .from('students')
+        .update({
+          name: student.name,
+          class_name: student.className,
+          gender: student.gender
+        })
+        .eq('id', student.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Erro ao atualizar aluno:', error);
+      throw error;
+    }
+  }
+
+  static async deleteStudent(studentId: string) {
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const userId = sessionData.session?.user.id;
+
+      if (!userId) {
+        throw new Error('Usuário não autenticado');
+      }
+
+      const { data: profile } = await supabase
+        .from('teachers')
+        .select('role')
+        .eq('id', userId)
+        .single();
+
+      if (profile?.role !== 'teacher') {
+        throw new Error('Apenas professores podem gerenciar alunos');
+      }
+
+      const { error } = await supabase
+        .from('students')
+        .delete()
+        .eq('id', studentId);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Erro ao excluir aluno:', error);
+      throw error;
+    }
+  }
+
+  static async getStudentWithTotals(studentId: string) {
+    try {
+      const { data, error } = await supabase
+        .from('v_students_effective_values')
+        .select('*')
+        .eq('id', studentId)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Erro ao carregar dados do aluno:', error);
+      throw error;
+    }
+  }
+
+  static async getStudentRanking() {
+    try {
+      const { data, error } = await supabase
+        .from('v_student_coin_ranking_with_adjustments')
+        .select('*')
+        .order('narciso_coins', { ascending: false });
+        
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error("Erro ao buscar ranking:", error);
+      throw error;
+    }
+  }
+  static async registerExchange(
+    studentId: string, 
+    materialId: MaterialType, 
+    quantity: number,
+    teacherId: string
+  ): Promise<Exchange[]> {
+    try {
+      const { data, error } = await supabase
+        .from('exchanges')
+        .insert([{
+          student_id: studentId,
+          material_id: materialId,
+          quantity: quantity,
+          teacher_id: teacherId
+        }])
+        .select();
+        
+      if (error) {
+        console.error("Erro ao registrar troca:", error);
+        throw error;
+      }
+      
+      return data || [];
+    } catch (error) {
+      console.error("Erro ao registrar troca (fallback para localStorage):", error);
+      // Usar os métodos existentes do localStorage como fallback temporário
+      const students = DataService.getStudentsFromLocalStorage();
+      const student = students.find(s => s.id === studentId);
+      if (!student) throw new Error("Estudante não encontrado");
+      
+      // Garantir que os objetos exchanges existam
+      student.exchanges = student.exchanges || {
+        [MATERIAL_TYPES.LIDS]: 0,
+        [MATERIAL_TYPES.CANS]: 0,
+        [MATERIAL_TYPES.OIL]: 0
+      };
+      
+      // Atualizar as trocas do estudante usando o tipo correto
+      if (materialId in MATERIAL_TYPES) {
+        student.exchanges[materialId] += quantity;
+      }
+      
+      // Salvar alterações
+      DataService.saveStudents(students);
+      
+      // Retornar um objeto Exchange com dados mínimos
+      return [{
+        id: `exchange_${Date.now()}`,
+        student_id: studentId,
+        material_id: materialId,
+        quantity,
+        teacher_id: teacherId,
+        created_at: new Date().toISOString()
+      }];
+    }
+  }  static async getDashboardStats() {
+    try {
+      // Verificar configuração do Supabase
+      const { verifySupabaseConfig } = await import('./supabase');
+      verifySupabaseConfig();
+      
+      console.log("Iniciando requisição de estatísticas...");
+      
+      const { data: generalStats, error: statsError } = await supabase
+        .from('v_general_stats')
+        .select('*')
+        .single();
+      
+      console.log("Resposta da view v_general_stats:", { generalStats, statsError });
+      
+      if (statsError) {
+        console.error("Erro na view v_general_stats:", statsError);
+        throw statsError;
+      }      return {
+        generalStats: generalStats || {
+          total_tampas: 0,
+          total_latas: 0,
+          total_oleo: 0,
+          total_coins: 0
+        }
+      };
+    } catch (error) {
+      console.error('Erro ao carregar estatísticas:', error);
+      // Fallback para cálculo local
+      const totals = DataService.calculateTotalsFromLocalStorage();      return {
+        generalStats: totals || {
+          total_tampas: 0,
+          total_latas: 0,
+          total_oleo: 0,
+          total_coins: 0
+        },
+        currentPeriod: null
+      };
+    }
+  }
+
+  // MÉTODOS DE COMPATIBILIDADE - Serão removidos após migração completa
+  private static getStudentsFromLocalStorage(): Student[] {
+    try {
+      const stored = localStorage.getItem(STUDENTS_STORAGE_KEY);
+      if (stored) {
+        return this.normalizeStudentData(JSON.parse(stored));
+      }
+    } catch (error) {
+      console.error("Erro ao ler estudantes do localStorage:", error);
+    }
+    return [];
+  }
+
+  static saveStudents(students: Student[]): void {
+    try {
+      localStorage.setItem(STUDENTS_STORAGE_KEY, JSON.stringify(students));
+    } catch (error) {
+      console.error("Erro ao salvar dados de estudantes:", error);
+    }
+  }
+
+  private static normalizeStudentData(students: Student[]): Student[] {
+    return students.map(student => ({
+      id: student.id || `s_fallback_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+      name: student.name || "Nome Desconhecido",
+      className: student.className || "Turma Desconhecida",
+      gender: student.gender || 'prefiroNaoInformar',
+      exchanges: student.exchanges || {
+        [MATERIAL_TYPES.LIDS]: 0,
+        [MATERIAL_TYPES.CANS]: 0,
+        [MATERIAL_TYPES.OIL]: 0
+      },
+      pendingExchanges: student.pendingExchanges || {
+        [MATERIAL_TYPES.LIDS]: 0,
+        [MATERIAL_TYPES.CANS]: 0,
+        [MATERIAL_TYPES.OIL]: 0
+      },
+      narcisoCoins: typeof student.narcisoCoins === 'number' ? student.narcisoCoins : 0,
+    }));
+  }
+
+  private static calculateTotalsFromLocalStorage() {
+    try {
+      const students = DataService.getStudentsFromLocalStorage();
+      const totals = {
+        total_students: students.length,
+        total_classes: new Set(students.map(s => s.className)).size,
+        total_tampas: students.reduce((acc, s) => acc + (s.exchanges?.[MATERIAL_TYPES.LIDS] || 0), 0),
+        total_latas: students.reduce((acc, s) => acc + (s.exchanges?.[MATERIAL_TYPES.CANS] || 0), 0),
+        total_oleo: students.reduce((acc, s) => acc + (s.exchanges?.[MATERIAL_TYPES.OIL] || 0), 0),
+        total_coins: students.reduce((acc, s) => acc + (s.narcisoCoins || 0), 0)
+      };
+      return totals;
+    } catch (error) {
+      console.error("Erro ao calcular totais do localStorage:", error);
+      return null;
+    }
+  }
+}

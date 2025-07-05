@@ -5,14 +5,6 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-// Log para verificar se as variáveis estão sendo carregadas corretamente
-console.log("Inicializando cliente Supabase com:", {
-  urlConfigured: !!supabaseUrl,
-  keyConfigured: !!supabaseAnonKey,
-  urlLength: supabaseUrl?.length,
-  keyLength: supabaseAnonKey?.length
-});
-
 // Verificar se as variáveis de ambiente estão definidas
 if (!supabaseUrl || !supabaseAnonKey) {
   console.error("ERRO CRÍTICO: Variáveis de ambiente do Supabase não configuradas corretamente!");
@@ -32,15 +24,8 @@ export async function getCurrentUser() {
     }
     
     if (!session) {
-      console.log('getCurrentUser: Nenhuma sessão ativa encontrada');
       return null;
     }
-    
-    console.log('getCurrentUser: Usuário autenticado', {
-      id: session.user.id,
-      email: session.user.email,
-      lastSignIn: session.user.last_sign_in_at
-    });
     
     return session.user;
   } catch (error) {
@@ -54,14 +39,8 @@ export async function getTeacherProfile() {
   const user = await getCurrentUser();
   
   if (!user) {
-    console.log('getTeacherProfile: Nenhum usuário autenticado encontrado');
     return null;
   }
-  
-  console.log('getTeacherProfile: Buscando perfil para o usuário', { 
-    id: user.id, 
-    email: user.email 
-  });
   
   const { data, error } = await supabase
     .from('teachers')
@@ -71,11 +50,6 @@ export async function getTeacherProfile() {
     
   if (error) {
     console.error('Erro ao buscar perfil de professor:', error);
-    console.log('Detalhes do erro:', {
-      code: error.code,
-      message: error.message,
-      details: error.details
-    });
     return null;
   }
   
@@ -86,6 +60,23 @@ export async function getTeacherProfile() {
     return null;
   }
   
-  console.log('getTeacherProfile: Perfil de professor encontrado', data);
   return data;
 }
+
+// Função para verificar a configuração do Supabase
+export const verifySupabaseConfig = () => {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  console.log("Configuração do Supabase:", {
+    urlConfigured: !!url,
+    keyConfigured: !!key,
+    urlLength: url?.length || 0,
+    keyLength: key?.length || 0,
+    client: !!supabase
+  });
+
+  if (!url || !key) {
+    throw new Error("Supabase não configurado corretamente. Verifique as variáveis de ambiente.");
+  }
+};
