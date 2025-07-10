@@ -22,6 +22,7 @@ import { CoinsIcon, PackageIcon, ArchiveIcon, DropletIcon, SaveIcon, UsersIcon, 
 import { useEffect, useState, useMemo } from "react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { StudentPhoto } from "@/components/alunos/StudentPhoto";
 
 // Props for the component
 interface ExchangeFormProps {
@@ -174,14 +175,7 @@ export function ExchangeForm({ materialType }: ExchangeFormProps) {
     }
   }
 
-  const adjustQuantity = (amount: number) => {
-    const currentValue = Number(form.getValues(materialType)) || 0;
-    let newValue = currentValue + amount;
-    if (newValue < 0) newValue = 0;
-    form.setValue(materialType, newValue, { shouldValidate: true });
-  };
 
-  const quantityButtons = [1, 5, 10, 50];
 
   // Função para processar a submissão do formulário
   const processSubmit = async () => {
@@ -384,7 +378,12 @@ export function ExchangeForm({ materialType }: ExchangeFormProps) {
                         "hover:bg-primary hover:text-primary-foreground"
                       )}
                     >
-                      <UserIcon className="h-4 w-4 mb-1 flex-shrink-0" />
+                      <StudentPhoto 
+                        photoUrl={std.photo_url}
+                        name={std.name}
+                        size="md"
+                        className="mb-1 flex-shrink-0"
+                      />
                       <span className="text-xs">{std.name}</span>
                     </Button>
                   ))
@@ -410,7 +409,12 @@ export function ExchangeForm({ materialType }: ExchangeFormProps) {
                       "w-full max-w-xs sm:max-w-sm h-auto py-3 px-4 flex flex-col items-center whitespace-normal text-center leading-snug"
                     )}
                   >
-                    <UserIcon className="h-5 w-5 mb-1 flex-shrink-0" />
+                    <StudentPhoto 
+                      photoUrl={selectedStudent.photo_url}
+                      name={selectedStudent.name}
+                      size="lg"
+                      className="mb-1 flex-shrink-0"
+                    />
                     <span className="text-sm">{selectedStudent.name}</span>
                   </Button>
                 )}
@@ -431,7 +435,7 @@ export function ExchangeForm({ materialType }: ExchangeFormProps) {
                     <div className="flex items-center justify-between mt-1">
                       <p className="text-2xl font-bold text-primary flex items-center">
                         <CoinsIcon className="mr-2 h-6 w-6" /> {selectedStudent.narcisoCoins || 0}
-                        <span className="text-lg ml-1">Moedas</span>
+                        <span className="text-lg ml-1">Moedas no total</span>
                       </p>
                     </div>
                     <div className="text-xs text-muted-foreground mt-1 flex items-center">
@@ -471,22 +475,6 @@ export function ExchangeForm({ materialType }: ExchangeFormProps) {
                           <span>+{ coinsFromCurrentContribution } Moedas Narciso por esta troca</span>
                         </div>
                       )}
-                      <div className="space-y-2">
-                          <div className="grid grid-cols-4 gap-2">
-                              {quantityButtons.map(val => (
-                                  <Button key={`add-${val}`} type="button" variant="outline" onClick={() => adjustQuantity(val)}>
-                                      +{val}
-                                  </Button>
-                              ))}
-                          </div>
-                          <div className="grid grid-cols-4 gap-2">
-                              {quantityButtons.map(val => (
-                                  <Button key={`sub-${val}`} type="button" variant="outline" onClick={() => adjustQuantity(-val)}>
-                                      -{val}
-                                  </Button>
-                              ))}
-                          </div>
-                      </div>
                   </div>
                 </>
               )}

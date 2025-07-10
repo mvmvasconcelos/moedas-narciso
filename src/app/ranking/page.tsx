@@ -149,6 +149,8 @@ function RankingContent() {
   ];
 
 
+
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
@@ -176,7 +178,6 @@ function RankingContent() {
             icon={CoinsIcon}
             variant="prominent"
             isLoading={isLoading}
-            avatarSeed={topCoinStudent.name}
           />
         ) : (
            <StudentRankCard
@@ -199,7 +200,6 @@ function RankingContent() {
                 icon={CoinsIcon}
                 variant="default"
                 isLoading={isLoading}
-                avatarSeed={student.name}
               />
             ))}
           </div>
@@ -221,7 +221,6 @@ function RankingContent() {
             icon={PackageIcon}
             variant="default"
             isLoading={isLoading}
-            avatarSeed={topLidsContributor?.name}
           />
           <StudentRankCard
             student={topCansContributor}
@@ -230,7 +229,6 @@ function RankingContent() {
             icon={ArchiveIcon}
             variant="default"
             isLoading={isLoading}
-            avatarSeed={topCansContributor?.name}
           />
           <StudentRankCard
             student={topOilContributor}
@@ -239,7 +237,6 @@ function RankingContent() {
             icon={DropletIcon}
             variant="default"
             isLoading={isLoading}
-            avatarSeed={topOilContributor?.name}
           />
         </div>
       </section>

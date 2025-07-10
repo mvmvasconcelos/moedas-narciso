@@ -1,10 +1,11 @@
 "use client";
 
-import { Suspense } from 'react';
+import { Suspense, useState } from 'react';
 import { useSearchParams } from "next/navigation";
-import { ExchangeForm } from "@/components/trocas/ExchangeForm";
+import { StudentSelector } from "@/components/trocas/StudentSelector";
+import { ExchangeModal } from "@/components/trocas/ExchangeModal";
 import { ClipboardPlusIcon, PackageIcon, ArchiveIcon, DropletIcon } from "lucide-react";
-import { MATERIAL_TYPES, MATERIAL_LABELS, type MaterialType } from "@/lib/constants";
+import { MATERIAL_TYPES, MATERIAL_LABELS, type MaterialType, type Student } from "@/lib/constants";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -20,6 +21,8 @@ export default function TrocasPage() {
 function TrocasContent() {
   const searchParams = useSearchParams();
   const materialParam = searchParams.get("material") as MaterialType | null;
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const isValidMaterial = materialParam && Object.values(MATERIAL_TYPES).includes(materialParam);
   let pageTitle = "Registrar Trocas";
@@ -31,6 +34,16 @@ function TrocasContent() {
     else if (materialParam === MATERIAL_TYPES.CANS) PageIcon = ArchiveIcon;
     else if (materialParam === MATERIAL_TYPES.OIL) PageIcon = DropletIcon;
   }
+
+  const handleStudentSelect = (student: Student) => {
+    setSelectedStudent(student);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedStudent(null);
+  };
 
   return (
     <div className="space-y-8">
@@ -44,7 +57,7 @@ function TrocasContent() {
             <p className="text-muted-foreground">
               {isValidMaterial && materialParam
                 ? `Insira as trocas de ${MATERIAL_LABELS[materialParam].toLowerCase()} dos alunos.`
-                : "Selecione um material no painel para registrar trocas."}
+                : "Escolha o tipo de material para começar a registrar trocas."}
             </p>
           </div>
         </div>
@@ -56,15 +69,51 @@ function TrocasContent() {
       </div>
       
       {isValidMaterial && materialParam ? (
-        <ExchangeForm materialType={materialParam} />
+        <>
+          <StudentSelector onStudentSelect={handleStudentSelect} />
+          {selectedStudent && (
+            <ExchangeModal
+              isOpen={isModalOpen}
+              onClose={handleCloseModal}
+              student={selectedStudent}
+              materialType={materialParam}
+            />
+          )}
+        </>
       ) : (
-        <Alert variant="destructive">
-          <ClipboardPlusIcon className="h-4 w-4" />
-          <AlertTitle>Material Não Especificado</AlertTitle>
-          <AlertDescription>
-            Por favor, selecione um tipo de material a partir do Painel de Estatísticas para registrar uma troca.
-          </AlertDescription>
-        </Alert>
+        <div className="space-y-6">
+          <div className="text-center">
+            <h2 className="text-xl font-bold mb-2">Selecione o tipo de material</h2>
+            <p className="text-muted-foreground mb-6">
+              Escolha o material que deseja registrar para começar o processo de troca.
+            </p>
+          </div>
+          
+          {/* Botões de seleção de material */}
+          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 max-w-4xl mx-auto">
+            <Button asChild variant="outline" className="h-auto py-6 flex flex-col space-y-2">
+              <Link href={`/trocas?material=${MATERIAL_TYPES.LIDS}`}>
+                <PackageIcon className="h-8 w-8 mb-2" />
+                <span className="text-lg font-medium">Tampinhas</span>
+                <span className="text-xs text-muted-foreground">Registrar troca de tampinhas plásticas</span>
+              </Link>
+            </Button>
+            <Button asChild variant="outline" className="h-auto py-6 flex flex-col space-y-2">
+              <Link href={`/trocas?material=${MATERIAL_TYPES.CANS}`}>
+                <ArchiveIcon className="h-8 w-8 mb-2" />
+                <span className="text-lg font-medium">Latinhas</span>
+                <span className="text-xs text-muted-foreground">Registrar troca de latinhas</span>
+              </Link>
+            </Button>
+            <Button asChild variant="outline" className="h-auto py-6 flex flex-col space-y-2">
+              <Link href={`/trocas?material=${MATERIAL_TYPES.OIL}`}>
+                <DropletIcon className="h-8 w-8 mb-2" />
+                <span className="text-lg font-medium">Óleo</span>
+                <span className="text-xs text-muted-foreground">Registrar troca de óleo usado</span>
+              </Link>
+            </Button>
+          </div>
+        </div>
       )}
     </div>
   );
