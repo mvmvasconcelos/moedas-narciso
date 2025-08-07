@@ -52,6 +52,9 @@ import {
   Pencil,
   Trash2,
   AlertTriangle,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import type { ExchangeHistoryRecord } from "@/lib/exchangeTypes";
 import { Label } from "@/components/ui/label";
@@ -80,6 +83,10 @@ export function ExchangeHistory() {
   const [studentFilter, setStudentFilter] = useState<string>("");
   const [materialFilter, setMaterialFilter] = useState<string>("all");
   const [searchText, setSearchText] = useState("");
+
+  // Estados para ordenação
+  const [sortColumn, setSortColumn] = useState<string>("date");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
 
   // Verificar existência da view quando o componente for montado
   useEffect(() => {
@@ -159,17 +166,73 @@ export function ExchangeHistory() {
     setStudentFilter("");
     setMaterialFilter("all");
     setSearchText("");
+    setSortColumn("date");
+    setSortDirection("desc");
     setPage(0);
     loadExchangeHistory();
   };
 
+  // Função para lidar com a ordenação por coluna
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      // Se já está ordenando por esta coluna, inverte a direção
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      // Se é uma nova coluna, define como ascendente
+      setSortColumn(column);
+      setSortDirection("asc");
+    }
+  };
+
+  // Função para obter o ícone de ordenação
+  const getSortIcon = (column: string) => {
+    if (sortColumn !== column) {
+      return <ArrowUpDown className="h-4 w-4" />;
+    }
+    return sortDirection === "asc" ? 
+      <ArrowUp className="h-4 w-4" /> : 
+      <ArrowDown className="h-4 w-4" />;
+  };
+
+  // Função para ordenar os dados
+  const sortedExchanges = [...exchanges].sort((a, b) => {
+    let comparison = 0;
+    
+    switch (sortColumn) {
+      case "date":
+        comparison = new Date(a.dateTimestamp).getTime() - new Date(b.dateTimestamp).getTime();
+        break;
+      case "student":
+        comparison = a.studentName.localeCompare(b.studentName, 'pt-BR');
+        break;
+      case "class":
+        comparison = a.className.localeCompare(b.className, 'pt-BR');
+        break;
+      case "material":
+        const materialA = MATERIAL_LABELS[a.material as keyof typeof MATERIAL_LABELS] || a.material;
+        const materialB = MATERIAL_LABELS[b.material as keyof typeof MATERIAL_LABELS] || b.material;
+        comparison = materialA.localeCompare(materialB, 'pt-BR');
+        break;
+      case "quantity":
+        comparison = a.quantity - b.quantity;
+        break;
+      case "teacher":
+        comparison = a.teacherName.localeCompare(b.teacherName, 'pt-BR');
+        break;
+      default:
+        comparison = 0;
+    }
+    
+    return sortDirection === "asc" ? comparison : -comparison;
+  });
+
   const exportToCsv = () => {
-    if (exchanges.length === 0) return;
+    if (sortedExchanges.length === 0) return;
     
     const headers = ["Data", "Aluno", "Turma", "Material", "Quantidade", "Registrado por"];
     const csvContent = [
       headers.join(','),
-      ...exchanges.map(e => [
+      ...sortedExchanges.map(e => [
         e.date,
         e.studentName,
         e.className,
@@ -400,7 +463,7 @@ export function ExchangeHistory() {
               <FilterIcon className="mr-2 h-4 w-4" />
               Limpar filtros
             </Button>
-            <Button variant="outline" onClick={exportToCsv} disabled={exchanges.length === 0} className="w-full sm:w-auto">
+            <Button variant="outline" onClick={exportToCsv} disabled={sortedExchanges.length === 0} className="w-full sm:w-auto">
               <DownloadIcon className="mr-2 h-4 w-4" />
               Exportar CSV
             </Button>
@@ -435,20 +498,68 @@ export function ExchangeHistory() {
               viewError
             ) : loading ? (
               "Carregando registros..."
-            ) : exchanges.length > 0 ? (
-              `Mostrando ${exchanges.length} de ${total} registros de trocas`
+            ) : sortedExchanges.length > 0 ? (
+              `Mostrando ${sortedExchanges.length} de ${total} registros de trocas`
             ) : (
               "Nenhum registro de troca encontrado."
             )}
           </TableCaption>
           <TableHeader>
             <TableRow>
-              <TableHead>Data</TableHead>
-              <TableHead>Aluno</TableHead>
-              <TableHead>Turma</TableHead>
-              <TableHead>Material</TableHead>
-              <TableHead className="text-right">Quantidade</TableHead>
-              <TableHead>Registrado por</TableHead>
+              <TableHead 
+                className="cursor-pointer hover:bg-gray-50 select-none"
+                onClick={() => handleSort("date")}
+              >
+                <div className="flex items-center gap-2">
+                  Data
+                  {getSortIcon("date")}
+                </div>
+              </TableHead>
+              <TableHead 
+                className="cursor-pointer hover:bg-gray-50 select-none"
+                onClick={() => handleSort("student")}
+              >
+                <div className="flex items-center gap-2">
+                  Aluno
+                  {getSortIcon("student")}
+                </div>
+              </TableHead>
+              <TableHead 
+                className="cursor-pointer hover:bg-gray-50 select-none"
+                onClick={() => handleSort("class")}
+              >
+                <div className="flex items-center gap-2">
+                  Turma
+                  {getSortIcon("class")}
+                </div>
+              </TableHead>
+              <TableHead 
+                className="cursor-pointer hover:bg-gray-50 select-none"
+                onClick={() => handleSort("material")}
+              >
+                <div className="flex items-center gap-2">
+                  Material
+                  {getSortIcon("material")}
+                </div>
+              </TableHead>
+              <TableHead 
+                className="text-right cursor-pointer hover:bg-gray-50 select-none"
+                onClick={() => handleSort("quantity")}
+              >
+                <div className="flex items-center gap-2 justify-end">
+                  Quantidade
+                  {getSortIcon("quantity")}
+                </div>
+              </TableHead>
+              <TableHead 
+                className="cursor-pointer hover:bg-gray-50 select-none"
+                onClick={() => handleSort("teacher")}
+              >
+                <div className="flex items-center gap-2">
+                  Registrado por
+                  {getSortIcon("teacher")}
+                </div>
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -473,8 +584,8 @@ export function ExchangeHistory() {
                   <TableCell><Skeleton className="h-6 w-24" /></TableCell>
                 </TableRow>
               ))
-            ) : exchanges.length > 0 ? (
-              exchanges.map((exchange) => (
+            ) : sortedExchanges.length > 0 ? (
+              sortedExchanges.map((exchange) => (
                 <TableRow 
                   key={exchange.id} 
                   onClick={() => handleRowClick(exchange)}

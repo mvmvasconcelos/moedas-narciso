@@ -20,6 +20,7 @@ export interface ExchangeHistoryParams {
 export interface ExchangeHistoryRecord {
   id: string;
   date: string;
+  dateTimestamp: string; // Campo para ordenação por data
   material: string;
   quantity: number;
   studentId: string;

@@ -67,29 +67,44 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Carregar dados de autenticação e estudantes ao inicializar
   useEffect(() => {
     const checkAuth = async () => {
+      console.log("🔍 Iniciando verificação de autenticação...");
+      
       try {
+        console.log("🔍 Chamando getCurrentUser()...");
         const user = await getCurrentUser();
+        console.log("🔍 getCurrentUser() resultado:", user ? "usuário encontrado" : "nenhum usuário");
+        
         if (user) {
+          console.log("🔍 Chamando getTeacherProfile()...");
           const profile = await getTeacherProfile();
+          console.log("🔍 getTeacherProfile() resultado:", profile ? "perfil encontrado" : "perfil não encontrado");
           
           if (!profile) {
+            console.log("❌ Perfil não encontrado, fazendo logout...");
             toast({
               variant: "destructive",
               title: "Erro de Configuração da Conta",
               description: "Usuário sem perfil configurado."
             });
             await supabase.auth.signOut();
+            setTeacherName(null);
             return;
           }
 
-          setIsAuthenticated(true);
-          setTeacherName(profile.name || user.email?.split('@')[0] || "Professor(a)");
+          const teacherNameValue = profile.name || user.email?.split('@')[0] || "Professor(a)";
+          console.log("✅ Autenticação bem-sucedida, definindo teacherName:", teacherNameValue);
           
-          // Inicializar dados do sistema após autenticação
+          setIsAuthenticated(true);
+          setTeacherName(teacherNameValue);
+          
+          console.log("🔍 Inicializando dados...");
           await initializeData();
+        } else {
+          console.log("❌ Nenhum usuário encontrado, definindo teacherName como null");
+          setTeacherName(null);
         }
       } catch (error) {
-        console.error("Erro ao verificar autenticação:", error);
+        console.error("❌ Erro ao verificar autenticação:", error);
         setIsAuthenticated(false);
         setTeacherName(null);
         router.push('/login');

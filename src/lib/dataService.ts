@@ -615,7 +615,9 @@ export class DataService {
         
         return {
           id: exchange.id,
-          date: new Date(displayDate).toLocaleString('pt-BR'),
+          date: new Date(displayDate).toLocaleDateString('pt-BR'),
+          dateTimestamp: displayDate, // Manter o timestamp original para ordenação
+          dateTimestamp: displayDate, // Manter o timestamp original para ordenação
           material: exchange.material_id,
           quantity: exchange.quantity,
           studentId: exchange.student_id,
