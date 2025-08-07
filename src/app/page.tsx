@@ -1,38 +1,59 @@
 "use client";
-import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
+import { Button } from '@/components/ui/button';
 
 export default function HomePage() {
-  const { isAuthenticated, teacherName } = useAuth();
+  const { isAuthenticated } = useAuth();
   const router = useRouter();
 
-  useEffect(() => {
-    // Protegendo contra casos onde o contexto ainda não está totalmente carregado
-    if (teacherName === undefined) {
-      return; // Estado ainda carregando, não fazer nada
+  const handleAccessSystem = () => {
+    if (isAuthenticated) {
+      router.push('/dashboard');
+    } else {
+      router.push('/sistema');
     }
-    
-    // Pequeno timeout para evitar problemas de renderização
-    const timer = setTimeout(() => {
-      if (isAuthenticated) { 
-        router.replace('/dashboard');
-      } else { 
-        router.replace('/login');
-      }
-    }, 100);
-    
-    return () => clearTimeout(timer);
-  }, [isAuthenticated, teacherName, router]);
+  };
 
   return (
-    <div className="flex items-center justify-center min-h-screen">
-      {teacherName === undefined ? (
-        // Exibir um indicador de carregamento quando o estado ainda não foi determinado
-        <p>Carregando...</p>
-      ) : (
-        <p>{isAuthenticated ? 'Redirecionando para o painel...' : 'Redirecionando para o login...'}</p>
-      )}
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex flex-col">
+      {/* Conteúdo Principal */}
+      <main className="flex-1 flex items-center justify-center px-4">
+        <div className="text-center max-w-2xl mx-auto">
+          <h1 className="text-4xl md:text-5xl font-bold text-gray-800 mb-6">
+            Boas Vindas ao projeto Moedas Narciso
+          </h1>
+          
+          <p className="text-lg text-gray-600 mb-8 leading-relaxed">
+            Sistema de gerenciamento de trocas de materiais recicláveis e Moedas Narciso.
+          </p>
+          
+          <Button 
+            onClick={handleAccessSystem}
+            size="lg"
+            className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 text-lg font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-200"
+          >
+            Acessar Sistema
+          </Button>
+        </div>
+      </main>
+
+      {/* Rodapé */}
+      <footer className="bg-white border-t border-gray-200 py-6">
+        <div className="max-w-6xl mx-auto px-4 text-center">
+          <p className="text-gray-600">
+            Sistema desenvolvido para o projeto Moedas Narciso
+          </p>
+          <p className="text-sm text-gray-500 mt-2">
+            <button 
+              onClick={handleAccessSystem}
+              className="text-green-600 hover:text-green-700 underline font-medium"
+            >
+              Acessar Sistema
+            </button>
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }

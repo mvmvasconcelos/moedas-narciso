@@ -11,7 +11,7 @@ interface ProtectedRouteProps {
   redirectTo?: string;
 }
 
-export function ProtectedRoute({ children, redirectTo = '/login' }: ProtectedRouteProps) {
+export function ProtectedRoute({ children, redirectTo = '/sistema' }: ProtectedRouteProps) {
   const { isAuthenticated, teacherName } = useAuth();
   const router = useRouter();
 

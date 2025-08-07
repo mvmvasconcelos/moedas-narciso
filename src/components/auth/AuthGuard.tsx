@@ -16,7 +16,7 @@ export function AuthGuard({ children }: { children: ReactNode }) {
       return; 
     }
       if (!isAuthenticated) { 
-        router.replace('/login');
+        router.replace('/sistema');
     }
   }, [isAuthenticated, teacherName, router]);
   if (teacherName === undefined) { 

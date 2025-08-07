@@ -107,7 +107,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.error("❌ Erro ao verificar autenticação:", error);
         setIsAuthenticated(false);
         setTeacherName(null);
-        router.push('/login');
+        router.push('/sistema');
       }
     };
 
@@ -190,7 +190,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       await supabase.auth.signOut();
       setIsAuthenticated(false);
       setTeacherName(null);
-      router.push('/login');
+      router.push('/sistema');
     } catch (error) {
       console.error("Erro ao fazer logout:", error);
     }
