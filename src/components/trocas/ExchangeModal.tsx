@@ -332,54 +332,53 @@ export function ExchangeModal({ isOpen, onClose, student, materialType }: Exchan
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
           {modalState === 'form' && (
             <>
-              <DialogHeader>
+              <DialogHeader className="pb-3">
                 <DialogTitle className="flex items-center">
                   <MaterialIcon className="mr-2 h-5 w-5 text-primary" />
                   Trocar {MATERIAL_LABELS[materialType].replace(" (unidades)","")}
                 </DialogTitle>
-                <DialogDescription>
-                  Registre a quantidade de {MATERIAL_LABELS[materialType].toLowerCase()} trazida pelo aluno {student.name}.
+                <DialogDescription className="text-sm">
+                  Registre a quantidade de {MATERIAL_LABELS[materialType].toLowerCase()} trazida por {student.name}.
                 </DialogDescription>
               </DialogHeader>
 
               <Form {...form}>
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form onSubmit={handleSubmit} className="space-y-4">
             {/* Banner de Sucesso */}
             {successAlert.isVisible && (
               <Alert className="border-green-200 bg-green-50 text-green-800">
-                <CheckCircle2 className="h-6 w-6 text-green-600" />
-                <AlertDescription className="text-base font-medium pl-2">
+                <CheckCircle2 className="h-5 w-5 text-green-600" />
+                <AlertDescription className="text-sm font-medium pl-2">
                   {successAlert.message}
                 </AlertDescription>
               </Alert>
             )}
 
             {/* Informações do Aluno */}
-            <div className="flex items-center space-x-4 p-4 border rounded-md bg-card">
+            <div className="flex items-center space-x-3 p-3 border rounded-md bg-card">
               <StudentPhoto 
                 photoUrl={currentStudent.photo_url}
                 name={currentStudent.name}
-                size="xl"
+                size="lg"
                 className="flex-shrink-0"
               />
-              <div className="flex-1">
-                <h3 className="font-medium text-lg">{currentStudent.name}</h3>
-                <p className="text-sm text-muted-foreground mb-2">{currentStudent.className}</p>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-medium text-base truncate">{currentStudent.name}</h3>
+                <p className="text-xs text-muted-foreground mb-1">{currentStudent.className}</p>
                 <div className="flex items-center mb-2">
-                  <CoinsIcon className="mr-1 h-4 w-4 text-primary" />
-                  <span className="text-sm font-medium">{currentStudent.narcisoCoins || 0} Moedas</span>
+                  <CoinsIcon className="mr-1 h-3 w-3 text-primary" />
+                  <span className="text-xs font-medium">{currentStudent.narcisoCoins || 0} Moedas</span>
                 </div>
                 <div className="p-2 bg-orange-50 border border-orange-200 rounded-md">
                   <div className="text-center">
-                    <div className="text-sm font-medium text-orange-800 flex items-center justify-center mb-1">
-                      <MaterialIcon className="mr-1 h-4 w-4" />
-                      Quantidade de {MATERIAL_LABELS[materialType].toLowerCase().replace(" (unidades)","")}
+                    <div className="text-xs font-medium text-orange-800 flex items-center justify-center">
+                      <MaterialIcon className="mr-1 h-3 w-3" />
+                      {MATERIAL_LABELS[materialType].toLowerCase().replace(" (unidades)","")} sobrando
                     </div>
-                    <div className="text-sm font-medium text-orange-800">sobrando</div>
-                    <div className="text-lg font-bold text-orange-800 mt-1">
+                    <div className="text-base font-bold text-orange-800 mt-1">
                       {currentStudent.pendingExchanges?.[materialType] || 0}
                     </div>
                   </div>
@@ -388,15 +387,15 @@ export function ExchangeModal({ isOpen, onClose, student, materialType }: Exchan
             </div>
 
             {/* Campos de Quantidade */}
-            <div className="space-y-4">
+            <div className="space-y-3">
               {/* Campo de Quantidade Principal */}
               <FormField
                 control={form.control}
                 name={materialType}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="flex items-center text-base font-semibold">
-                      <MaterialIcon className="mr-2 h-5 w-5 text-primary" />
+                    <FormLabel className="flex items-center text-sm font-semibold">
+                      <MaterialIcon className="mr-2 h-4 w-4 text-primary" />
                       Quantidade de {MATERIAL_LABELS[materialType]} que {currentStudent.gender === 'feminino' ? 'a aluna' : 'o aluno'} trouxe
                     </FormLabel>
                     <FormControl>
@@ -410,7 +409,7 @@ export function ExchangeModal({ isOpen, onClose, student, materialType }: Exchan
                           field.onChange(numericValue);
                         }}
                         value={field.value === undefined || field.value === null || isNaN(Number(field.value)) ? '' : String(field.value)}
-                        className="text-center text-2xl h-14 font-bold border-2"
+                        className="text-center text-xl h-12 font-bold border-2"
                       />
                     </FormControl>
                     <FormMessage />
@@ -424,9 +423,9 @@ export function ExchangeModal({ isOpen, onClose, student, materialType }: Exchan
                 name="materialSobrando"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="flex items-center">
+                    <FormLabel className="flex items-center text-sm">
                       <MaterialIcon className="mr-2 h-4 w-4 text-primary" />
-                      Qual é a quantidade de {MATERIAL_LABELS[materialType].toLowerCase().replace(" (unidades)","")} que vai sobrar após a troca?
+                      Quantidade de {MATERIAL_LABELS[materialType].toLowerCase().replace(" (unidades)","")} que vai sobrar
                     </FormLabel>
                     <FormControl>
                       <Input
@@ -439,7 +438,7 @@ export function ExchangeModal({ isOpen, onClose, student, materialType }: Exchan
                           field.onChange(numericValue);
                         }}
                         value={field.value === undefined || field.value === null || isNaN(Number(field.value)) ? '' : String(field.value)}
-                        className="text-center text-xl h-12"
+                        className="text-center text-lg h-10"
                       />
                     </FormControl>
                     <FormMessage />
@@ -453,9 +452,9 @@ export function ExchangeModal({ isOpen, onClose, student, materialType }: Exchan
                 name="moedasNestaTroca"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="flex items-center">
+                    <FormLabel className="flex items-center text-sm">
                       <CoinsIcon className="mr-2 h-4 w-4 text-primary" />
-                      Quantas moedas {currentStudent.gender === 'feminino' ? 'a aluna' : 'o aluno'} vai receber nesta troca?
+                      Moedas que {currentStudent.gender === 'feminino' ? 'a aluna' : 'o aluno'} vai receber
                     </FormLabel>
                     <FormControl>
                       <Input
@@ -468,7 +467,7 @@ export function ExchangeModal({ isOpen, onClose, student, materialType }: Exchan
                           field.onChange(numericValue);
                         }}
                         value={field.value === undefined || field.value === null || isNaN(Number(field.value)) ? '' : String(field.value)}
-                        className="text-center text-xl h-12"
+                        className="text-center text-lg h-10"
                       />
                     </FormControl>
                     <FormMessage />
@@ -482,9 +481,9 @@ export function ExchangeModal({ isOpen, onClose, student, materialType }: Exchan
                 name="totalMoedasAposTroca"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="flex items-center">
+                    <FormLabel className="flex items-center text-sm">
                       <CoinsIcon className="mr-2 h-4 w-4 text-primary" />
-                      Qual será o TOTAL DE MOEDAS que {currentStudent.gender === 'feminino' ? 'a aluna' : 'o aluno'} vai ter após esta troca?
+                      Total de moedas após esta troca
                     </FormLabel>
                     <FormControl>
                       <Input
@@ -497,7 +496,7 @@ export function ExchangeModal({ isOpen, onClose, student, materialType }: Exchan
                           field.onChange(numericValue);
                         }}
                         value={field.value === undefined || field.value === null || isNaN(Number(field.value)) ? '' : String(field.value)}
-                        className="text-center text-xl h-12"
+                        className="text-center text-lg h-10"
                       />
                     </FormControl>
                     <FormMessage />
@@ -507,20 +506,22 @@ export function ExchangeModal({ isOpen, onClose, student, materialType }: Exchan
             </div>
 
             {/* Botões */}
-            <div className="flex justify-end space-x-2">
+            <div className="flex justify-end space-x-2 pt-2">
               <Button
                 type="button"
                 variant="outline"
                 onClick={onClose}
+                className="px-4"
               >
                 Cancelar
               </Button>
               <Button
                 type="submit"
                 disabled={form.formState.isSubmitting || !watchedMaterialQuantity || (typeof watchedMaterialQuantity === 'number' && watchedMaterialQuantity <= 0)}
+                className="px-4"
               >
                 <SaveIcon className="mr-2 h-4 w-4" />
-                Registrar Troca
+                Registrar
               </Button>
             </div>
           </form>
