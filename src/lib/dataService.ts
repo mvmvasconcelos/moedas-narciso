@@ -38,6 +38,15 @@ interface Exchange {
   created_at?: string;
 }
 
+// Interface para venda de itens
+export interface Sale {
+  student_id: string;
+  coins_spent: number;
+  item_description: string;
+  teacher_id: string;
+  sale_date?: string; // Opcional, usa now() se não fornecido
+}
+
 // As interfaces para o histórico de trocas foram movidas para exchangeTypes.ts
 
 
@@ -75,7 +84,8 @@ export class DataService {
           [MATERIAL_TYPES.CANS]: row.pending_latas || 0,
           [MATERIAL_TYPES.OIL]: row.pending_oleo || 0
         },
-        narcisoCoins: row.effective_narciso_coins || 0
+        narcisoCoins: row.effective_narciso_coins || 0,
+        currentCoinBalance: row.current_coin_balance || 0 // Saldo atual após vendas
       }));
 
       return students;
@@ -1718,6 +1728,89 @@ export class DataService {
 
     } catch (error) {
       console.error('Erro ao atualizar foto do aluno:', error);
+      throw error;
+    }
+  }
+
+  // MÉTODOS DE VENDAS
+
+  /**
+   * Cria uma nova venda, descontando moedas do saldo do aluno
+   */
+  static async createSale(sale: Sale): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from('sales')
+        .insert([sale]);
+        
+      if (error) {
+        console.error('Erro ao criar venda:', error);
+        throw error;
+      }
+
+      console.log('Venda criada com sucesso:', sale);
+    } catch (error) {
+      console.error('Erro ao criar venda:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Busca o histórico de vendas com informações dos alunos e professores
+   */
+  static async getSalesHistory(): Promise<any[]> {
+    try {
+      const { data, error } = await supabase
+        .from('sales')
+        .select(`
+          id,
+          coins_spent,
+          item_description,
+          sale_date,
+          created_at,
+          students(name),
+          teachers(name)
+        `)
+        .order('sale_date', { ascending: false });
+        
+      if (error) {
+        console.error('Erro ao buscar histórico de vendas:', error);
+        throw error;
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('Erro ao buscar histórico de vendas:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Busca vendas de um aluno específico
+   */
+  static async getStudentSales(studentId: string): Promise<any[]> {
+    try {
+      const { data, error } = await supabase
+        .from('sales')
+        .select(`
+          id,
+          coins_spent,
+          item_description,
+          sale_date,
+          created_at,
+          teachers(name)
+        `)
+        .eq('student_id', studentId)
+        .order('sale_date', { ascending: false });
+        
+      if (error) {
+        console.error('Erro ao buscar vendas do aluno:', error);
+        throw error;
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('Erro ao buscar vendas do aluno:', error);
       throw error;
     }
   }

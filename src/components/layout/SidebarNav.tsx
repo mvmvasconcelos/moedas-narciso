@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboardIcon, UsersIcon, LeafIcon, LogOutIcon, BarChart3Icon, HistoryIcon } from "lucide-react";
+import { LayoutDashboardIcon, UsersIcon, LeafIcon, LogOutIcon, BarChart3Icon, HistoryIcon, ShoppingCartIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   SidebarMenu,
@@ -21,6 +21,7 @@ const navItems = [
   { href: "/alunos", label: "Gerenciar Alunos", icon: UsersIcon },
   { href: "/ranking", label: "Ranking", icon: BarChart3Icon },
   { href: "/trocas", label: "Registrar Trocas", icon: LeafIcon },
+  { href: "/lojinha", label: "Lojinha", icon: ShoppingCartIcon },
   { href: "/historico", label: "Histórico de Trocas", icon: HistoryIcon },
 ];
 

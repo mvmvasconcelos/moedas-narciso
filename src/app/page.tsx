@@ -92,7 +92,7 @@ export default function HomePage() {
             <div className="relative z-10 leading-relaxed text-gray-700">
                             
               <p className="text-base sm:text-lg mb-4 sm:mb-6 text-justify">
-                Boas vindas ao portal do projeto <strong className="text-green-700">Moedas Narciso</strong>, uma iniciativa transformadora da EMEF Narciso Mariante de Campos! Lançado em 2025, o projeto <strong className="text-amber-700">abrange toda a nossa comunidade escolar</strong>, desde as turmas de pré-escola (pré-A e pré-B) até o 5º ano.
+                Boas vindas ao portal do projeto <strong className="text-green-700">Moedas Narciso</strong>, uma iniciativa transformadora da Escola Municipal de Ensino Fundamental Narciso Mariante de Campos, uma escola rural de Linha Tangerinas, no interior de Venâncio Aires - RS! Lançado em 2025, o projeto <strong className="text-amber-700">abrange toda a nossa comunidade escolar</strong>, desde as turmas de pré-escola (pré-A e pré-B) até o 5º ano.
               </p>
               
               <div className="bg-gradient-to-r from-green-50 to-amber-50 p-4 sm:p-6 rounded-lg sm:rounded-xl mb-4 sm:mb-6 border-l-4 border-green-500">
@@ -109,14 +109,14 @@ export default function HomePage() {
                 <div className="bg-gradient-to-br from-blue-50 to-green-50 p-4 sm:p-6 rounded-lg sm:rounded-xl border border-blue-200">
                   <h4 className="font-bold text-blue-800 mb-2 sm:mb-3 text-base sm:text-lg">🐝 Cooperativa Narciso</h4>
                   <p className="text-gray-700 text-sm sm:text-base">
-                    Eles se tornaram <strong>protagonistas da "Cooperativa Narciso"</strong>, organizando a coleta, a contagem e a separação dos materiais. Com suas Moedas Narciso, podem adquirir itens na <strong>"lojinha" mensal</strong> da escola.
+                    Eles se tornaram <strong>protagonistas da "Cooperativa Narciso"</strong>, organizando a coleta, a contagem e a separação dos materiais. Com suas Moedas Narciso, podem adquirir itens na <strong>"lojinha" mensal</strong> da escola além de outros benefícios.
                   </p>
                 </div>
                 
                 <div className="bg-gradient-to-br from-amber-50 to-orange-50 p-4 sm:p-6 rounded-lg sm:rounded-xl border border-amber-200">
                   <h4 className="font-bold text-amber-800 mb-2 sm:mb-3 text-base sm:text-lg">💝 Impacto Social</h4>
                   <p className="text-gray-700 text-sm sm:text-base">
-                    Parte do valor arrecadado é revertido para a <strong>compra de cestas básicas para famílias necessitadas</strong> da comunidade escolar. Os alunos também podem usar suas moedas para eventos escolares!
+                    Parte do valor arrecadado é revertido para a <strong>compra de cestas básicas para famílias necessitadas</strong> da comunidade. Os alunos também podem usar suas moedas para comprar a tradicional galinhada da escola!
                   </p>
                 </div>
               </div>

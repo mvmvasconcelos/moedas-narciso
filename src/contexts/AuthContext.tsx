@@ -29,6 +29,7 @@ interface AuthContextType {
   deleteStudent: (studentId: string) => void;
   registerExchange: (studentId: string, material: MaterialType, quantity: number) => Promise<boolean>;
   getOverallStats: () => Stats;
+  refreshStudents: () => Promise<void>; // Nova função para atualizar dados dos estudantes
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -287,6 +288,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
+  // Função para atualizar dados dos estudantes
+  const refreshStudents = useCallback(async () => {
+    try {
+      const updatedStudents = await DataService.getStudents();
+      setStudents(updatedStudents);
+    } catch (error) {
+      console.error("Erro ao atualizar dados dos estudantes:", error);
+      toast({
+        variant: "destructive",
+        title: "Erro ao Atualizar Dados",
+        description: "Não foi possível atualizar os dados dos estudantes."
+      });
+    }
+  }, [toast]);
+
   // Cálculo otimizado dos totais
   const overallStats = useMemo((): Stats => {
     const initial: Stats = {
@@ -320,7 +336,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         updateStudent, 
         deleteStudent,
         registerExchange,
-        getOverallStats
+        getOverallStats,
+        refreshStudents
       }}
     >
       {children}

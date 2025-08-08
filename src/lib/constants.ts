@@ -43,6 +43,7 @@ export interface Student {
     [MATERIAL_TYPES.OIL]: number;
   };
   narcisoCoins: number;
+  currentCoinBalance?: number; // Saldo atual após vendas (opcional para compatibilidade)
 }
 
 export interface Class {

@@ -35,7 +35,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { StudentPhotoSmall } from "@/components/alunos/StudentPhoto";
 
-type SortField = "name" | "className" | "narcisoCoins" | "lids" | "cans" | "oil";
+type SortField = "name" | "className" | "narcisoCoins" | "currentCoinBalance" | "lids" | "cans" | "oil";
 type SortDirection = "asc" | "desc";
 
 interface StudentsTableProps {
@@ -84,6 +84,8 @@ function StudentsTableBase({ onEditStudent }: StudentsTableProps) {
           return direction * (a.className || "").localeCompare(b.className || "");
         case "narcisoCoins":
           return direction * ((a.narcisoCoins || 0) - (b.narcisoCoins || 0));
+        case "currentCoinBalance":
+          return direction * ((a.currentCoinBalance || 0) - (b.currentCoinBalance || 0));
         case "lids":
           return direction * ((a.exchanges?.tampas || 0) - (b.exchanges?.tampas || 0));
         case "cans":
@@ -171,6 +173,13 @@ function StudentsTableBase({ onEditStudent }: StudentsTableProps) {
                 <SortIcon field="narcisoCoins" />
               </TableHead>
               <TableHead
+                onClick={() => toggleSort("currentCoinBalance")}
+                className={cn("text-center", sortableHeaderClass)}
+              >
+                <CoinsIcon className="inline-block h-4 w-4 mr-1" /> Saldo Atual
+                <SortIcon field="currentCoinBalance" />
+              </TableHead>
+              <TableHead
                 onClick={() => toggleSort("lids")}
                 className={cn("text-center hidden md:table-cell", sortableHeaderClass)}
               >
@@ -207,6 +216,9 @@ function StudentsTableBase({ onEditStudent }: StudentsTableProps) {
                 <TableCell>{student.className}</TableCell>
                 <TableCell className="text-center font-semibold text-primary">
                   {student.narcisoCoins || 0}
+                </TableCell>
+                <TableCell className="text-center font-semibold text-green-600">
+                  {student.currentCoinBalance ?? student.narcisoCoins ?? 0}
                 </TableCell>
                 <TableCell className="text-center hidden md:table-cell">
                   {student.exchanges?.tampas || 0}
