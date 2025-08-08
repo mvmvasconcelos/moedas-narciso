@@ -3,7 +3,7 @@
 import { type ReactNode } from 'react';
 import React, { createContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import type { Student, Class, MaterialType, GenderType } from '@/lib/constants';
+import type { Student, Class, MaterialType, GenderType, UserRole, TeacherProfile } from '@/lib/constants';
 import { MOCK_CLASSES, MATERIAL_TYPES } from '@/lib/constants';
 import { useToast } from "@/hooks/use-toast";
 import { DataService } from '@/lib/dataService';
@@ -20,6 +20,7 @@ interface Stats {
 interface AuthContextType {
   isAuthenticated: boolean;
   teacherName: string | null | undefined;
+  userRole: UserRole | null | undefined; // Novo campo para role
   students: Student[];
   classes: Class[];
   login: (email: string, pass: string) => Promise<void>;
@@ -37,6 +38,7 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [teacherName, setTeacherName] = useState<string | null | undefined>(undefined);
+  const [userRole, setUserRole] = useState<UserRole | null | undefined>(undefined);
   const [students, setStudents] = useState<Student[]>([]);
   const [classes, setClasses] = useState<Class[]>(MOCK_CLASSES); // Inicializar com mock, mas depois atualizar com dados reais
   const router = useRouter();
@@ -89,25 +91,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             });
             await supabase.auth.signOut();
             setTeacherName(null);
+            setUserRole(null);
             return;
           }
 
           const teacherNameValue = profile.name || user.email?.split('@')[0] || "Professor(a)";
-          console.log("✅ Autenticação bem-sucedida, definindo teacherName:", teacherNameValue);
+          const userRoleValue = profile.role || 'teacher'; // Default para teacher se não especificado
+          console.log("✅ Autenticação bem-sucedida, definindo teacherName:", teacherNameValue, "role:", userRoleValue);
           
           setIsAuthenticated(true);
           setTeacherName(teacherNameValue);
+          setUserRole(userRoleValue);
           
           console.log("🔍 Inicializando dados...");
           await initializeData();
         } else {
           console.log("❌ Nenhum usuário encontrado, definindo teacherName como null");
           setTeacherName(null);
+          setUserRole(null);
         }
       } catch (error) {
         console.error("❌ Erro ao verificar autenticação:", error);
         setIsAuthenticated(false);
         setTeacherName(null);
+        setUserRole(null);
         router.push('/sistema');
       }
     };
@@ -173,6 +180,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       setIsAuthenticated(true);
       setTeacherName(profile.name || user.email?.split('@')[0] || "Professor(a)");
+      setUserRole(profile.role || 'teacher');
       router.push('/dashboard');
 
     } catch (error: any) {
@@ -191,6 +199,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       await supabase.auth.signOut();
       setIsAuthenticated(false);
       setTeacherName(null);
+      setUserRole(null);
       router.push('/sistema');
     } catch (error) {
       console.error("Erro ao fazer logout:", error);
@@ -327,7 +336,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     <AuthContext.Provider 
       value={{ 
         isAuthenticated, 
-        teacherName, 
+        teacherName,
+        userRole, 
         students, 
         classes, 
         login, 

@@ -26,6 +26,22 @@ export const GENDER_LABELS: Record<GenderType, string> = {
   prefiroNaoInformar: 'Prefiro não informar',
 };
 
+export type UserRole = 'teacher' | 'student_helper';
+
+export const USER_ROLE_LABELS: Record<UserRole, string> = {
+  teacher: 'Professor',
+  student_helper: 'Aluno Auxiliar',
+};
+
+export interface TeacherProfile {
+  id: string;
+  name: string;
+  role: UserRole;
+  email?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface Student {
   id: string;
   name: string;

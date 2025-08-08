@@ -14,6 +14,7 @@ export const useAuth = () => {
   return useMemo(() => context, [
     context.isAuthenticated,
     context.teacherName,
+    context.userRole,
     // Usando todas as informações dos estudantes como dependência,
     // não apenas o comprimento do array, para detectar mudanças nos dados
     context.students,

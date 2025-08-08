@@ -21,7 +21,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import type { Student, MaterialType } from "@/lib/constants";
+import type { Student, MaterialType, UserRole } from "@/lib/constants";
 import { MATERIAL_LABELS, MATERIAL_TYPES } from "@/lib/constants";
 import { DataService } from "@/lib/dataService";
 import { useAuth } from "@/hooks/use-auth";
@@ -37,18 +37,26 @@ interface ExchangeModalProps {
   materialType: MaterialType;
 }
 
-// Schema para validação do formulário
-const createExchangeFormSchema = (materialType: MaterialType) => {
-  return z.object({
-    [materialType]: z.coerce.number().min(1, `A quantidade de ${MATERIAL_LABELS[materialType].toLowerCase().replace(" (unidades)","")} deve ser maior que zero.`),
-    materialSobrando: z.coerce.number().min(0, "A quantidade sobrando deve ser zero ou maior."),
-    moedasNestaTroca: z.coerce.number().min(0, "A quantidade de moedas deve ser zero ou maior."),
-    totalMoedasAposTroca: z.coerce.number().min(0, "O total de moedas deve ser zero ou maior."),
-  });
+// Schema para validação do formulário - diferente para teacher e student_helper
+const createExchangeFormSchema = (materialType: MaterialType, userRole: UserRole | null | undefined) => {
+  if (userRole === 'teacher') {
+    // Schema simplificado para professores - apenas quantidade de material
+    return z.object({
+      [materialType]: z.coerce.number().min(1, `A quantidade de ${MATERIAL_LABELS[materialType].toLowerCase().replace(" (unidades)","")} deve ser maior que zero.`),
+    });
+  } else {
+    // Schema completo para student_helper (educacional)
+    return z.object({
+      [materialType]: z.coerce.number().min(1, `A quantidade de ${MATERIAL_LABELS[materialType].toLowerCase().replace(" (unidades)","")} deve ser maior que zero.`),
+      materialSobrando: z.coerce.number().min(0, "A quantidade sobrando deve ser zero ou maior."),
+      moedasNestaTroca: z.coerce.number().min(0, "A quantidade de moedas deve ser zero ou maior."),
+      totalMoedasAposTroca: z.coerce.number().min(0, "O total de moedas deve ser zero ou maior."),
+    });
+  }
 };
 
 export function ExchangeModal({ isOpen, onClose, student, materialType }: ExchangeModalProps) {
-  const { students, registerExchange } = useAuth();
+  const { students, registerExchange, userRole } = useAuth();
   const { toast } = useToast();
   const [currentStudent, setCurrentStudent] = useState<Student>(student);
 
@@ -73,23 +81,35 @@ export function ExchangeModal({ isOpen, onClose, student, materialType }: Exchan
     message: ''
   });
 
-  const currentSchema = createExchangeFormSchema(materialType);
+  const currentSchema = createExchangeFormSchema(materialType, userRole);
   type ExchangeFormValues = z.infer<typeof currentSchema>;
+
+  // Valores padrão baseados no role do usuário
+  const getDefaultValues = () => {
+    if (userRole === 'teacher') {
+      return {
+        [materialType]: 0,
+      };
+    } else {
+      return {
+        [materialType]: 0,
+        materialSobrando: 0,
+        moedasNestaTroca: 0,
+        totalMoedasAposTroca: 0,
+      };
+    }
+  };
 
   const form = useForm<ExchangeFormValues>({
     resolver: zodResolver(currentSchema),
-    defaultValues: {
-      [materialType]: 0,
-      materialSobrando: 0,
-      moedasNestaTroca: 0,
-      totalMoedasAposTroca: 0,
-    },
+    defaultValues: getDefaultValues(),
   });
 
   const watchedMaterialQuantity = form.watch(materialType);
-  const watchedMaterialSobrando = form.watch("materialSobrando");
-  const watchedMoedasNestaTroca = form.watch("moedasNestaTroca");
-  const watchedTotalMoedasAposTroca = form.watch("totalMoedasAposTroca");
+  // Estes campos só existem para student_helper
+  const watchedMaterialSobrando = userRole === 'student_helper' ? form.watch("materialSobrando" as any) : 0;
+  const watchedMoedasNestaTroca = userRole === 'student_helper' ? form.watch("moedasNestaTroca" as any) : 0;
+  const watchedTotalMoedasAposTroca = userRole === 'student_helper' ? form.watch("totalMoedasAposTroca" as any) : 0;
 
   // Funções para controlar estados do modal
   const showErrorState = (title: string, description: string) => {
@@ -165,7 +185,7 @@ export function ExchangeModal({ isOpen, onClose, student, materialType }: Exchan
            Math.floor(currentPendingForMaterial / unitsPerCoin);
   }, [currentStudent, watchedMaterialQuantity, materialType, conversionRates]);
 
-  // Função para processar a submissão do formulário (apenas validação)
+  // Função para processar a submissão do formulário
   const processSubmit = async () => {
     try {
       const material = materialType as "tampas" | "latas" | "oleo";
@@ -179,7 +199,15 @@ export function ExchangeModal({ isOpen, onClose, student, materialType }: Exchan
         return;
       }
 
-      // Validação educacional - verificar se os cálculos do aluno estão corretos
+      // Se for teacher, pular validação educacional e ir direto para confirmação
+      if (userRole === 'teacher') {
+        const materialName = MATERIAL_LABELS[material].toLowerCase().replace(" (unidades)", "").replace(" (litros)", "");
+        const coinsFromThisTrade = coinsFromCurrentContribution;
+        showConfirmationState(quantity, coinsFromThisTrade, materialName);
+        return;
+      }
+
+      // Validação educacional completa para student_helper
       const currentPending = currentStudent.pendingExchanges?.[materialType] || 0;
       const totalMaterial = currentPending + quantity;
       const unitsPerCoin = conversionRates[materialType];
@@ -261,13 +289,8 @@ export function ExchangeModal({ isOpen, onClose, student, materialType }: Exchan
         `🎉 Parabéns! Troca registrada com sucesso! ${quantity} ${MATERIAL_LABELS[material].toLowerCase()} de ${currentStudent.name} foram registrados.`
       );
       
-      // Resetar todos os campos
-      form.reset({
-        [materialType]: 0,
-        materialSobrando: 0,
-        moedasNestaTroca: 0,
-        totalMoedasAposTroca: 0,
-      });
+      // Resetar todos os campos baseado no role
+      form.reset(getDefaultValues());
 
       // Atualizar dados do aluno
       const updatedStudentData = students.find(s => s.id === currentStudent.id);
@@ -417,92 +440,97 @@ export function ExchangeModal({ isOpen, onClose, student, materialType }: Exchan
                 )}
               />
 
-              {/* Campo Material Sobrando */}
-              <FormField
-                control={form.control}
-                name="materialSobrando"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="flex items-center text-sm">
-                      <MaterialIcon className="mr-2 h-4 w-4 text-primary" />
-                      Quantidade de {MATERIAL_LABELS[materialType].toLowerCase().replace(" (unidades)","")} que vai sobrar
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        placeholder="Digite a quantidade"
-                        {...field}
-                        onChange={e => {
-                          const value = e.target.value.replace(/^0+/, '') || '0';
-                          const numericValue = Math.max(0, parseInt(value, 10) || 0);
-                          field.onChange(numericValue);
-                        }}
-                        value={field.value === undefined || field.value === null || isNaN(Number(field.value)) ? '' : String(field.value)}
-                        className="text-center text-lg h-10"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {/* Campos educacionais - apenas para student_helper */}
+              {userRole === 'student_helper' && (
+                <>
+                  {/* Campo Material Sobrando */}
+                  <FormField
+                    control={form.control}
+                    name="materialSobrando"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="flex items-center text-sm">
+                          <MaterialIcon className="mr-2 h-4 w-4 text-primary" />
+                          Quantidade de {MATERIAL_LABELS[materialType].toLowerCase().replace(" (unidades)","")} que vai sobrar
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="Digite a quantidade"
+                            {...field}
+                            onChange={e => {
+                              const value = e.target.value.replace(/^0+/, '') || '0';
+                              const numericValue = Math.max(0, parseInt(value, 10) || 0);
+                              field.onChange(numericValue);
+                            }}
+                            value={field.value === undefined || field.value === null || isNaN(Number(field.value)) ? '' : String(field.value)}
+                            className="text-center text-lg h-10"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-              {/* Campo Moedas Nesta Troca */}
-              <FormField
-                control={form.control}
-                name="moedasNestaTroca"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="flex items-center text-sm">
-                      <CoinsIcon className="mr-2 h-4 w-4 text-primary" />
-                      Moedas que {currentStudent.gender === 'feminino' ? 'a aluna' : 'o aluno'} vai receber
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        placeholder="Digite a quantidade"
-                        {...field}
-                        onChange={e => {
-                          const value = e.target.value.replace(/^0+/, '') || '0';
-                          const numericValue = Math.max(0, parseInt(value, 10) || 0);
-                          field.onChange(numericValue);
-                        }}
-                        value={field.value === undefined || field.value === null || isNaN(Number(field.value)) ? '' : String(field.value)}
-                        className="text-center text-lg h-10"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                  {/* Campo Moedas Nesta Troca */}
+                  <FormField
+                    control={form.control}
+                    name="moedasNestaTroca"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="flex items-center text-sm">
+                          <CoinsIcon className="mr-2 h-4 w-4 text-primary" />
+                          Moedas que {currentStudent.gender === 'feminino' ? 'a aluna' : 'o aluno'} vai receber
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="Digite a quantidade"
+                            {...field}
+                            onChange={e => {
+                              const value = e.target.value.replace(/^0+/, '') || '0';
+                              const numericValue = Math.max(0, parseInt(value, 10) || 0);
+                              field.onChange(numericValue);
+                            }}
+                            value={field.value === undefined || field.value === null || isNaN(Number(field.value)) ? '' : String(field.value)}
+                            className="text-center text-lg h-10"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-              {/* Campo Total de Moedas Após Troca */}
-              <FormField
-                control={form.control}
-                name="totalMoedasAposTroca"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="flex items-center text-sm">
-                      <CoinsIcon className="mr-2 h-4 w-4 text-primary" />
-                      Total de moedas após esta troca
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        placeholder="Digite a quantidade"
-                        {...field}
-                        onChange={e => {
-                          const value = e.target.value.replace(/^0+/, '') || '0';
-                          const numericValue = Math.max(0, parseInt(value, 10) || 0);
-                          field.onChange(numericValue);
-                        }}
-                        value={field.value === undefined || field.value === null || isNaN(Number(field.value)) ? '' : String(field.value)}
-                        className="text-center text-lg h-10"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                  {/* Campo Total de Moedas Após Troca */}
+                  <FormField
+                    control={form.control}
+                    name="totalMoedasAposTroca"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="flex items-center text-sm">
+                          <CoinsIcon className="mr-2 h-4 w-4 text-primary" />
+                          Total de moedas após esta troca
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="Digite a quantidade"
+                            {...field}
+                            onChange={e => {
+                              const value = e.target.value.replace(/^0+/, '') || '0';
+                              const numericValue = Math.max(0, parseInt(value, 10) || 0);
+                              field.onChange(numericValue);
+                            }}
+                            value={field.value === undefined || field.value === null || isNaN(Number(field.value)) ? '' : String(field.value)}
+                            className="text-center text-lg h-10"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </>
+              )}
             </div>
 
             {/* Botões */}
