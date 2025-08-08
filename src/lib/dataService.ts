@@ -103,7 +103,10 @@ export class DataService {
           name,
           teacher_id`);
       
-      if (error) throw error;
+      if (error) {
+        console.error("Erro ao buscar turmas:", error);
+        throw error;
+      }
       
       // Ordenação personalizada: Prés primeiro, depois os anos em ordem crescente
       const sortedClasses = [...(data || [])].sort((a, b) => {

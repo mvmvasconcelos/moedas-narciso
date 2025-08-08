@@ -20,15 +20,6 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import type { Student, MaterialType } from "@/lib/constants";
 import { MATERIAL_LABELS, MATERIAL_TYPES } from "@/lib/constants";
@@ -61,35 +52,25 @@ export function ExchangeModal({ isOpen, onClose, student, materialType }: Exchan
   const { toast } = useToast();
   const [currentStudent, setCurrentStudent] = useState<Student>(student);
 
-  // Estados para notificações melhoradas
-  const [errorAlert, setErrorAlert] = useState<{
-    isOpen: boolean;
-    title: string;
-    description: string;
-  }>({
-    isOpen: false,
-    title: '',
-    description: ''
+  // Estados para controlar o conteúdo do modal
+  const [modalState, setModalState] = useState<'form' | 'confirmation' | 'error'>('form');
+  const [errorData, setErrorData] = useState({
+    title: "",
+    description: ""
   });
-  
+
+  const [confirmationData, setConfirmationData] = useState({
+    materialName: "",
+    materialQuantity: 0,
+    coinsToReceive: 0
+  });
+
   const [successAlert, setSuccessAlert] = useState<{
     isVisible: boolean;
     message: string;
   }>({
     isVisible: false,
     message: ''
-  });
-
-  const [confirmationAlert, setConfirmationAlert] = useState<{
-    isOpen: boolean;
-    materialQuantity: number;
-    coinsToReceive: number;
-    materialName: string;
-  }>({
-    isOpen: false,
-    materialQuantity: 0,
-    coinsToReceive: 0,
-    materialName: ''
   });
 
   const currentSchema = createExchangeFormSchema(materialType);
@@ -110,13 +91,13 @@ export function ExchangeModal({ isOpen, onClose, student, materialType }: Exchan
   const watchedMoedasNestaTroca = form.watch("moedasNestaTroca");
   const watchedTotalMoedasAposTroca = form.watch("totalMoedasAposTroca");
 
-  // Funções para controlar notificações
-  const showErrorAlert = (title: string, description: string) => {
-    setErrorAlert({
-      isOpen: true,
+  // Funções para controlar estados do modal
+  const showErrorState = (title: string, description: string) => {
+    setErrorData({
       title,
       description
     });
+    setModalState('error');
   };
 
   const showSuccessAlert = (message: string) => {
@@ -130,13 +111,13 @@ export function ExchangeModal({ isOpen, onClose, student, materialType }: Exchan
     }, 4000);
   };
 
-  const showConfirmationAlert = (materialQuantity: number, coinsToReceive: number, materialName: string) => {
-    setConfirmationAlert({
-      isOpen: true,
+  const showConfirmationState = (materialQuantity: number, coinsToReceive: number, materialName: string) => {
+    setConfirmationData({
       materialQuantity,
       coinsToReceive,
       materialName
     });
+    setModalState('confirmation');
   };
 
   // Atualizar dados do estudante quando os dados globais mudarem
@@ -191,7 +172,7 @@ export function ExchangeModal({ isOpen, onClose, student, materialType }: Exchan
       const quantity = watchedMaterialQuantity as number;
       
       if (!material || !quantity || quantity <= 0) {
-        showErrorAlert(
+        showErrorState(
           "Quantidade inválida",
           `A quantidade de ${MATERIAL_LABELS[material].toLowerCase().replace(" (unidades)","")} deve ser maior que zero.`
         );
@@ -210,7 +191,7 @@ export function ExchangeModal({ isOpen, onClose, student, materialType }: Exchan
 
       // Validar cada campo
       if (watchedMaterialSobrando !== correctMaterialSobrando) {
-        showErrorAlert(
+        showErrorState(
           "❌ Quantidade de material sobrando incorreta",
           "Verifique o cálculo da quantidade de material que vai sobrar após a troca. Pense bem: quantas unidades vão sobrar depois de trocar pelas moedas?"
         );
@@ -218,7 +199,7 @@ export function ExchangeModal({ isOpen, onClose, student, materialType }: Exchan
       }
 
       if (watchedMoedasNestaTroca !== correctCoinsFromThisTrade) {
-        showErrorAlert(
+        showErrorState(
           "❌ Quantidade de moedas desta troca incorreta", 
           `Verifique o cálculo de quantas moedas ${currentStudent.gender === 'feminino' ? 'a aluna' : 'o aluno'} vai receber nesta troca. Lembre-se da taxa de conversão!`
         );
@@ -226,7 +207,7 @@ export function ExchangeModal({ isOpen, onClose, student, materialType }: Exchan
       }
 
       if (watchedTotalMoedasAposTroca !== correctTotalCoinsAfterTrade) {
-        showErrorAlert(
+        showErrorState(
           "❌ Total de moedas após a troca incorreto",
           `Verifique o cálculo do total de moedas que ${currentStudent.gender === 'feminino' ? 'a aluna' : 'o aluno'} vai ter após esta troca. Some as moedas que já tem com as novas moedas!`
         );
@@ -235,7 +216,7 @@ export function ExchangeModal({ isOpen, onClose, student, materialType }: Exchan
 
       // Se chegou até aqui, todos os cálculos estão corretos - mostrar confirmação
       const materialName = MATERIAL_LABELS[material].toLowerCase().replace(" (unidades)", "").replace(" (litros)", "");
-      showConfirmationAlert(quantity, correctCoinsFromThisTrade, materialName);
+      showConfirmationState(quantity, correctCoinsFromThisTrade, materialName);
 
     } catch (error) {
       // Mostrar mensagem de erro para o usuário com detalhes quando disponível
@@ -252,7 +233,7 @@ export function ExchangeModal({ isOpen, onClose, student, materialType }: Exchan
         }
       }
       
-      showErrorAlert(
+      showErrorState(
         "Erro ao registrar troca",
         errorMessage
       );
@@ -265,8 +246,8 @@ export function ExchangeModal({ isOpen, onClose, student, materialType }: Exchan
       const material = materialType as "tampas" | "latas" | "oleo";
       const quantity = watchedMaterialQuantity as number;
 
-      // Fechar o modal de confirmação
-      setConfirmationAlert({ isOpen: false, materialQuantity: 0, coinsToReceive: 0, materialName: '' });
+      // Voltar para o estado do formulário
+      setModalState('form');
 
       // Executar o registro da troca
       const success = await registerExchange(currentStudent.id, material, quantity);
@@ -313,7 +294,7 @@ export function ExchangeModal({ isOpen, onClose, student, materialType }: Exchan
         }
       }
       
-      showErrorAlert(
+      showErrorState(
         "Erro ao registrar troca",
         errorMessage
       );
@@ -335,10 +316,11 @@ export function ExchangeModal({ isOpen, onClose, student, materialType }: Exchan
         totalMoedasAposTroca: 0,
       });
       
-      // Limpar notificações
-      setErrorAlert({ isOpen: false, title: '', description: '' });
+      // Resetar estado do modal
+      setModalState('form');
+      setErrorData({ title: '', description: '' });
+      setConfirmationData({ materialName: '', materialQuantity: 0, coinsToReceive: 0 });
       setSuccessAlert({ isVisible: false, message: '' });
-      setConfirmationAlert({ isOpen: false, materialQuantity: 0, coinsToReceive: 0, materialName: '' });
     }
   }, [isOpen, form, materialType]);
 
@@ -348,17 +330,23 @@ export function ExchangeModal({ isOpen, onClose, student, materialType }: Exchan
     DropletIcon;
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center">
-            <MaterialIcon className="mr-2 h-5 w-5 text-primary" />
-            Trocar {MATERIAL_LABELS[materialType].replace(" (unidades)","")}
-          </DialogTitle>
-        </DialogHeader>
+    <>
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="sm:max-w-md">
+          {modalState === 'form' && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center">
+                  <MaterialIcon className="mr-2 h-5 w-5 text-primary" />
+                  Trocar {MATERIAL_LABELS[materialType].replace(" (unidades)","")}
+                </DialogTitle>
+                <DialogDescription>
+                  Registre a quantidade de {MATERIAL_LABELS[materialType].toLowerCase()} trazida pelo aluno {student.name}.
+                </DialogDescription>
+              </DialogHeader>
 
-        <Form {...form}>
-          <form onSubmit={handleSubmit} className="space-y-6">
+              <Form {...form}>
+                <form onSubmit={handleSubmit} className="space-y-6">
             {/* Banner de Sucesso */}
             {successAlert.isVisible && (
               <Alert className="border-green-200 bg-green-50 text-green-800">
@@ -537,75 +525,79 @@ export function ExchangeModal({ isOpen, onClose, student, materialType }: Exchan
             </div>
           </form>
         </Form>
-      </DialogContent>
+        </>
+          )}
 
-      {/* Alert Dialog para Erros */}
-      <AlertDialog open={errorAlert.isOpen} onOpenChange={(open) => setErrorAlert({ ...errorAlert, isOpen: open })}>
-        <AlertDialogContent className="max-w-md">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center text-red-600 text-xl">
-              <XCircle className="h-8 w-8 mr-3" />
-              {errorAlert.title}
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-base text-gray-700 leading-relaxed pt-2">
-              {errorAlert.description}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction 
-              onClick={() => setErrorAlert({ ...errorAlert, isOpen: false })}
-              className="bg-red-600 hover:bg-red-700 text-white px-8 py-2 text-base"
-            >
-              Entendi, vou tentar novamente
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Alert Dialog para Confirmação */}
-      <AlertDialog open={confirmationAlert.isOpen} onOpenChange={(open) => setConfirmationAlert({ ...confirmationAlert, isOpen: open })}>
-        <AlertDialogContent className="max-w-md">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center text-blue-600 text-xl">
-              <AlertCircle className="h-8 w-8 mr-3" />
-              Confirmar Troca
-            </AlertDialogTitle>
-          </AlertDialogHeader>
-          <div className="text-base text-gray-700 leading-relaxed pt-2">
-            <div className="space-y-2">
-              <p>
-                <strong>Tem certeza que deseja confirmar a troca de:</strong>
-              </p>
-              <div className="bg-blue-50 p-3 rounded-md border border-blue-200">
-                <p className="text-lg">
-                  <span className="font-bold text-blue-800">{confirmationAlert.materialQuantity}</span> {confirmationAlert.materialName}
-                </p>
-                <p className="text-lg">
-                  por <span className="font-bold text-blue-800">{confirmationAlert.coinsToReceive}</span> {confirmationAlert.coinsToReceive === 1 ? 'moeda' : 'moedas'}?
-                </p>
+          {modalState === 'confirmation' && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center text-blue-600 text-xl">
+                  <AlertCircle className="h-8 w-8 mr-3" />
+                  Confirmar Troca
+                </DialogTitle>
+                <DialogDescription>
+                  Confirme os detalhes da troca antes de prosseguir.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="text-base text-gray-700 leading-relaxed pt-2">
+                <div className="space-y-2">
+                  <p>
+                    <strong>Tem certeza que deseja confirmar a troca de:</strong>
+                  </p>
+                  <div className="bg-blue-50 p-3 rounded-md border border-blue-200">
+                    <p className="text-lg">
+                      <span className="font-bold text-blue-800">{confirmationData.materialQuantity}</span> {confirmationData.materialName}
+                    </p>
+                    <p className="text-lg">
+                      por <span className="font-bold text-blue-800">{confirmationData.coinsToReceive}</span> {confirmationData.coinsToReceive === 1 ? 'moeda' : 'moedas'}?
+                    </p>
+                  </div>
+                  <p className="text-sm text-gray-600 mt-3">
+                    Esta ação não pode ser desfeita.
+                  </p>
+                </div>
               </div>
-              <p className="text-sm text-gray-600 mt-3">
-                Esta ação não pode ser desfeita.
-              </p>
-            </div>
-          </div>
-          <AlertDialogFooter className="space-x-2">
-            <Button
-              variant="outline"
-              onClick={() => setConfirmationAlert({ ...confirmationAlert, isOpen: false })}
-              className="px-6"
-            >
-              Cancelar
-            </Button>
-            <AlertDialogAction 
-              onClick={confirmAndExecuteTrade}
-              className="bg-green-600 hover:bg-green-700 text-white px-6"
-            >
-              ✓ Confirmar Troca
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </Dialog>
+              <div className="flex justify-end space-x-2 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setModalState('form')}
+                  className="px-6"
+                >
+                  Cancelar
+                </Button>
+                <Button 
+                  onClick={confirmAndExecuteTrade}
+                  className="bg-green-600 hover:bg-green-700 text-white px-6"
+                >
+                  ✓ Confirmar Troca
+                </Button>
+              </div>
+            </>
+          )}
+
+          {modalState === 'error' && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center text-red-600 text-xl">
+                  <AlertCircle className="h-8 w-8 mr-3" />
+                  {errorData.title || "Erro na Troca"}
+                </DialogTitle>
+                <DialogDescription className="text-base text-gray-700 leading-relaxed pt-2">
+                  {errorData.description}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex justify-end pt-4">
+                <Button 
+                  onClick={() => setModalState('form')}
+                  className="bg-red-600 hover:bg-red-700 text-white px-6"
+                >
+                  Entendido
+                </Button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
