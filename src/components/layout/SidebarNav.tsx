@@ -22,7 +22,7 @@ const navItems = [
   { href: "/ranking", label: "Ranking", icon: BarChart3Icon },
   { href: "/trocas", label: "Registrar Trocas", icon: LeafIcon },
   { href: "/lojinha", label: "Lojinha", icon: ShoppingCartIcon },
-  { href: "/historico", label: "Histórico de Trocas", icon: HistoryIcon },
+  // { href: "/historico", label: "Histórico de Trocas", icon: HistoryIcon }, // Removido do menu lateral
 ];
 
 export function SidebarNav() {

@@ -58,7 +58,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setClasses(classesData);
       }
     } catch (error) {
-      console.error('Erro ao carregar dados iniciais:', error);
+  // ...log removido...
       toast({
         variant: "destructive",
         title: "Erro ao Carregar Dados",
@@ -70,20 +70,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Carregar dados de autenticação e estudantes ao inicializar
   useEffect(() => {
     const checkAuth = async () => {
-      console.log("🔍 Iniciando verificação de autenticação...");
+  // ...log removido...
       
       try {
-        console.log("🔍 Chamando getCurrentUser()...");
+  // ...log removido...
         const user = await getCurrentUser();
-        console.log("🔍 getCurrentUser() resultado:", user ? "usuário encontrado" : "nenhum usuário");
+  // ...log removido...
         
         if (user) {
-          console.log("🔍 Chamando getTeacherProfile()...");
+          // ...log removido...
           const profile = await getTeacherProfile();
-          console.log("🔍 getTeacherProfile() resultado:", profile ? "perfil encontrado" : "perfil não encontrado");
+          // ...log removido...
           
           if (!profile) {
-            console.log("❌ Perfil não encontrado, fazendo logout...");
+            // ...log removido...
             toast({
               variant: "destructive",
               title: "Erro de Configuração da Conta",
@@ -97,21 +97,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
           const teacherNameValue = profile.name || user.email?.split('@')[0] || "Professor(a)";
           const userRoleValue = profile.role || 'teacher'; // Default para teacher se não especificado
-          console.log("✅ Autenticação bem-sucedida, definindo teacherName:", teacherNameValue, "role:", userRoleValue);
+          // ...log removido...
           
           setIsAuthenticated(true);
           setTeacherName(teacherNameValue);
           setUserRole(userRoleValue);
           
-          console.log("🔍 Inicializando dados...");
+          // ...log removido...
           await initializeData();
         } else {
-          console.log("❌ Nenhum usuário encontrado, definindo teacherName como null");
+          // ...log removido...
           setTeacherName(null);
           setUserRole(null);
         }
       } catch (error) {
-        console.error("❌ Erro ao verificar autenticação:", error);
+  // ...log removido...
         setIsAuthenticated(false);
         setTeacherName(null);
         setUserRole(null);
@@ -134,7 +134,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           'postgres_changes',
           { event: '*', schema: 'public', table: 'exchanges' },
           () => {
-            console.log('Mudança detectada em exchanges');
+            // ...log removido...
             initializeData();
           }
         )
@@ -147,7 +147,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           'postgres_changes',
           { event: '*', schema: 'public', table: 'student_adjustments' },
           () => {
-            console.log('Mudança detectada em ajustes');
+            // ...log removido...
             initializeData();
           }
         )
@@ -184,7 +184,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       router.push('/dashboard');
 
     } catch (error: any) {
-      console.error("Erro no login:", error);
+  // ...log removido...
       toast({
         variant: "destructive",
         title: "Erro no Login",
@@ -202,7 +202,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUserRole(null);
       router.push('/sistema');
     } catch (error) {
-      console.error("Erro ao fazer logout:", error);
+  // ...log removido...
     }
   };
 
@@ -233,19 +233,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       return newStudent;
     } catch (error) {
-      console.error("Erro ao adicionar aluno:", error);
+  // ...log removido...
       throw error;
     }
   }, []);
 
   const updateStudent = useCallback(async (studentData: Partial<Omit<Student, 'id' | 'narcisoCoins' | 'exchanges' | 'pendingExchanges'>> & { id: string }) => {
     try {
-      console.log('AuthContext: Iniciando atualização de aluno:', studentData);
+  // ...log removido...
       
       // Usar o DataService para atualizar aluno
       const updatedStudent = await DataService.updateStudent(studentData as Student);
       
-      console.log('AuthContext: Aluno atualizado com sucesso:', updatedStudent);
+  // ...log removido...
       
       // Atualizar estado local dos estudantes
       const updatedStudents = await DataService.getStudents();
@@ -253,7 +253,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       return updatedStudent;
     } catch (error) {
-      console.error("AuthContext: Erro ao atualizar aluno:", error);
+  // ...log removido...
       if (error instanceof Error) {
         throw error;
       } else {
@@ -272,7 +272,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setStudents(updatedStudents);
       
     } catch (error) {
-      console.error("Erro ao deletar aluno:", error);
+  // ...log removido...
       throw error;
     }
   }, []);
@@ -292,7 +292,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       return true;
     } catch (error) {
-      console.error("Erro ao registrar troca:", error);
+  // ...log removido...
       throw error;
     }
   }, []);

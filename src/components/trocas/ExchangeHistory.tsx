@@ -24,6 +24,7 @@ import { DataService } from "@/lib/dataService";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MATERIAL_LABELS, MATERIAL_TYPES } from "@/lib/constants";
 import { useAuth } from "@/hooks/use-auth";
+import { useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
@@ -58,6 +59,8 @@ import {
 } from "lucide-react";
 import type { ExchangeHistoryRecord } from "@/lib/exchangeTypes";
 import { Label } from "@/components/ui/label";
+import { supabase } from "@/lib/supabase";
+import { calcularTotaisTrocas } from "@/lib/utils";
 
 export function ExchangeHistory() {
   const [loading, setLoading] = useState(true);
@@ -77,6 +80,9 @@ export function ExchangeHistory() {
   const [editedMaterial, setEditedMaterial] = useState<string>("");
   const [editedStudentId, setEditedStudentId] = useState<string>("");
   const [processingAction, setProcessingAction] = useState(false);
+  const [showSuccessAlert, setShowSuccessAlert] = useState(false);
+  const [studentTotals, setStudentTotals] = useState<any | null>(null);
+  const successTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Filtros
   const [classFilter, setClassFilter] = useState<string>("all");
@@ -94,7 +100,7 @@ export function ExchangeHistory() {
       try {
         const viewStatus = await DataService.checkExchangeHistoryView();
         if (!viewStatus.exists) {
-          console.error("View v_exchange_history não encontrada:", viewStatus.error);
+          // ...log removido...
           setViewError("A view de histórico não está disponível. Por favor, consulte o administrador do sistema.");
         } else {
           setViewError(null);
@@ -103,7 +109,7 @@ export function ExchangeHistory() {
         // Verificar triggers que possam interferir na exclusão
         await checkDatabaseTriggers();
       } catch (error) {
-        console.error("Erro ao verificar view:", error);
+  // ...log removido...
       }
     };
     
@@ -111,21 +117,14 @@ export function ExchangeHistory() {
   }, []);
 
   useEffect(() => {
-    console.log('Carregando histórico com filtros:', { page, limit, classFilter, materialFilter });
+  // ...log removido...
     loadExchangeHistory();
   }, [page, limit, classFilter, materialFilter, studentFilter]);  // Adicionado limit e studentFilter
 
   const loadExchangeHistory = async () => {
     setLoading(true);
     try {
-      // Log dos parâmetros para facilitar depuração
-      console.log('Carregando histórico com parâmetros:', { 
-        page, 
-        limit, 
-        classFilter, 
-        studentFilter, 
-        materialFilter 
-      });
+  // ...log removido...
       
       const result = await DataService.getExchangeHistory({
         page,
@@ -138,7 +137,7 @@ export function ExchangeHistory() {
       setExchanges(result.data);
       setTotal(result.total);
     } catch (error) {
-      console.error("Erro ao carregar histórico:", error);
+  // ...log removido...
     } finally {
       setLoading(false);
     }
@@ -254,10 +253,16 @@ export function ExchangeHistory() {
 
   // Funções para abrir o modal de edição
   const handleRowClick = (exchange: ExchangeHistoryRecord) => {
-    setSelectedExchange(exchange);
-    setEditedQuantity(exchange.quantity);
-    setEditedMaterial(exchange.material);
-    setEditedStudentId(exchange.studentId);
+    // Garante que os campos estejam corretos, mesmo se vierem do backend com nomes diferentes
+    const mappedExchange = {
+      ...exchange,
+      studentId: exchange.studentId || (exchange as any).student_id,
+      material: exchange.material || (exchange as any).material_id,
+    };
+    setSelectedExchange(mappedExchange);
+    setEditedQuantity(mappedExchange.quantity);
+    setEditedMaterial(mappedExchange.material);
+    setEditedStudentId(mappedExchange.studentId);
     setIsEditModalOpen(true);
   };
 
@@ -302,7 +307,7 @@ export function ExchangeHistory() {
       loadExchangeHistory();
       setIsEditModalOpen(false);
     } catch (error) {
-      console.error("Erro ao editar registro:", error);
+  // ...log removido...
       toast({
         variant: "destructive",
         title: "Erro ao atualizar",
@@ -314,54 +319,88 @@ export function ExchangeHistory() {
   };
 
   // Funções para deletar um registro
-  const openDeleteConfirmation = () => {
+  // Estado para armazenar a prévia dos valores pós-exclusão
+  const [deletePreview, setDeletePreview] = useState<any | null>(null);
+  const openDeleteConfirmation = async () => {
     setIsEditModalOpen(false);
+    if (selectedExchange) {
+      // Buscar todas as trocas do aluno para o material
+      const { studentId, material, id: exchangeId } = selectedExchange;
+      const { data: allExchanges } = await supabase
+        .from('exchanges')
+        .select('id, quantity, coins_earned, conversion_rate, created_at')
+        .eq('student_id', studentId)
+        .eq('material_id', material)
+        .order('created_at', { ascending: true });
+
+
+      // Remover a troca selecionada da lista
+      const exchangesAfterDelete = (allExchanges || []).filter((ex: any) => ex.id !== exchangeId);
+
+      // Usar função utilitária para simular saldo, total e sobra após exclusão
+      const { totalMaterial, totalMoedas, pendente } = calcularTotaisTrocas(
+        exchangesAfterDelete.map((ex: any) => ({
+          quantity: ex.quantity || 0,
+          conversion_rate: ex.conversion_rate || 1
+        }))
+      );
+
+      // Buscar dados atuais do aluno
+      const totals = await DataService.getStudentMaterialTotals(studentId);
+      // Calcular saldo atual e saldo pós-exclusão
+      const saldoAtual = totals.student?.narciso_coins ?? '-';
+      const saldoHistorico = totals.student?.total_coins_earned ?? '-';
+      // saldoApos deve ser o totalMoedas recalculado
+      const saldoApos = totalMoedas;
+      // Total de material antes da exclusão
+      const totalMaterialAntes = (allExchanges || []).reduce((sum: number, ex: any) => sum + (ex.quantity || 0), 0);
+
+      setStudentTotals(totals);
+      setDeletePreview({
+        saldoHistorico,
+        saldoAtual,
+        saldoApos,
+        totalMaterialAntes,
+        totalMaterial,
+        pendente,
+        moedasRemovidas: selectedExchange.coins_earned || 0,
+        quantidadeRemovida: selectedExchange.quantity || 0,
+        data: selectedExchange.date
+      });
+    }
     setIsDeleteAlertOpen(true);
-    
-    // Verificar triggers novamente antes de excluir
     checkDatabaseTriggers();
   };
 
   const handleDeleteExchange = async () => {
     if (!selectedExchange) return;
-    
     setProcessingAction(true);
     try {
-      // Se há triggers, mostrar aviso adicional
       if (hasTriggers) {
-        console.warn("Excluindo troca com triggers detectados no banco. Isso pode causar inconsistências.");
+  // ...log removido...
       }
-      
-      // Armazenar valores antes da exclusão para comparação
-      const beforeData = {
-        studentName: selectedExchange.studentName,
-        material: selectedExchange.material,
-        quantity: selectedExchange.quantity
-      };
-      
-      // Executar exclusão com informações detalhadas
       const result = await DataService.deleteExchange(selectedExchange.id);
-      
-      console.log("Resultado da exclusão:", result);
-      
-      // Mensagem de sucesso padrão
-      let successMessage = "O registro de troca foi excluído com sucesso.";
-      
-      // Se houver informações sobre correção de moedas, incluir na mensagem
-      if (result && result.newCoinsValue !== undefined) {
-        successMessage = `Troca excluída e saldo do aluno atualizado para ${result.newCoinsValue} moedas.`;
+      // Atualizar os dados imediatamente
+      await loadExchangeHistory();
+      // Buscar novamente os totais do aluno para exibir após exclusão
+      if (selectedExchange) {
+        const totals = await DataService.getStudentMaterialTotals(selectedExchange.studentId);
+        setStudentTotals(totals);
       }
-      
+      setShowSuccessAlert(true);
+      // Fechar modal após 1.5s
+      if (successTimeoutRef.current) clearTimeout(successTimeoutRef.current);
+      successTimeoutRef.current = setTimeout(() => {
+        setShowSuccessAlert(false);
+        setIsDeleteAlertOpen(false);
+      }, 1500);
+      // Toast extra para garantir feedback
       toast({
         title: "Registro excluído",
-        description: successMessage,
+        description: result && result.newCoinsValue !== undefined
+          ? `Troca excluída e saldo do aluno atualizado para ${result.newCoinsValue} moedas.`
+          : "O registro de troca foi excluído com sucesso.",
       });
-
-      // Recarregar os dados para refletir as mudanças
-      await loadExchangeHistory();
-      setIsDeleteAlertOpen(false);
-      
-      // Se há triggers, sugerir verificação manual dos totais
       if (hasTriggers) {
         toast({
           title: "Atenção: Triggers detectados",
@@ -371,9 +410,8 @@ export function ExchangeHistory() {
         });
       }
     } catch (error) {
-      console.error("Erro ao excluir registro:", error);
+  // ...log removido...
       const errorMessage = error instanceof Error ? error.message : "Não foi possível excluir o registro de troca.";
-      
       toast({
         variant: "destructive",
         title: "Erro ao excluir",
@@ -396,7 +434,7 @@ export function ExchangeHistory() {
       setTriggersInfo(result.triggers);
       
       if (result.hasTriggers) {
-        console.log('⚠️ Atenção: Triggers detectados no banco:', result.triggers);
+  // ...log removido...
         toast({
           title: "Triggers detectados no banco",
           description: "Existem triggers no banco de dados que podem interferir com operações de exclusão.",
@@ -404,7 +442,7 @@ export function ExchangeHistory() {
         });
       }
     } catch (error) {
-      console.error("Erro ao verificar triggers:", error);
+  // ...log removido...
     }
   };
 
@@ -735,22 +773,31 @@ export function ExchangeHistory() {
               Tem certeza que deseja excluir este registro de troca? Esta ação não pode ser desfeita.
             </AlertDialogDescription>
             
-            <div className="mt-2 p-2 border-l-4 border-amber-500 bg-amber-50 text-sm">
-              Ao excluir esta troca, o sistema irá:
-              <ul className="list-disc ml-5 mt-1">
-                <li>Reduzir o saldo de moedas do aluno ({selectedExchange?.coins_earned || 0} moedas)</li>
-                <li>Reverter os materiais entregues ({selectedExchange?.quantity || 0} unidades de {MATERIAL_LABELS[selectedExchange?.material as keyof typeof MATERIAL_LABELS]?.replace(" (unidades)", "")})</li>
-                <li>Atualizar todos os totais no sistema (moedas, materiais e pendentes)</li>
-                <li>Verificar e corrigir possíveis inconsistências nos saldos</li>
-              </ul>
-            </div>
-            
-            {selectedExchange && (
-              <div className="mt-4 p-3 border rounded-md bg-gray-50 mx-6">
-                <div className="mb-2"><strong>Data:</strong> {selectedExchange.date}</div>
-                <div className="mb-2"><strong>Aluno:</strong> {selectedExchange.studentName}</div>
-                <div className="mb-2"><strong>Material:</strong> {MATERIAL_LABELS[selectedExchange.material as keyof typeof MATERIAL_LABELS]?.replace(" (unidades)", "") || selectedExchange.material}</div>
-                <div className="mb-2"><strong>Quantidade:</strong> {selectedExchange.quantity}</div>
+            {/* Card de informações detalhadas do aluno */}
+            {selectedExchange && studentTotals && deletePreview && (
+              <div className="mt-4 p-4 border rounded-lg bg-gradient-to-br from-gray-50 to-gray-100 shadow-inner mx-2">
+                <div className="font-semibold text-primary mb-2">Situação atual do aluno</div>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div><strong>Saldo histórico:</strong> {deletePreview.saldoHistorico} moedas</div>
+                  <div><strong>Saldo atual:</strong> {deletePreview.saldoAtual} moedas</div>
+                  <div><strong>Total de tampas:</strong> {deletePreview.totalMaterialAntes}</div>
+                  <div><strong>tampas sobrando:</strong> {studentTotals.student?.pending_tampas ?? '-'}</div>
+                </div>
+                <div className="mt-4 font-semibold text-amber-700">Ao excluir esta troca, o sistema irá:</div>
+                <ul className="list-disc ml-6 mt-1 text-sm">
+                  <li>Reduzir o saldo de moedas do aluno ({deletePreview.moedasRemovidas} moedas)</li>
+                  <li>O saldo atual deve ficar: {deletePreview.saldoApos} moedas</li>
+                  <li>Reverter os materiais entregues ({deletePreview.quantidadeRemovida} unidades Tampas)</li>
+                  <li>Atualizar o total de material para: {deletePreview.totalMaterial} tampas</li>
+                  <li>Atualizar o total de material sobrando para: {deletePreview.pendente} tampas</li>
+                </ul>
+                <div className="mt-4 text-xs text-muted-foreground">Data da troca: <strong>{deletePreview.data}</strong></div>
+              </div>
+            )}
+            {/* Alerta visual de sucesso */}
+            {showSuccessAlert && (
+              <div className="mt-4 p-3 rounded-md bg-green-100 border border-green-400 text-green-800 text-center font-semibold animate-fade-in">
+                Exclusão com sucesso!
               </div>
             )}
           </AlertDialogHeader>

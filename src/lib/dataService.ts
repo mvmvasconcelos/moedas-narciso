@@ -63,7 +63,7 @@ export class DataService {
         .order('name');
 
       if (error) {
-        console.error("Erro ao buscar estudantes:", error);
+  // ...log removido...
         throw error;
       }
 
@@ -88,9 +88,10 @@ export class DataService {
         currentCoinBalance: row.current_coin_balance || 0 // Saldo atual após vendas
       }));
 
+  // ...log removido...
       return students;
     } catch (error) {
-      console.error("Erro ao buscar estudantes:", error);
+  // ...log removido...
       throw error;
     }
   }
@@ -104,7 +105,7 @@ export class DataService {
           teacher_id`);
       
       if (error) {
-        console.error("Erro ao buscar turmas:", error);
+  // ...log removido...
         throw error;
       }
       
@@ -134,7 +135,7 @@ export class DataService {
       
       return sortedClasses;
     } catch (error) {
-      console.error('Erro ao carregar turmas:', error);
+  // ...log removido...
       throw error;
     }
   }
@@ -167,7 +168,7 @@ export class DataService {
         .single();
 
       if (classError) {
-        console.error('Erro ao buscar classe:', classError);
+  // ...log removido...
         throw new Error(`Classe "${student.className}" não encontrada`);
       }
 
@@ -188,7 +189,7 @@ export class DataService {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Erro ao adicionar aluno:', error);
+  // ...log removido...
       throw error;
     }
   }
@@ -212,12 +213,6 @@ export class DataService {
         throw new Error('Apenas professores podem gerenciar alunos');
       }
 
-      console.log('Atualizando aluno:', {
-        id: student.id,
-        name: student.name,
-        className: student.className,
-        gender: student.gender
-      });
 
       // Buscar o class_id baseado no nome da classe
       const { data: classData, error: classError } = await supabase
@@ -227,7 +222,7 @@ export class DataService {
         .single();
 
       if (classError) {
-        console.error('Erro ao buscar classe:', classError);
+  // ...log removido...
         throw new Error(`Classe "${student.className}" não encontrada`);
       }
 
@@ -243,7 +238,7 @@ export class DataService {
         .single();
 
       if (error) {
-        console.error('Erro do Supabase ao atualizar aluno:', error);
+  // ...log removido...
         throw new Error(`Erro ao atualizar aluno: ${error.message || 'Erro desconhecido'}`);
       }
 
@@ -251,10 +246,10 @@ export class DataService {
         throw new Error('Nenhum dado retornado após atualização');
       }
 
-      console.log('Aluno atualizado com sucesso:', data);
+  // ...log removido...
       return data;
     } catch (error) {
-      console.error('Erro ao atualizar aluno:', error);
+  // ...log removido...
       if (error instanceof Error) {
         throw error;
       } else {
@@ -289,7 +284,7 @@ export class DataService {
 
       if (error) throw error;
     } catch (error) {
-      console.error('Erro ao excluir aluno:', error);
+  // ...log removido...
       throw error;
     }
   }
@@ -305,7 +300,7 @@ export class DataService {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Erro ao carregar dados do aluno:', error);
+  // ...log removido...
       throw error;
     }
   }
@@ -320,7 +315,7 @@ export class DataService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error("Erro ao buscar ranking:", error);
+  // ...log removido...
       throw error;
     }
   }
@@ -331,7 +326,7 @@ export class DataService {
     teacherId: string
   ): Promise<Exchange[]> {
     try {
-      console.log(`Registrando troca: Aluno ${studentId}, Material ${materialId}, Quantidade ${quantity}`);
+  // ...log removido...
       
       // 1. Buscar informações atuais do aluno para calcular o novo saldo
       const { data: studentData, error: studentError } = await supabase
@@ -341,7 +336,7 @@ export class DataService {
         .single();
       
       if (studentError) {
-        console.error("Erro ao buscar dados do aluno:", studentError);
+  // ...log removido...
         throw studentError;
       }
       
@@ -355,6 +350,7 @@ export class DataService {
       if (!unitsPerCoin) {
         throw new Error(`Taxa de conversão não definida para o material ${materialId}`);
       }
+      const conversionRateToSave = unitsPerCoin;
       
       // 3. Calcular o total pendente após a troca
       let pendingField: string;
@@ -379,23 +375,27 @@ export class DataService {
       const earnedCoins = Math.floor(totalUnits / unitsPerCoin);
       const newPendingValue = totalUnits % unitsPerCoin;
       
-      console.log(`Cálculo de troca: Pendente atual ${currentPending}, Total ${totalUnits}, Moedas ganhas ${earnedCoins}, Novo pendente ${newPendingValue}`);
+  // ...log removido...
       
       // 5. Iniciar uma transação para manter a consistência dos dados
       // 5.1 Registrar a troca
+      const insertPayload = {
+        student_id: studentId,
+        material_id: materialId,
+        quantity: quantity,
+        coins_earned: earnedCoins, // Registrar as moedas ganhas nesta troca
+        teacher_id: teacherId,
+        conversion_rate: conversionRateToSave // Salvar taxa de conversão vigente
+      };
+  // ...log removido...
       const { data, error } = await supabase
         .from('exchanges')
-        .insert([{
-          student_id: studentId,
-          material_id: materialId,
-          quantity: quantity,
-          coins_earned: earnedCoins, // Registrar as moedas ganhas nesta troca
-          teacher_id: teacherId
-        }])
+        .insert([insertPayload])
         .select();
+  // ...log removido...
         
       if (error) {
-        console.error("Erro ao registrar troca:", error);
+  // ...log removido...
         throw error;
       }
       
@@ -630,7 +630,6 @@ export class DataService {
           id: exchange.id,
           date: new Date(displayDate).toLocaleDateString('pt-BR'),
           dateTimestamp: displayDate, // Manter o timestamp original para ordenação
-          dateTimestamp: displayDate, // Manter o timestamp original para ordenação
           material: exchange.material_id,
           quantity: exchange.quantity,
           studentId: exchange.student_id,
@@ -700,46 +699,65 @@ export class DataService {
   static async deleteExchange(exchangeId: string) {
     try {
       console.log('Excluindo troca com correção de saldo:', exchangeId);
-      
       // 1. Buscar informações da troca original
       const { data: originalExchange, error: exchangeError } = await supabase
         .from('exchanges')
         .select('*')
         .eq('id', exchangeId)
         .single();
-      
       if (exchangeError || !originalExchange) {
         console.error("Erro ao buscar troca para exclusão:", exchangeError);
         throw exchangeError || new Error("Troca não encontrada");
       }
-      
-      // Obter detalhes da troca original
+      // Garantir definição antes de qualquer uso
       const originalStudentId = originalExchange.student_id;
+      if (!originalStudentId) {
+        throw new Error("ID do aluno não encontrado na troca original.");
+      }
       const originalMaterialId = originalExchange.material_id;
       const originalQuantity = originalExchange.quantity;
       const originalCoinsEarned = originalExchange.coins_earned || 0;
-      
-      // Antes da exclusão, verificar totais atuais do aluno
-      console.log("Buscando totais ANTES da exclusão...");
-      const totalsBefore = await this.getStudentMaterialTotals(originalStudentId);
-      console.log("Totais ANTES da exclusão:", totalsBefore);
-      
-      // 2. Buscar informações atuais do aluno incluindo campos relevantes
-      const { data: studentData, error: studentError } = await supabase
-        .from('students')
-        .select('*')
-        .eq('id', originalStudentId)
-        .single();
-      
-      if (studentError || !studentData) {
-        console.error("Erro ao buscar dados do aluno:", studentError);
-        throw studentError || new Error("Aluno não encontrado");
+
+
+      // 7. PRIMEIRA ETAPA: Excluir o registro da troca
+      // Isso é feito primeiro para que as views atualizem corretamente
+      const { error: errorDelete } = await supabase
+        .from('exchanges')
+        .delete()
+        .eq('id', exchangeId);
+
+      if (errorDelete) {
+        console.error("Erro ao excluir registro de troca:", errorDelete);
+        throw errorDelete;
       }
-      
-      // 3. Determinar campos pendentes para o material
+
+      // --- AJUSTE: Recalcular pendente do material após exclusão ---
+      // Buscar todas as trocas restantes do aluno para o material, incluindo a taxa de conversão de cada uma
+      const { data: allExchanges, error: allExchangesError } = await supabase
+        .from('exchanges')
+        .select('quantity, conversion_rate, created_at, id')
+        .eq('student_id', originalStudentId)
+        .eq('material_id', originalMaterialId)
+        .order('created_at', { ascending: true });
+
+      if (allExchangesError) {
+        console.error('Erro ao buscar trocas restantes para recalcular pendente:', allExchangesError);
+        throw allExchangesError;
+      }
+
+      // Novo cálculo: simular a conversão de cada troca com sua respectiva taxa
+      let pendente = 0;
+      for (const ex of allExchanges || []) {
+        const quantidade = ex.quantity || 0;
+        const taxa = ex.conversion_rate || 1; // fallback para 1 para evitar divisão por zero
+        const total = pendente + quantidade;
+        const moedas = Math.floor(total / taxa);
+        pendente = total - (moedas * taxa);
+      }
+
+      // Calcular o campo correto para atualizar
       let pendingField: string;
       let totalExchangedField: string;
-      
       switch(originalMaterialId) {
         case MATERIAL_TYPES.LIDS:
           pendingField = 'pending_tampas';
@@ -756,19 +774,48 @@ export class DataService {
         default:
           throw new Error(`Tipo de material não reconhecido: ${originalMaterialId}`);
       }
-      
+
+      // Atualizar explicitamente o campo pendente na tabela students
+      const pendingUpdate: Record<string, number> = {};
+      pendingUpdate[pendingField] = pendente;
+      const { error: pendUpdateError } = await supabase
+        .from('students')
+        .update(pendingUpdate)
+        .eq('id', originalStudentId);
+      if (pendUpdateError) {
+        console.error('Erro ao atualizar campo pendente após exclusão:', pendUpdateError);
+        throw pendUpdateError;
+      }
+
+      // Antes da exclusão, verificar totais atuais do aluno
+      console.log("Buscando totais ANTES da exclusão...");
+      const totalsBefore = await this.getStudentMaterialTotals(originalStudentId);
+      console.log("Totais ANTES da exclusão:", totalsBefore);
+
+      // 2. Buscar informações atuais do aluno incluindo campos relevantes
+      const { data: studentData, error: studentError } = await supabase
+        .from('students')
+        .select('*')
+        .eq('id', originalStudentId)
+        .single();
+
+      if (studentError || !studentData) {
+        console.error("Erro ao buscar dados do aluno:", studentError);
+        throw studentError || new Error("Aluno não encontrado");
+      }
+
       // 4. Verificar se o aluno tem moedas suficientes para reverter
       const currentCoins = studentData.narciso_coins;
       if (currentCoins < originalCoinsEarned) {
         throw new Error(`Não é possível excluir esta troca. O aluno precisaria ter pelo menos ${originalCoinsEarned} moedas para reverter a troca.`);
       }
-      
+
       // 5. Calcular o novo valor de moedas após a exclusão
       const newCoinsValue = currentCoins - originalCoinsEarned;
-      
+
       // 6. Obter o valor pendente atual
       const currentPending = studentData[pendingField] || 0;
-      
+
       console.log(`Exclusão de troca: 
         Material: ${originalMaterialId}
         Quantidade total: ${originalQuantity}
@@ -777,19 +824,19 @@ export class DataService {
         Moedas depois: ${newCoinsValue}
         Pendente antes: ${currentPending}
       `);
-      
+
       // 7. PRIMEIRA ETAPA: Excluir o registro da troca
       // Isso é feito primeiro para que as views atualizem corretamente
       const { error } = await supabase
         .from('exchanges')
         .delete()
         .eq('id', exchangeId);
-      
+
       if (error) {
         console.error("Erro ao excluir registro de troca:", error);
         throw error;
       }
-      
+
       // 8. SEGUNDA ETAPA: Atualizar o saldo do aluno (moedas e outros campos)
       // Obter os dados completos do aluno para fazer uma atualização abrangente
       const { data: completeStudentData } = await supabase
@@ -797,9 +844,9 @@ export class DataService {
         .select('*')
         .eq('student_id', originalStudentId)
         .single();
-        
+
       console.log("Dados completos do aluno da view:", completeStudentData);
-      
+
       // Preparar os campos para atualização, incluindo os totais de materiais
       const updateData = {
         narciso_coins: newCoinsValue,
@@ -810,56 +857,56 @@ export class DataService {
         total_coins_earned: completeStudentData?.coins_earned || 0,
         updated_at: new Date()
       };
-      
+
       // Log para mostrar o que estamos atualizando
       console.log("Atualizando dados do aluno após exclusão:", updateData);
-      
+
       const { error: updateError } = await supabase
         .from('students')
         .update(updateData)
         .eq('id', originalStudentId);
-      
+
       if (updateError) {
         console.error("Erro ao atualizar saldo do aluno:", updateError);
         throw updateError;
       }
-      
+
       // 9. Buscar valores atuais após a exclusão para comparação
       const { data: updatedStudentData } = await supabase
         .from('students')
         .select('*')
         .eq('id', originalStudentId)
         .single();
-        
+
       // 10. Buscar os totais atualizados das views
       const { data: updatedTotals } = await supabase
         .from('v_student_material_totals')
         .select('*')
         .eq('student_id', originalStudentId)
         .single();
-        
+
       console.log(`Valores após exclusão:
         Moedas atualizadas: ${updatedStudentData?.narciso_coins}
         Totais de materiais da view:`, updatedTotals);
-      
+
       // 11. TERCEIRA ETAPA: Recalcular e corrigir totais após a exclusão
       // Isso é essencial para garantir que todos os campos sejam corretamente atualizados
       try {
         console.log("Executando recálculo completo de totais após exclusão...");
-        
+
         // Primeiro forçamos um recálculo completo dos totais
         const recalculationResult = await this.recalculateStudentTotals(originalStudentId);
         console.log("Recálculo completo realizado:", recalculationResult);
-        
+
         // Em seguida, verificamos e corrigimos quaisquer discrepâncias
         const verificationResult = await this.verifyAndFixMaterialTotals(originalStudentId);
-        
+
         if (verificationResult.fixed) {
           console.log(`Correção adicional aplicada! Diferença de ${verificationResult.difference} moedas.`);
         } else {
           console.log("Totais verificados: Nenhuma correção adicional necessária.");
         }
-        
+
         // 12. Forçar atualização explícita das views relacionadas
         try {
           // Buscar dados da view para forçar atualização
@@ -868,26 +915,26 @@ export class DataService {
             .select('exchange_tampas, exchange_latas, exchange_oleo')
             .eq('id', originalStudentId)
             .single();
-            
+
           console.log("Views atualizadas com sucesso após exclusão:", viewData);
-          
+
           // Verificar valores finais
           const { data: finalTotals } = await supabase
             .from('v_student_material_totals')
             .select('*')
             .eq('student_id', originalStudentId)
             .single();
-            
+
           console.log("Totais finais após forçar atualização de views:", finalTotals);
         } catch (viewError) {
           console.warn("Erro ao atualizar views:", viewError);
         }
-        
+
         // Após todas as operações, verificar novamente os totais
         console.log("Buscando totais DEPOIS da exclusão e verificação...");
         const totalsAfter = await this.getStudentMaterialTotals(originalStudentId);
         console.log("Totais DEPOIS da exclusão:", totalsAfter);
-        
+
         // Comparar os valores para detectar possíveis inconsistências
         const comparacaoTotais = {
           moedas: {
@@ -904,9 +951,9 @@ export class DataService {
             depois: totalsAfter.calculatedTotals,
           }
         };
-        
+
         console.log("Comparação de totais antes/depois:", comparacaoTotais);
-        
+
         return {
           success: true,
           materialTotals: verificationResult.materialTotals,
@@ -916,7 +963,7 @@ export class DataService {
         };
       } catch (verificationError) {
         console.error("Erro na verificação de totais, mas a exclusão foi realizada:", verificationError);
-        
+
         try {
           // Mesmo com erro, tentar buscar os totais finais
           const totalsAfter = await this.getStudentMaterialTotals(originalStudentId);
@@ -924,7 +971,7 @@ export class DataService {
         } catch (err) {
           console.error("Erro ao buscar totais finais:", err);
         }
-        
+
         // Retornamos sucesso mesmo com erro na verificação, pois a exclusão foi feita
         return {
           success: true,
@@ -932,7 +979,7 @@ export class DataService {
           newCoinsValue
         };
       }
-      
+
       return true;
     } catch (error) {
       console.error('Erro ao excluir troca com correção de saldo:', error);
@@ -1355,10 +1402,10 @@ export class DataService {
     try {
       console.log("Buscando totais de materiais para o aluno:", studentId);
       
-      // Buscar dados do aluno
+      // Buscar dados do aluno, incluindo saldo histórico (total_coins_earned)
       const { data: studentData, error: studentError } = await supabase
         .from('students')
-        .select('name, narciso_coins, pending_tampas, pending_latas, pending_oleo')
+        .select('name, narciso_coins, total_coins_earned, pending_tampas, pending_latas, pending_oleo')
         .eq('id', studentId)
         .single();
         

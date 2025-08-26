@@ -20,7 +20,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction } from "@/components/ui/alert-dialog";
 import type { Student, MaterialType, UserRole } from "@/lib/constants";
 import { MATERIAL_LABELS, MATERIAL_TYPES } from "@/lib/constants";
 import { DataService } from "@/lib/dataService";
@@ -67,19 +67,23 @@ export function ExchangeModal({ isOpen, onClose, student, materialType }: Exchan
     description: ""
   });
 
-  const [confirmationData, setConfirmationData] = useState({
+  const [confirmationData, setConfirmationData] = useState<{
+    materialName: string;
+    materialQuantity: number;
+    coinsToReceive: number;
+    textoTroca?: string;
+  }>({
     materialName: "",
     materialQuantity: 0,
-    coinsToReceive: 0
+    coinsToReceive: 0,
+    textoTroca: ""
   });
 
-  const [successAlert, setSuccessAlert] = useState<{
-    isVisible: boolean;
-    message: string;
-  }>({
-    isVisible: false,
-    message: ''
-  });
+  const [successDialog, setSuccessDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    description: string;
+  }>({ isOpen: false, title: '', description: '' });
 
   const currentSchema = createExchangeFormSchema(materialType, userRole);
   type ExchangeFormValues = z.infer<typeof currentSchema>;
@@ -120,22 +124,46 @@ export function ExchangeModal({ isOpen, onClose, student, materialType }: Exchan
     setModalState('error');
   };
 
-  const showSuccessAlert = (message: string) => {
-    setSuccessAlert({
-      isVisible: true,
-      message
+  const showSuccessDialog = (title: string, description: string) => {
+    setSuccessDialog({
+      isOpen: true,
+      title,
+      description,
     });
-    // Remove o alerta de sucesso após 4 segundos
-    setTimeout(() => {
-      setSuccessAlert({ isVisible: false, message: '' });
-    }, 4000);
+  };
+  const closeSuccessDialog = () => {
+    setSuccessDialog({ isOpen: false, title: '', description: '' });
   };
 
   const showConfirmationState = (materialQuantity: number, coinsToReceive: number, materialName: string) => {
+    const currentPending = currentStudent.pendingExchanges?.[materialType] || 0;
+    const unitsPerCoin = conversionRates[materialType];
+    let textoTroca = '';
+    const faltaParaMoeda = unitsPerCoin - (currentPending % unitsPerCoin);
+    const total = currentPending + materialQuantity;
+    const moedasGeradas = Math.floor(total / unitsPerCoin) - Math.floor(currentPending / unitsPerCoin);
+    const sobraFinal = total % unitsPerCoin;
+    let usadoDaSobra = 0;
+    // Caso 1: Não gera moedas
+    if (moedasGeradas <= 0) {
+      textoTroca = `${materialQuantity} ${materialName} (não gera moedas, vai sobrar ${sobraFinal})`;
+    } else if (
+      currentPending > 0 &&
+      faltaParaMoeda < unitsPerCoin &&
+      faltaParaMoeda <= materialQuantity
+    ) {
+      // Usa sobra para gerar moeda
+      usadoDaSobra = Math.min(faltaParaMoeda, currentPending, materialQuantity);
+      textoTroca = `${materialQuantity} ${materialName} e ${usadoDaSobra} da sobra por ${coinsToReceive} ${coinsToReceive === 1 ? 'moeda' : 'moedas'}? (sobra ${sobraFinal} ${materialName})`;
+    } else {
+      // Não usa sobra para gerar moeda
+      textoTroca = `${materialQuantity} ${materialName} por ${coinsToReceive} ${coinsToReceive === 1 ? 'moeda' : 'moedas'}? (sobra ${sobraFinal} ${materialName})`;
+    }
     setConfirmationData({
       materialQuantity,
       coinsToReceive,
-      materialName
+      materialName,
+      textoTroca
     });
     setModalState('confirmation');
   };
@@ -284,9 +312,12 @@ export function ExchangeModal({ isOpen, onClose, student, materialType }: Exchan
         throw new Error("Falha ao registrar a troca no sistema");
       }
 
-      // Mostrar mensagem de sucesso
-      showSuccessAlert(
-        `🎉 Parabéns! Troca registrada com sucesso! ${quantity} ${MATERIAL_LABELS[material].toLowerCase()} de ${currentStudent.name} foram registrados.`
+      // Usar o cálculo correto já utilizado no sistema
+      const moedasRecebidas = coinsFromCurrentContribution;
+      const novoSaldo = (currentStudent.narcisoCoins || 0) + moedasRecebidas;
+      showSuccessDialog(
+        'Troca Realizada!',
+        `🎉 Parabéns! Troca registrada com sucesso!\n\n${quantity} ${MATERIAL_LABELS[material].toLowerCase()} de ${currentStudent.name} foram registrados.\n\n${moedasRecebidas === 1 ? 'Ela recebeu 1 moeda.' : `Ela recebeu ${moedasRecebidas} moedas.`}\nNovo saldo: ${novoSaldo} moedas.`
       );
       
       // Resetar todos os campos baseado no role
@@ -298,10 +329,7 @@ export function ExchangeModal({ isOpen, onClose, student, materialType }: Exchan
         setCurrentStudent(updatedStudentData);
       }
 
-      // Fechar o modal após sucesso (com delay para mostrar o sucesso)
-      setTimeout(() => {
-        onClose();
-      }, 2000);
+  // Fechar o modal principal após sucesso (ao fechar o dialog)
     } catch (error) {
       // Mostrar mensagem de erro para o usuário com detalhes quando disponível
       let errorMessage = "Ocorreu um erro ao tentar registrar a troca. Tente novamente.";
@@ -343,7 +371,7 @@ export function ExchangeModal({ isOpen, onClose, student, materialType }: Exchan
       setModalState('form');
       setErrorData({ title: '', description: '' });
       setConfirmationData({ materialName: '', materialQuantity: 0, coinsToReceive: 0 });
-      setSuccessAlert({ isVisible: false, message: '' });
+  setSuccessDialog({ isOpen: false, title: '', description: '' });
     }
   }, [isOpen, form, materialType]);
 
@@ -370,15 +398,22 @@ export function ExchangeModal({ isOpen, onClose, student, materialType }: Exchan
 
               <Form {...form}>
                 <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Banner de Sucesso */}
-            {successAlert.isVisible && (
-              <Alert className="border-green-200 bg-green-50 text-green-800">
-                <CheckCircle2 className="h-5 w-5 text-green-600" />
-                <AlertDescription className="text-sm font-medium pl-2">
-                  {successAlert.message}
-                </AlertDescription>
-              </Alert>
-            )}
+            {/* Modal de Sucesso */}
+            <AlertDialog open={successDialog.isOpen} onOpenChange={(open) => { if (!open) { closeSuccessDialog(); onClose(); } }}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="text-green-700">{successDialog.title}</AlertDialogTitle>
+                  <AlertDialogDescription className="whitespace-pre-line">
+                    {successDialog.description}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogAction onClick={() => { closeSuccessDialog(); onClose(); }}>
+                    OK
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
 
             {/* Informações do Aluno */}
             <div className="flex items-center space-x-3 p-3 border rounded-md bg-card">
@@ -575,10 +610,7 @@ export function ExchangeModal({ isOpen, onClose, student, materialType }: Exchan
                   </p>
                   <div className="bg-blue-50 p-3 rounded-md border border-blue-200">
                     <p className="text-lg">
-                      <span className="font-bold text-blue-800">{confirmationData.materialQuantity}</span> {confirmationData.materialName}
-                    </p>
-                    <p className="text-lg">
-                      por <span className="font-bold text-blue-800">{confirmationData.coinsToReceive}</span> {confirmationData.coinsToReceive === 1 ? 'moeda' : 'moedas'}?
+                      {confirmationData.textoTroca}
                     </p>
                   </div>
                   <p className="text-sm text-gray-600 mt-3">
