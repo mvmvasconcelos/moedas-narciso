@@ -57,9 +57,11 @@ export class DataService {
   static async getStudents(): Promise<Student[]> {
     try {
       // Buscar dados da view v_student_list que agora inclui photo_url
+      // Selecionar apenas as colunas realmente necessárias para a lista de alunos
+      // Evita trazer colunas grandes/derivadas da view que podem tornar a query lenta
       const { data, error } = await supabase
         .from('v_student_list')
-        .select('*')
+        .select(`id, name, class_name, gender, photo_url, exchange_tampas, exchange_latas, exchange_oleo, pending_tampas, pending_latas, pending_oleo, effective_narciso_coins, current_coin_balance`)
         .order('name');
 
       if (error) {

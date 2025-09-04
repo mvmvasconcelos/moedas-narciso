@@ -44,7 +44,7 @@ interface StudentsTableProps {
 
 // Função interna para o componente antes da memoização
 function StudentsTableBase({ onEditStudent }: StudentsTableProps) {
-  const { students, deleteStudent, isAuthenticated } = useAuth();
+  const { students, deleteStudent, isAuthenticated, studentsLoading } = useAuth();
   const { toast } = useToast();
   const [studentToDelete, setStudentToDelete] = useState<Student | null>(null);
   const [sortField, setSortField] = useState<SortField>("name");
@@ -118,8 +118,7 @@ function StudentsTableBase({ onEditStudent }: StudentsTableProps) {
   };
 
   // Mostrar spinner durante carregamento inicial
-  if (isAuthenticated && (!students || students.length === 0)) {
-    // Se autenticado mas sem dados, verificar se está carregando ou realmente não há dados
+  if (isAuthenticated && studentsLoading) {
     return (
       <div className="py-8 flex flex-col items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mb-4"></div>

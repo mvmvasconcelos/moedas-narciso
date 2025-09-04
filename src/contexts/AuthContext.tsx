@@ -19,6 +19,7 @@ interface Stats {
 
 interface AuthContextType {
   isAuthenticated: boolean;
+  studentsLoading: boolean;
   teacherName: string | null | undefined;
   userRole: UserRole | null | undefined; // Novo campo para role
   students: Student[];
@@ -37,6 +38,7 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [studentsLoading, setStudentsLoading] = useState(false);
   const [teacherName, setTeacherName] = useState<string | null | undefined>(undefined);
   const [userRole, setUserRole] = useState<UserRole | null | undefined>(undefined);
   const [students, setStudents] = useState<Student[]>([]);
@@ -45,6 +47,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
   // Função para inicializar os dados do sistema
   const initializeData = async () => {
+    setStudentsLoading(true);
     try {
       const [studentsData, classesData] = await Promise.all([
         DataService.getStudents(),
@@ -58,12 +61,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setClasses(classesData);
       }
     } catch (error) {
-  // ...log removido...
+      // ...log removido...
       toast({
         variant: "destructive",
         title: "Erro ao Carregar Dados",
         description: "Não foi possível carregar os dados do sistema."
       });
+    } finally {
+      setStudentsLoading(false);
     }
   };
 
@@ -125,6 +130,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Configurar atualizações em tempo real
   useEffect(() => {
     let channels: RealtimeChannel[] = [];
+    // Debounce timer id to avoid multiple rapid initializeData calls
+    let debounceTimer: NodeJS.Timeout | null = null;
+    const scheduleInitialize = () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        initializeData();
+        debounceTimer = null;
+      }, 300); // 300ms debounce
+    };
 
     if (isAuthenticated) {
       // Canal para trocas
@@ -134,8 +148,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           'postgres_changes',
           { event: '*', schema: 'public', table: 'exchanges' },
           () => {
-            // ...log removido...
-            initializeData();
+            // Evitar refetch imediato em bursts de eventos
+            scheduleInitialize();
           }
         )
         .subscribe();
@@ -147,8 +161,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           'postgres_changes',
           { event: '*', schema: 'public', table: 'student_adjustments' },
           () => {
-            // ...log removido...
-            initializeData();
+            scheduleInitialize();
           }
         )
         .subscribe();
@@ -157,9 +170,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     return () => {
-      channels.forEach(channel => {
-        supabase.removeChannel(channel);
-      });
+  if (debounceTimer) clearTimeout(debounceTimer);
+  channels.forEach(channel => supabase.removeChannel(channel));
     };
   }, [isAuthenticated]);
 
@@ -228,8 +240,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const newStudent = await DataService.addStudent(fullStudentData);
       
       // Atualizar estado local dos estudantes
-      const updatedStudents = await DataService.getStudents();
-      setStudents(updatedStudents);
+  setStudentsLoading(true);
+  const updatedStudents = await DataService.getStudents();
+  setStudents(updatedStudents);
+  setStudentsLoading(false);
       
       return newStudent;
     } catch (error) {
@@ -248,8 +262,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // ...log removido...
       
       // Atualizar estado local dos estudantes
-      const updatedStudents = await DataService.getStudents();
-      setStudents(updatedStudents);
+  setStudentsLoading(true);
+  const updatedStudents = await DataService.getStudents();
+  setStudents(updatedStudents);
+  setStudentsLoading(false);
       
       return updatedStudent;
     } catch (error) {
@@ -268,8 +284,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       await DataService.deleteStudent(studentId);
       
       // Atualizar estado local dos estudantes
-      const updatedStudents = await DataService.getStudents();
-      setStudents(updatedStudents);
+  setStudentsLoading(true);
+  const updatedStudents = await DataService.getStudents();
+  setStudents(updatedStudents);
+  setStudentsLoading(false);
       
     } catch (error) {
   // ...log removido...
@@ -287,8 +305,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       await DataService.registerExchange(studentId, material, quantity, user.id);
 
       // Atualizar estado local dos estudantes
-      const updatedStudents = await DataService.getStudents();
-      setStudents(updatedStudents);
+  setStudentsLoading(true);
+  const updatedStudents = await DataService.getStudents();
+  setStudents(updatedStudents);
+  setStudentsLoading(false);
 
       return true;
     } catch (error) {
@@ -300,8 +320,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Função para atualizar dados dos estudantes
   const refreshStudents = useCallback(async () => {
     try {
-      const updatedStudents = await DataService.getStudents();
-      setStudents(updatedStudents);
+  setStudentsLoading(true);
+  const updatedStudents = await DataService.getStudents();
+  setStudents(updatedStudents);
+  setStudentsLoading(false);
     } catch (error) {
       console.error("Erro ao atualizar dados dos estudantes:", error);
       toast({
@@ -336,6 +358,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     <AuthContext.Provider 
       value={{ 
         isAuthenticated, 
+  studentsLoading,
         teacherName,
         userRole, 
         students, 
