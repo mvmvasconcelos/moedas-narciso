@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboardIcon, UsersIcon, LeafIcon, LogOutIcon, BarChart3Icon } from "lucide-react";
+import { LayoutDashboardIcon, UsersIcon, LeafIcon, LogOutIcon, BarChart3Icon, HistoryIcon, ShoppingCartIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   SidebarMenu,
@@ -20,6 +20,9 @@ const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboardIcon },
   { href: "/alunos", label: "Gerenciar Alunos", icon: UsersIcon },
   { href: "/ranking", label: "Ranking", icon: BarChart3Icon },
+  { href: "/trocas", label: "Registrar Trocas", icon: LeafIcon },
+  { href: "/lojinha", label: "Lojinha", icon: ShoppingCartIcon },
+  // { href: "/historico", label: "Histórico de Trocas", icon: HistoryIcon }, // Removido do menu lateral
 ];
 
 export function SidebarNav() {
@@ -45,11 +48,12 @@ export function SidebarNav() {
       </SidebarHeader>
       <SidebarContent className="p-2">
         <SidebarMenu>
-          {navItems.map((item) => {            const Icon = item.icon;
-            // Adjusted isActive logic to correctly highlight dashboard when on /contribuicoes
+          {navItems.map((item) => {            const Icon = item.icon;            // Lógica ajustada para destacar corretamente os itens de menu ativos
             const isActive = 
-              (item.href === "/dashboard" && (pathname === "/dashboard" || pathname.startsWith("/contribuicoes"))) ||
-              (item.href !== "/dashboard" && pathname.startsWith(item.href));
+              (item.href === "/dashboard" && pathname === "/dashboard") ||
+              (item.href === "/trocas" && pathname.startsWith("/trocas")) ||
+              (item.href === "/historico" && pathname.startsWith("/historico")) ||
+              (item.href !== "/dashboard" && item.href !== "/trocas" && item.href !== "/historico" && pathname.startsWith(item.href));
 
             return (
               <SidebarMenuItem key={item.href}>

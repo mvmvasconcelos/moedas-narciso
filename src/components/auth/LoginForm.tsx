@@ -15,9 +15,7 @@ export function LoginForm() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth(); // Agora usa o AuthContext com lógica mockada/local
-  const { toast } = useToast();
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const { toast } = useToast();  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
       toast({
@@ -27,14 +25,31 @@ export function LoginForm() {
       });
       return;
     }
+    
+    console.log("LoginForm: Tentando login com email:", email);
     setIsLoading(true);
+    
     try {
-      await login(email, password); // Chama a função de login mockada
-      // O redirecionamento é tratado dentro da função de login do AuthContext mockado
+      // Validação extra dos campos
+      if (email.trim() === '' || password.trim() === '') {
+        throw new Error("Email e senha não podem estar vazios");
+      }
+      
+      await login(email, password); // Agora usa o Supabase com fallback para localStorage
+      // O redirecionamento é tratado dentro da função de login do AuthContext
     } catch (error: any) {
-      // O toast de erro já é tratado dentro da função login do AuthContext mockado (se ela lançar um erro específico).
-      // No nosso caso, a função login mockada não deve lançar erro se os campos estiverem preenchidos.
-      console.error("LoginForm: Login attempt failed (mock auth)", error.message);
+      // Mais informações de log para diagnóstico
+      console.error("LoginForm: Login attempt failed", {
+        message: error.message,
+        error: error
+      });
+      
+      // Toast adicional para informar o usuário (além do que é exibido no AuthContext)
+      toast({
+        variant: "destructive",
+        title: "Falha no Login",
+        description: "Ocorreu um erro ao tentar fazer login. Verifique o console para mais detalhes.",
+      });
     } finally {
       setIsLoading(false);
     }

@@ -14,11 +14,8 @@ export const MATERIAL_LABELS: Record<MaterialType, string> = {
   [MATERIAL_TYPES.OIL]: 'Óleo (litros)',
 };
 
-export const MATERIAL_UNITS_PER_COIN: Record<MaterialType, number> = {
-  [MATERIAL_TYPES.LIDS]: 20,
-  [MATERIAL_TYPES.CANS]: 30,
-  [MATERIAL_TYPES.OIL]: 2,
-};
+// As taxas de conversão agora são obtidas do banco de dados
+// Veja DataService.getCurrentConversionRates()
 
 export type GenderType = 'masculino' | 'feminino' | 'outro' | 'prefiroNaoInformar';
 
@@ -29,22 +26,40 @@ export const GENDER_LABELS: Record<GenderType, string> = {
   prefiroNaoInformar: 'Prefiro não informar',
 };
 
+export type UserRole = 'teacher' | 'student_helper';
+
+export const USER_ROLE_LABELS: Record<UserRole, string> = {
+  teacher: 'Professor',
+  student_helper: 'Aluno Auxiliar',
+};
+
+export interface TeacherProfile {
+  id: string;
+  name: string;
+  role: UserRole;
+  email?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface Student {
   id: string;
   name: string;
   className: string;
-  gender: GenderType; // Novo campo
-  contributions: {
+  gender: GenderType;
+  photo_url?: string | null; // URL da foto do aluno
+  exchanges: {
     [MATERIAL_TYPES.LIDS]: number;
     [MATERIAL_TYPES.CANS]: number;
     [MATERIAL_TYPES.OIL]: number;
   };
-  pendingContributions: {
+  pendingExchanges: {
     [MATERIAL_TYPES.LIDS]: number;
     [MATERIAL_TYPES.CANS]: number;
     [MATERIAL_TYPES.OIL]: number;
   };
   narcisoCoins: number;
+  currentCoinBalance?: number; // Saldo atual após vendas (opcional para compatibilidade)
 }
 
 export interface Class {
@@ -53,6 +68,7 @@ export interface Class {
 }
 
 export const MOCK_CLASSES: Class[] = [
+  // Ordem: Prés primeiro, depois anos em ordem crescente
   { id: '1', name: 'Pré Manhã' },
   { id: '2', name: 'Pré Tarde' },
   { id: '3', name: '1º Ano Tarde' },
@@ -61,48 +77,4 @@ export const MOCK_CLASSES: Class[] = [
   { id: '6', name: '4º e 5º Anos' },
 ];
 
-export const MOCK_STUDENTS_INITIAL_DATA: Omit<Student, 'narcisoCoins' | 'id' | 'pendingContributions'>[] = [
-  { name: 'Ana Beatriz Costa', className: 'Pré Manhã', gender: 'feminino', contributions: { tampas: 25, latas: 5, oleo: 2 } },
-  { name: 'Bruno Alves Dias', className: 'Pré Manhã', gender: 'masculino', contributions: { tampas: 15, latas: 3, oleo: 1 } },
-  { name: 'Carla Moreira Lima', className: 'Pré Tarde', gender: 'feminino', contributions: { tampas: 30, latas: 6, oleo: 0 } },
-  { name: 'Daniel Farias Gomes', className: 'Pré Tarde', gender: 'masculino', contributions: { tampas: 10, latas: 2, oleo: 3 } },
-  { name: 'Eduarda Pires Nobre', className: '1º Ano Tarde', gender: 'feminino', contributions: { tampas: 50, latas: 10, oleo: 5 } },
-  { name: 'Felipe Santos Rocha', className: '1º Ano Tarde', gender: 'masculino', contributions: { tampas: 5, latas: 1, oleo: 0 } },
-  { name: 'Gabriela Vieira Pinto', className: '1º e 2º Ano Manhã', gender: 'feminino', contributions: { tampas: 40, latas: 8, oleo: 4 } },
-  { name: 'Henrique Barros Melo', className: '1º e 2º Ano Manhã', gender: 'masculino', contributions: { tampas: 22, latas: 4, oleo: 1 } },
-  { name: 'Isabela Castro Cunha', className: '3º Ano', gender: 'feminino', contributions: { tampas: 33, latas: 7, oleo: 2 } },
-  { name: 'Lucas Azevedo Sousa', className: '4º e 5º Anos', gender: 'masculino', contributions: { tampas: 18, latas: 3, oleo: 1 } },
-];
 
-export const generateInitialStudents = (): Student[] => {
-  return MOCK_STUDENTS_INITIAL_DATA.map((studData, index) => {
-    const id = `s${index + 1}`;
-    let narcisoCoins = 0;
-    const pendingContributions: Student['pendingContributions'] = {
-      [MATERIAL_TYPES.LIDS]: 0,
-      [MATERIAL_TYPES.CANS]: 0,
-      [MATERIAL_TYPES.OIL]: 0,
-    };
-
-    for (const materialKey in MATERIAL_TYPES) {
-      const material = MATERIAL_TYPES[materialKey as MaterialKey];
-      const totalAmount = studData.contributions[material] || 0;
-      const unitsPerCoin = MATERIAL_UNITS_PER_COIN[material];
-      
-      if (unitsPerCoin > 0) {
-        narcisoCoins += Math.floor(totalAmount / unitsPerCoin);
-        pendingContributions[material] = totalAmount % unitsPerCoin;
-      } else {
-        pendingContributions[material] = totalAmount;
-      }
-    }
-
-    return {
-      ...studData,
-      id,
-      narcisoCoins,
-      pendingContributions,
-      gender: studData.gender || 'prefiroNaoInformar', // Garante que o gênero mockado seja usado
-    };
-  });
-};

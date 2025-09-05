@@ -4,14 +4,14 @@ Um projeto educacional para incentivar a coleta de materiais recicláveis em esc
 
 ## Sobre o Projeto
 
-Este projeto permite que professores gerenciem alunos e suas contribuições de materiais recicláveis (tampinhas, latas e óleo), convertendo-os automaticamente em "Moedas Narciso" que podem ser usadas em atividades educacionais.
+Este projeto permite que professores gerenciem alunos e suas trocas de materiais recicláveis (tampinhas, latas e óleo) por "Moedas Narciso" que podem ser usadas em atividades educacionais.
 
 ## Funcionalidades Principais
 
 - Dashboard com estatísticas gerais de coleta
 - Gerenciamento de alunos
-- Registro de contribuições por tipo de material
-- Ranking dos alunos com mais contribuições
+- Registro de trocas por tipo de material
+- Ranking dos alunos com mais trocas
 - Conversão automática de materiais em moedas virtuais
 
 ## Documentação

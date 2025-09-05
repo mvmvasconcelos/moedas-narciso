@@ -4,10 +4,10 @@
 import type { LucideIcon } from "lucide-react";
 import type { Student } from "@/lib/constants";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { UserIcon } from "lucide-react";
+import { StudentPhoto } from "@/components/alunos/StudentPhoto";
 
 interface StudentRankCardProps {
   student: Student | undefined | null;
@@ -16,7 +16,6 @@ interface StudentRankCardProps {
   icon: LucideIcon;
   variant?: "prominent" | "default" | "small";
   isLoading?: boolean;
-  avatarSeed?: string; // For consistent placeholder fallback initials
 }
 
 export function StudentRankCard({
@@ -26,15 +25,12 @@ export function StudentRankCard({
   icon: ValueIcon,
   variant = "default",
   isLoading = false,
-  avatarSeed,
 }: StudentRankCardProps) {
-  const getInitials = (name: string | undefined) => {
-    if (!name) return "??";
-    const names = name.split(" ");
-    if (names.length > 1) {
-      return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase();
-    }
-    return name.substring(0, 2).toUpperCase();
+  // Determinar o tamanho da foto baseado na variante
+  const getPhotoSize = () => {
+    if (variant === "prominent") return "lg";  // h-16 w-16
+    if (variant === "small") return "sm";      // h-8 w-8  
+    return "md";                               // h-12 w-12 (default)
   };
 
   const cardClasses = cn(
@@ -65,12 +61,6 @@ export function StudentRankCard({
     variant === "small" && "text-xl"
   );
 
-  const avatarSizeClasses = cn(
-    variant === "prominent" ? "h-14 w-14" : // Larger avatar for prominent
-    variant === "small" ? "h-8 w-8" : 
-    "h-10 w-10"
-  );
-
   const valueIconSizeClasses = cn(
     "mr-2",
     variant === "prominent" ? "h-7 w-7 text-accent" : // Larger icon for prominent
@@ -87,7 +77,7 @@ export function StudentRankCard({
         </CardHeader>
         <CardContent className="p-0 space-y-2">
           <div className="flex items-center space-x-3">
-            <Skeleton className={cn("rounded-full", avatarSizeClasses)} />
+            <Skeleton className="rounded-full h-16 w-16" />
             <div className="space-y-1">
               <Skeleton className={cn("h-5 w-24", variant === "small" && "h-4 w-20", variant === "prominent" && "h-6 w-28")} />
               <Skeleton className={cn("h-4 w-16", variant === "small" && "h-3 w-12", variant === "prominent" && "h-4 w-20")} />
@@ -120,10 +110,12 @@ export function StudentRankCard({
       </CardHeader>
       <CardContent className="p-0 space-y-3">
         <div className="flex items-center space-x-3">
-          <Avatar className={avatarSizeClasses}>
-            <AvatarImage data-ai-hint="student avatar" src={`https://placehold.co/60x60.png?text=${getInitials(avatarSeed || student.name)}`} alt={student.name} />
-            <AvatarFallback>{getInitials(student.name)}</AvatarFallback>
-          </Avatar>
+          <StudentPhoto 
+            photoUrl={student.photo_url}
+            name={student.name}
+            size={getPhotoSize()}
+            showLoading={false}
+          />
           <div>
             <p className={studentNameClasses}>{student.name}</p>
             <CardDescription className={cn(variant === "small" ? "text-xs" : variant === "prominent" ? "text-base" : "text-sm")}>

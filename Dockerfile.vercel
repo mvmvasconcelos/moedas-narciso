@@ -1,0 +1,19 @@
+# Container para deploy na Vercel
+FROM node:18-alpine
+
+# Instalar o Vercel CLI globalmente e outras dependências necessárias
+RUN npm install -g vercel@latest && \
+    npm cache clean --force
+
+# Definir o diretório de trabalho
+WORKDIR /app
+
+# Instalar dependências básicas do sistema
+RUN apk add --no-cache git
+
+# Configurar git (necessário para alguns casos do Vercel)
+RUN git config --global user.email "deploy@vercel.com" && \
+    git config --global user.name "Vercel Deploy"
+
+# Comando padrão quando o container iniciar
+CMD ["sh"]
