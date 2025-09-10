@@ -68,44 +68,20 @@ DROP CONSTRAINT IF EXISTS sales_coins_spent_check;
 
 ### 2. Atualização da View de Alunos
 
-Modificar a view existente para incluir saldo atual:
+Modificar a view existente para incluir saldo atual e garantir acesso seguro via função `SECURITY DEFINER`:
 
 ```sql
--- Atualizar v_student_list para incluir saldo atual (mantendo estrutura EXATA existente)
-CREATE OR REPLACE VIEW public.v_student_list WITH (security_invoker=on) AS
-SELECT s.id,
-    s.name,
-    s.gender,
-    c.name AS class_name,
-    s.narciso_coins + COALESCE(s.adjustment_narciso_coins, 0) AS effective_narciso_coins,
-    COALESCE(t.total_tampas, 0::bigint) AS exchange_tampas,
-    COALESCE(l.total_latas, 0::bigint) AS exchange_latas,
-    COALESCE(o.total_oleo, 0::bigint) AS exchange_oleo,
-    s.pending_tampas + COALESCE(s.adjustment_pending_tampas, 0) AS pending_tampas,
-    s.pending_latas + COALESCE(s.adjustment_pending_latas, 0) AS pending_latas,
-    s.pending_oleo + COALESCE(s.adjustment_pending_oleo, 0) AS pending_oleo,
-    s.photo_url,
-    -- NOVA COLUNA: Saldo atual disponível
-    (s.narciso_coins + COALESCE(s.adjustment_narciso_coins, 0)) - 
-    COALESCE((SELECT SUM(coins_spent) FROM sales WHERE student_id = s.id), 0) AS current_coin_balance
-FROM students s
-JOIN classes c ON s.class_id = c.id
-LEFT JOIN (
-    SELECT exchanges.student_id, sum(exchanges.quantity) AS total_tampas
-    FROM exchanges WHERE exchanges.material_id::text = 'tampas'::text
-    GROUP BY exchanges.student_id
-) t ON s.id = t.student_id
-LEFT JOIN (
-    SELECT exchanges.student_id, sum(exchanges.quantity) AS total_latas
-    FROM exchanges WHERE exchanges.material_id::text = 'latas'::text
-    GROUP BY exchanges.student_id
-) l ON s.id = l.student_id
-LEFT JOIN (
-    SELECT exchanges.student_id, sum(exchanges.quantity) AS total_oleo
-    FROM exchanges WHERE exchanges.material_id::text = 'oleo'::text
-    GROUP BY exchanges.student_id
-) o ON s.id = o.student_id
-ORDER BY s.name;
+-- Recomendado: criar função SECURITY DEFINER que agrega trocas por aluno e normaliza material_id
+-- e então expor uma view pública que chama essa função. Isso evita problemas com RLS quando
+-- usuários autenticados (por exemplo, `student_helper`) precisarem ler a lista.
+
+-- Exemplo (executar como owner):
+-- CREATE OR REPLACE FUNCTION public.get_student_list_secure() ...
+-- CREATE OR REPLACE VIEW public.v_student_list AS SELECT * FROM public.get_student_list_secure();
+
+-- Permissões recomendadas:
+-- GRANT EXECUTE ON FUNCTION public.get_student_list_secure() TO authenticated;
+-- GRANT SELECT ON public.v_student_list TO authenticated;
 ```
 
 ## Backend (dataService.ts)

@@ -165,18 +165,18 @@ function StudentsTableBase({ onEditStudent }: StudentsTableProps) {
                 <SortIcon field="className" />
               </TableHead>
               <TableHead
-                onClick={() => toggleSort("narcisoCoins")}
-                className={cn("text-center", sortableHeaderClass)}
-              >
-                <CoinsIcon className="inline-block h-4 w-4 mr-1" /> Moedas
-                <SortIcon field="narcisoCoins" />
-              </TableHead>
-              <TableHead
                 onClick={() => toggleSort("currentCoinBalance")}
                 className={cn("text-center", sortableHeaderClass)}
               >
                 <CoinsIcon className="inline-block h-4 w-4 mr-1" /> Saldo Atual
                 <SortIcon field="currentCoinBalance" />
+              </TableHead>
+              <TableHead
+                onClick={() => toggleSort("narcisoCoins")}
+                className={cn("text-center", sortableHeaderClass)}
+              >
+                <CoinsIcon className="inline-block h-4 w-4 mr-1" /> Moedas
+                <SortIcon field="narcisoCoins" />
               </TableHead>
               <TableHead
                 onClick={() => toggleSort("lids")}
@@ -213,11 +213,11 @@ function StudentsTableBase({ onEditStudent }: StudentsTableProps) {
                 </TableCell>
                 <TableCell className="font-medium">{student.name}</TableCell>
                 <TableCell>{student.className}</TableCell>
-                <TableCell className="text-center font-semibold text-primary">
-                  {student.narcisoCoins || 0}
-                </TableCell>
                 <TableCell className="text-center font-semibold text-green-600">
                   {student.currentCoinBalance ?? student.narcisoCoins ?? 0}
+                </TableCell>
+                <TableCell className="text-center font-semibold text-primary">
+                  {student.narcisoCoins || 0}
                 </TableCell>
                 <TableCell className="text-center hidden md:table-cell">
                   {student.exchanges?.tampas || 0}

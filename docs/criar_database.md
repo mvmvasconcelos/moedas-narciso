@@ -375,41 +375,62 @@ FROM students s
 JOIN classes c ON s.class_id = c.id
 LEFT JOIN exchanges e ON s.id = e.student_id;
 
--- View: Lista Completa de Alunos
-CREATE OR REPLACE VIEW v_student_list AS
-SELECT 
+-- View: Lista Completa de Alunos (versão canônica)
+-- Substituímos múltiplas definições repetidas por uma função SECURITY DEFINER
+-- que normaliza material_id, agrega trocas e faz fallback para totais
+-- armazenados na tabela students quando não houver registros na tabela exchanges.
+
+-- Função segura (SECURITY DEFINER) para agregar dados de alunos
+CREATE OR REPLACE FUNCTION public.get_student_list_secure()
+RETURNS TABLE(
+  id uuid,
+  name text,
+  gender text,
+  class_name text,
+  effective_narciso_coins numeric,
+  exchange_tampas bigint,
+  exchange_latas bigint,
+  exchange_oleo bigint,
+  pending_tampas bigint,
+  pending_latas bigint,
+  pending_oleo bigint
+) LANGUAGE sql SECURITY DEFINER AS $$
+  SELECT
     s.id,
     s.name,
     s.gender,
     c.name as class_name,
     (s.narciso_coins + COALESCE(s.adjustment_narciso_coins, 0)) as effective_narciso_coins,
-    COALESCE(t.total_tampas, 0) as exchange_tampas,
-    COALESCE(l.total_latas, 0) as exchange_latas,
-    COALESCE(o.total_oleo, 0) as exchange_oleo,
+    COALESCE(exchg.total_tampas, COALESCE(s.total_tampas_exchanged, 0)) as exchange_tampas,
+    COALESCE(exchg.total_latas, COALESCE(s.total_latas_exchanged, 0)) as exchange_latas,
+    COALESCE(exchg.total_oleo, COALESCE(s.total_oleo_exchanged, 0)) as exchange_oleo,
     (s.pending_tampas + COALESCE(s.adjustment_pending_tampas, 0)) as pending_tampas,
     (s.pending_latas + COALESCE(s.adjustment_pending_latas, 0)) as pending_latas,
     (s.pending_oleo + COALESCE(s.adjustment_pending_oleo, 0)) as pending_oleo
-FROM students s
-JOIN classes c ON s.class_id = c.id
-LEFT JOIN (
-    SELECT student_id, SUM(quantity) as total_tampas 
-    FROM exchanges 
-    WHERE material_id = 'tampas' 
+  FROM students s
+  JOIN classes c ON s.class_id = c.id
+  LEFT JOIN (
+    SELECT student_id,
+      SUM(CASE WHEN lower(trim(material_id)) = 'tampas' THEN quantity ELSE 0 END) AS total_tampas,
+      SUM(CASE WHEN lower(trim(material_id)) = 'latas' THEN quantity ELSE 0 END) AS total_latas,
+      SUM(CASE WHEN lower(trim(material_id)) = 'oleo' THEN quantity ELSE 0 END) AS total_oleo
+    FROM exchanges
     GROUP BY student_id
-) t ON s.id = t.student_id
-LEFT JOIN (
-    SELECT student_id, SUM(quantity) as total_latas
-    FROM exchanges 
-    WHERE material_id = 'latas' 
-    GROUP BY student_id
-) l ON s.id = l.student_id
-LEFT JOIN (
-    SELECT student_id, SUM(quantity) as total_oleo
-    FROM exchanges 
-    WHERE material_id = 'oleo' 
-    GROUP BY student_id
-) o ON s.id = o.student_id
-ORDER BY s.name;
+  ) exchg ON s.id = exchg.student_id;
+$$;
+
+-- View que apenas chama a função (mantém compatibilidade para quem consome a view)
+CREATE OR REPLACE VIEW public.v_student_list AS
+SELECT * FROM public.get_student_list_secure();
+
+-- Permissões: permitir leitura para usuários autenticados (ajuste conforme políticas locais)
+GRANT EXECUTE ON FUNCTION public.get_student_list_secure() TO authenticated;
+GRANT SELECT ON public.v_student_list TO authenticated;
+
+-- Nota: usamos SECURITY DEFINER para que a função execute com privilégios do owner
+-- e não do usuário chamador, assim a RLS aplicada às tabelas base não impede
+-- a leitura agregada que o frontend precisa. Revise o owner da função e políticas
+-- de RLS conforme seu modelo de segurança.
 ```
 
 ## Configuração de Segurança (RLS - Row Level Security)

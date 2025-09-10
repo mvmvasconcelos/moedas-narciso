@@ -227,47 +227,74 @@ FROM students s;
 </details>
 
 #### View: `v_student_list`
-- **Propósito:** A principal view para listar todos os alunos com seus saldos efetivos e totais trocados, pronta para ser consumida pelo frontend.
+- **Propósito:** A principal view para listar todos os alunos com seus saldos efetivos, totais trocados e saldos pendentes; pronta para ser consumida pelo frontend.
+
+> Nota de implementação: por segurança (Row Level Security) a view é reconstrída para usar uma função `SECURITY DEFINER` que retorna os mesmos campos, garantindo que usuários autenticados possam ler os dados consolidados sem modificar políticas RLS das tabelas base. A função recomendada é `public.get_student_list_secure()` e a view pública se limita a chamar essa função.
 
 <details>
-<summary>Definição SQL da View <code>v_student_list</code></summary>
+<summary>Definição SQL recomendada (view + função)</summary>
 
 ```sql
-CREATE OR REPLACE VIEW public.v_student_list WITH (security_invoker=on) AS
-SELECT s.id,
-    s.name,
-    s.gender,
-    c.name AS class_name,
-    s.narciso_coins + COALESCE(s.adjustment_narciso_coins, 0) AS effective_narciso_coins,
-    COALESCE(t.total_tampas, 0::bigint) AS exchange_tampas,
-    COALESCE(l.total_latas, 0::bigint) AS exchange_latas,
-    COALESCE(o.total_oleo, 0::bigint) AS exchange_oleo,
-    s.pending_tampas + COALESCE(s.adjustment_pending_tampas, 0) AS pending_tampas,
-    s.pending_latas + COALESCE(s.adjustment_pending_latas, 0) AS pending_latas,
-    s.pending_oleo + COALESCE(s.adjustment_pending_oleo, 0) AS pending_oleo,
-    s.photo_url
-FROM students s
-JOIN classes c ON s.class_id = c.id
-LEFT JOIN (
-    SELECT exchanges.student_id, sum(exchanges.quantity) AS total_tampas
-    FROM exchanges
-    WHERE exchanges.material_id::text = 'tampas'::text
-    GROUP BY exchanges.student_id
-) t ON s.id = t.student_id
-LEFT JOIN (
-    SELECT exchanges.student_id, sum(exchanges.quantity) AS total_latas
-    FROM exchanges
-    WHERE exchanges.material_id::text = 'latas'::text
-    GROUP BY exchanges.student_id
-) l ON s.id = l.student_id
-LEFT JOIN (
-    SELECT exchanges.student_id, sum(exchanges.quantity) AS total_oleo
-    FROM exchanges
-    WHERE exchanges.material_id::text = 'oleo'::text
-    GROUP BY exchanges.student_id
-) o ON s.id = o.student_id
-ORDER BY s.name;
+-- Função segura (SECURITY DEFINER) que agrega trocas por aluno e normaliza material_id
+CREATE OR REPLACE FUNCTION public.get_student_list_secure()
+RETURNS TABLE (
+    id uuid,
+    name character varying,
+    gender character varying,
+    class_name character varying,
+    effective_narciso_coins bigint,
+    exchange_tampas bigint,
+    exchange_latas bigint,
+    exchange_oleo bigint,
+    pending_tampas integer,
+    pending_latas integer,
+    pending_oleo integer,
+    photo_url character varying,
+    current_coin_balance bigint
+)
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+    SELECT
+        s.id,
+        s.name,
+        s.gender,
+        c.name AS class_name,
+        s.narciso_coins + COALESCE(s.adjustment_narciso_coins, 0) AS effective_narciso_coins,
+        COALESCE(t.total_tampas, s.total_tampas_exchanged, 0::bigint) AS exchange_tampas,
+        COALESCE(t.total_latas, s.total_latas_exchanged, 0::bigint) AS exchange_latas,
+        COALESCE(t.total_oleo, s.total_oleo_exchanged, 0::bigint) AS exchange_oleo,
+        s.pending_tampas + COALESCE(s.adjustment_pending_tampas, 0) AS pending_tampas,
+        s.pending_latas + COALESCE(s.adjustment_pending_latas, 0) AS pending_latas,
+        s.pending_oleo + COALESCE(s.adjustment_pending_oleo, 0) AS pending_oleo,
+        s.photo_url,
+        s.narciso_coins + COALESCE(s.adjustment_narciso_coins, 0)
+            - COALESCE((SELECT SUM(coins_spent) FROM sales WHERE sales.student_id = s.id), 0::bigint)
+            AS current_coin_balance
+    FROM public.students s
+    JOIN public.classes c ON s.class_id = c.id
+    LEFT JOIN (
+        SELECT
+            student_id,
+            SUM(CASE WHEN lower(trim(material_id)) = 'tampas' THEN quantity ELSE 0 END)::bigint AS total_tampas,
+            SUM(CASE WHEN lower(trim(material_id)) = 'latas'  THEN quantity ELSE 0 END)::bigint AS total_latas,
+            SUM(CASE WHEN lower(trim(material_id)) = 'oleo'   THEN quantity ELSE 0 END)::bigint AS total_oleo
+        FROM public.exchanges
+        GROUP BY student_id
+    ) t ON s.id = t.student_id
+    ORDER BY s.name;
+$$;
+
+-- View pública que chama a função (permitir GRANTs/execução separadas)
+CREATE OR REPLACE VIEW public.v_student_list AS
+SELECT * FROM public.get_student_list_secure();
+
+-- Permissões recomendadas
+GRANT EXECUTE ON FUNCTION public.get_student_list_secure() TO authenticated;
+GRANT SELECT ON public.v_student_list TO authenticated;
 ```
+
 </details>
 
 #### Outras Views

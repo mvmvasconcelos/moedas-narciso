@@ -61,7 +61,10 @@ export class DataService {
       // Evita trazer colunas grandes/derivadas da view que podem tornar a query lenta
       const { data, error } = await supabase
         .from('v_student_list')
-        .select(`id, name, class_name, gender, photo_url, exchange_tampas, exchange_latas, exchange_oleo, pending_tampas, pending_latas, pending_oleo, effective_narciso_coins, current_coin_balance`)
+        // Buscar todas as colunas da view para evitar falhas quando a view
+        // foi alterada/renomeada em produção. O mapeamento abaixo é
+        // defensivo e tenta várias chaves possíveis.
+        .select('*')
         .order('name');
 
       if (error) {
@@ -70,25 +73,68 @@ export class DataService {
       }
 
       // Converter dados da view para o formato do frontend
-      const students = (data || []).map(row => ({
+      // Usar mapeamento defensivo: algumas instâncias do banco podem expor
+      // colunas com nomes alternativos (ex: total_tampas, lids_total, etc.).
+      const getFirstAvailable = (r: Record<string, any> | null | undefined, ...keys: string[]): number => {
+        if (!r) return 0;
+        for (const k of keys) {
+          const v = r[k];
+          if (typeof v !== 'undefined' && v !== null) return Number(v);
+        }
+        return 0;
+      };
+
+      const students = (data || []).map((row: Record<string, any>, idx: number) => {
+        // Logar a primeira linha retornada para diagnóstico em tempo de execução
+        if (idx === 0) {
+          try {
+            console.log('[DataService.getStudents] sample row keys:', Object.keys(row));
+            console.log('[DataService.getStudents] sample row preview:', {
+              exchange_tampas: row.exchange_tampas,
+              exchange_latas: row.exchange_latas,
+              exchange_oleo: row.exchange_oleo,
+              pending_tampas: row.pending_tampas,
+              pending_latas: row.pending_latas,
+              pending_oleo: row.pending_oleo,
+              total_tampas: row.total_tampas,
+              lids_total: row.lids_total,
+              tampas: row.tampas,
+            });
+          } catch (err) {
+            console.log('[DataService.getStudents] error logging sample row', err);
+          }
+        }
+
+  const mapped = ({
         id: row.id,
         name: row.name,
         className: row.class_name || 'Sem turma',
         gender: row.gender,
         photo_url: row.photo_url || null, // Campo agora disponível na view
         exchanges: {
-          [MATERIAL_TYPES.LIDS]: row.exchange_tampas || 0,
-          [MATERIAL_TYPES.CANS]: row.exchange_latas || 0,
-          [MATERIAL_TYPES.OIL]: row.exchange_oleo || 0
+          [MATERIAL_TYPES.LIDS]: getFirstAvailable(row, 'exchange_tampas', 'total_tampas', 'lids_total', 'tampas'),
+          [MATERIAL_TYPES.CANS]: getFirstAvailable(row, 'exchange_latas', 'total_latas', 'cans_total', 'latas'),
+          [MATERIAL_TYPES.OIL]: getFirstAvailable(row, 'exchange_oleo', 'total_oleo', 'oil_total', 'oleo')
         },
         pendingExchanges: {
-          [MATERIAL_TYPES.LIDS]: row.pending_tampas || 0,
-          [MATERIAL_TYPES.CANS]: row.pending_latas || 0,
-          [MATERIAL_TYPES.OIL]: row.pending_oleo || 0
+          [MATERIAL_TYPES.LIDS]: getFirstAvailable(row, 'pending_tampas', 'effective_pending_tampas', 'pending_lids', 'pending_tampas'),
+          [MATERIAL_TYPES.CANS]: getFirstAvailable(row, 'pending_latas', 'effective_pending_latas', 'pending_cans', 'pending_latas'),
+          [MATERIAL_TYPES.OIL]: getFirstAvailable(row, 'pending_oleo', 'effective_pending_oleo', 'pending_oil', 'pending_oleo')
         },
-        narcisoCoins: row.effective_narciso_coins || 0,
-        currentCoinBalance: row.current_coin_balance || 0 // Saldo atual após vendas
-      }));
+        narcisoCoins: getFirstAvailable(row, 'effective_narciso_coins', 'narciso_coins', 'total_coins_earned'),
+        currentCoinBalance: getFirstAvailable(row, 'current_coin_balance', 'currentCoinBalance', 'current_coin_balance') // Saldo atual após vendas
+        });
+
+        if (idx === 0) {
+          try {
+            console.log('[DataService.getStudents] mapped student sample:', mapped);
+          } catch (err) {
+            console.log('[DataService.getStudents] error logging mapped student', err);
+          }
+        }
+
+        return mapped;
+      });
 
   // ...log removido...
       return students;

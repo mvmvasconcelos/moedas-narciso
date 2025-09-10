@@ -196,29 +196,13 @@ const checkAuth = async () => {
 
 1. **Configuração das Views de Dados**
    ```sql
-   -- Visão geral de alunos com valores calculados
-   CREATE OR REPLACE VIEW v_student_list AS
-   SELECT 
-    s.id,
-    s.name,
-    s.gender,
-    c.name as class_name,
-    (s.narciso_coins + COALESCE(s.adjustment_narciso_coins, 0)) as effective_narciso_coins,
-    COALESCE(t.total_tampas, 0) as exchange_tampas,
-    COALESCE(l.total_latas, 0) as exchange_latas,
-    COALESCE(o.total_oleo, 0) as exchange_oleo,
-    (s.pending_tampas + COALESCE(s.adjustment_pending_tampas, 0)) as pending_tampas,
-    (s.pending_latas + COALESCE(s.adjustment_pending_latas, 0)) as pending_latas,
-    (s.pending_oleo + COALESCE(s.adjustment_pending_oleo, 0)) as pending_oleo,
-    s.photo_url -- Campo adicionado para suporte a fotos de perfil
-   FROM students s
-   JOIN classes c ON s.class_id = c.id
-   LEFT JOIN (
-       SELECT student_id, SUM(quantity) as total_tampas 
-       FROM exchanges 
-       WHERE material_id = 'tampas' 
-       GROUP BY student_id
-   ) t ON s.id = t.student_id
+  -- Visão geral de alunos com valores calculados
+  -- A implementação recomendada agora usa uma função SECURITY DEFINER que agrega
+  -- trocas por aluno e normaliza o campo material_id. A view pública chama essa
+  -- função e é a fonte de dados usada pelo frontend.
+  -- Exemplo (executar como owner no Supabase):
+  -- CREATE OR REPLACE FUNCTION public.get_student_list_secure() ...
+  -- CREATE OR REPLACE VIEW public.v_student_list AS SELECT * FROM public.get_student_list_secure();
    LEFT JOIN (
        SELECT student_id, SUM(quantity) as total_latas
        FROM exchanges 
