@@ -20,6 +20,7 @@ interface Stats {
 interface AuthContextType {
   isAuthenticated: boolean;
   studentsLoading: boolean;
+  studentsLoadError: boolean;
   teacherName: string | null | undefined;
   userRole: UserRole | null | undefined; // Novo campo para role
   students: Student[];
@@ -39,6 +40,7 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [studentsLoading, setStudentsLoading] = useState(false);
+  const [studentsLoadError, setStudentsLoadError] = useState(false);
   const [teacherName, setTeacherName] = useState<string | null | undefined>(undefined);
   const [userRole, setUserRole] = useState<UserRole | null | undefined>(undefined);
   const [students, setStudents] = useState<Student[]>([]);
@@ -48,6 +50,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Função para inicializar os dados do sistema
   const initializeData = async () => {
     setStudentsLoading(true);
+  setStudentsLoadError(false);
     try {
       const [studentsData, classesData] = await Promise.all([
         DataService.getStudents(),
@@ -62,6 +65,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     } catch (error) {
       // ...log removido...
+  setStudentsLoadError(true);
       toast({
         variant: "destructive",
         title: "Erro ao Carregar Dados",
@@ -193,7 +197,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setIsAuthenticated(true);
       setTeacherName(profile.name || user.email?.split('@')[0] || "Professor(a)");
       setUserRole(profile.role || 'teacher');
-      router.push('/dashboard');
+  // Garantir que os dados iniciais (incluindo students) sejam carregados
+  // imediatamente após o login antes de redirecionar para a dashboard.
+  await initializeData();
+  router.push('/dashboard');
 
     } catch (error: any) {
   // ...log removido...
@@ -320,12 +327,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Função para atualizar dados dos estudantes
   const refreshStudents = useCallback(async () => {
     try {
+  console.debug('[AuthContext] refreshStudents() start');
   setStudentsLoading(true);
   const updatedStudents = await DataService.getStudents();
+  console.debug('[AuthContext] refreshStudents() got students', { count: Array.isArray(updatedStudents) ? updatedStudents.length : null });
   setStudents(updatedStudents);
   setStudentsLoading(false);
+  console.debug('[AuthContext] refreshStudents() end');
     } catch (error) {
-      console.error("Erro ao atualizar dados dos estudantes:", error);
+  console.error("Erro ao atualizar dados dos estudantes:", error);
+  setStudentsLoadError(true);
       toast({
         variant: "destructive",
         title: "Erro ao Atualizar Dados",
@@ -359,6 +370,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       value={{ 
         isAuthenticated, 
   studentsLoading,
+  studentsLoadError,
         teacherName,
         userRole, 
         students, 
