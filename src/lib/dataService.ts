@@ -321,6 +321,47 @@ export class DataService {
       throw error;
     }
   }
+
+  // Versão pública e enxuta da lista de alunos — usa a view pública criada v_public_student_list
+  // Retorna apenas campos necessários para exibição em páginas públicas
+  static async getStudentsPublic(): Promise<Student[]> {
+    try {
+      const { data, error } = await supabase
+        .from('v_public_student_list')
+        .select('id, name, class_name, narciso_coins')
+        .order('name');
+
+      if (error) {
+        console.error('Erro ao buscar v_public_student_list:', error);
+        throw error;
+      }
+
+      const students = (data || []).map((row: any) => ({
+        id: row.id,
+        name: row.name,
+        className: row.class_name || 'Sem turma',
+        gender: undefined,
+        photo_url: null,
+        exchanges: {
+          tampas: 0,
+          latas: 0,
+          oleo: 0,
+        },
+        pendingExchanges: {
+          tampas: 0,
+          latas: 0,
+          oleo: 0,
+        },
+        narcisoCoins: row.narciso_coins || 0,
+        currentCoinBalance: row.narciso_coins || 0,
+      }));
+
+      return students;
+    } catch (error) {
+      console.error('Erro ao carregar alunos públicos:', error);
+      throw error;
+    }
+  }
   static async registerExchange(
     studentId: string, 
     materialId: MaterialType, 

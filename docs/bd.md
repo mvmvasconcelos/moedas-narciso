@@ -278,6 +278,67 @@ ORDER BY s.name;
 
 ---
 
+### View pública para consultas públicas
+
+Para permitir que páginas públicas (por exemplo, a página de consulta de alunos acessível sem login) obtenham apenas os campos necessários, criamos uma view pública e uma função segura (SECURITY DEFINER). A view expõe somente as colunas mínimas necessárias para exibição: `id`, `name`, `class_name` e `narciso_coins`.
+
+Motivação:
+- Evitar expor colunas sensíveis presentes em `students`.
+- Contornar políticas RLS que possam bloquear acessos anônimos às tabelas base, sem alterar regras globais.
+- Dar um ponto único e estável para o frontend público consultar os alunos.
+
+Script SQL (executar no SQL Editor do Supabase):
+
+```sql
+BEGIN;
+
+-- Função segura que retorna apenas os campos públicos necessários
+CREATE OR REPLACE FUNCTION public.get_public_student_list()
+RETURNS TABLE (
+    id uuid,
+    name text,
+    class_name text,
+    narciso_coins numeric
+)
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+    SELECT
+        s.id,
+        s.name,
+        COALESCE(c.name, 'Sem turma') AS class_name,
+        COALESCE(s.narciso_coins, 0) AS narciso_coins
+    FROM public.students s
+    LEFT JOIN public.classes c ON s.class_id = c.id
+    ORDER BY s.name;
+$$;
+
+-- Permitir execução da função para o role anon
+GRANT EXECUTE ON FUNCTION public.get_public_student_list() TO anon;
+
+-- Criar view de conveniência que usa a função
+CREATE OR REPLACE VIEW public.v_public_student_list AS
+SELECT * FROM public.get_public_student_list();
+
+-- Permitir SELECT direto na view para anon
+GRANT SELECT ON public.v_public_student_list TO anon;
+
+COMMIT;
+```
+
+Como usar / verificar:
+- No painel do Supabase > SQL Editor: cole e execute o script acima.
+- Teste com: `SELECT * FROM public.v_public_student_list LIMIT 50;` ou `SELECT * FROM public.get_public_student_list() LIMIT 50;`.
+- No frontend público, utilize a view `v_public_student_list` (ou chame a função) em vez de `v_student_list` para listar apenas os campos públicos.
+
+Observações de segurança:
+- A função é criada com `SECURITY DEFINER` para executar com privilégios do proprietário da função. Garanta que a conta usada para criar a função seja confiável.
+- A view e a função expõem apenas os campos especificados. Caso precise ajustar colunas exibidas, atualize a função e a view.
+
+
+---
+
 ### 2.3. Funções e Triggers (Automação e Lógica)
 
 O sistema usa triggers para automatizar tarefas e garantir a consistência dos dados.

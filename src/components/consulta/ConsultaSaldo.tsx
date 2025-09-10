@@ -52,14 +52,12 @@ export default function ConsultaSaldo({ students, loadError, studentsLoading }: 
             <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-green-700 via-amber-600 to-green-800 bg-clip-text text-transparent mb-3 leading-tight">
               Consulta Saldo de Moedas Narciso
             </h1>
-            <p className="text-muted-foreground">Digite o nome do aluno</p>
           </div>
 
           <div className="bg-white/90 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-2xl p-4 sm:p-6 md:p-8 border border-white/20 relative mx-2 sm:mx-0">
             <div className="absolute top-0 right-0 w-20 h-20 sm:w-32 sm:h-32 bg-gradient-to-br from-yellow-200 to-amber-200 rounded-bl-full opacity-30"></div>
             <div className="relative z-10">
               <div className="w-full max-w-2xl mx-auto">
-                <div className="mb-3 text-sm text-gray-600">Alunos carregados: {students ? students.length : 0}</div>
 
                 <div className="relative">
                   {isLoadError ? (
@@ -69,6 +67,7 @@ export default function ConsultaSaldo({ students, loadError, studentsLoading }: 
                       <Input
                         value={selected ? selected.name : query}
                         disabled={effectiveLoading}
+                        className="pr-10"
                         onChange={e => {
                           setQuery(e.target.value);
                           setSelected(null);
@@ -98,6 +97,22 @@ export default function ConsultaSaldo({ students, loadError, studentsLoading }: 
                         placeholder={effectiveLoading ? 'Carregando alunos...' : 'Digite o nome do aluno'}
                         aria-label="Pesquisar aluno"
                       />
+
+                      {/* Botão X para limpar o input (aparece quando há texto ou seleção e não está carregando) */}
+                      {(!effectiveLoading && (query !== '' || selected !== null)) && (
+                        <button
+                          type="button"
+                          aria-label="Limpar campo de busca"
+                          onClick={() => {
+                            setQuery('');
+                            setSelected(null);
+                            setHighlightIndex(-1);
+                          }}
+                          className="absolute right-2 top-1/2 z-20 -translate-y-1/2 text-xl font-semibold text-muted-foreground hover:text-foreground"
+                        >
+                          ×
+                        </button>
+                      )}
 
                       {(!selected && suggestions.length > 0) && (
                         <ul role="listbox" aria-label="Sugestões de alunos" className="absolute z-50 mt-1 max-h-72 w-full overflow-auto rounded-md border bg-background shadow-md scrollbar-thin scrollbar-thumb-amber-400">
