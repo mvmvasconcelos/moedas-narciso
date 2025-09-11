@@ -535,15 +535,11 @@ export class DataService {
       // Verificar configuração do Supabase
       const { verifySupabaseConfig } = await import('./supabase');
       verifySupabaseConfig();
-      
-      console.log("Iniciando requisição de estatísticas...");
-      
+
       const { data: generalStats, error: statsError } = await supabase
         .from('v_general_stats')
         .select('*')
         .single();
-      
-      console.log("Resposta da view v_general_stats:", { generalStats, statsError });
       
       if (statsError) {
         console.error("Erro na view v_general_stats:", statsError);

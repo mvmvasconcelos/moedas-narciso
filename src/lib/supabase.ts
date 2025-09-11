@@ -68,13 +68,6 @@ export const verifySupabaseConfig = () => {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  console.log("Configuração do Supabase:", {
-    urlConfigured: !!url,
-    keyConfigured: !!key,
-    urlLength: url?.length || 0,
-    keyLength: key?.length || 0,
-    client: !!supabase
-  });
 
   if (!url || !key) {
     throw new Error("Supabase não configurado corretamente. Verifique as variáveis de ambiente.");
