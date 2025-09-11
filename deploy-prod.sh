@@ -90,13 +90,41 @@ fi
 
 # Caso padrão: usar imagem oficial do Node para rodar npx vercel
 echo "[INFO] Usando imagem oficial $DEFAULT_NODE_IMAGE para executar npx vercel (opção 3)"
+# Em vez de instalar no repositório local, criamos um diretório temporário,
+# injetamos a dependência @vercel/analytics e rodamos o deploy a partir dele.
+TMP_DIR="$(mktemp -d)"
+echo "[INFO] Criando diretório temporário: $TMP_DIR"
 
-# Montar e executar comando vercel via npx
-# Observação: npx baixará o CLI temporariamente dentro do container
+cleanup() {
+  echo "[INFO] Limpando diretório temporário"
+  rm -rf "$TMP_DIR"
+}
+trap cleanup EXIT
 
+echo "[INFO] Copiando projeto para o diretório temporário (exclui node_modules e .git)..."
+if command -v rsync >/dev/null 2>&1; then
+  rsync -a --exclude 'node_modules' --exclude '.git' ./ "$TMP_DIR"
+else
+  # fallback simples se rsync não existir
+  (cd "$PROJECT_DIR" && cp -a . "$TMP_DIR")
+fi
+
+echo "[INFO] Injetando @vercel/analytics no package.json temporário e instalando dependências dentro de um container Node"
+# Usamos um container Node para modificar o package.json e instalar dependências,
+# assim não poluímos o host local. Usamos npm install (mais permissivo que npm ci)
+docker run --rm -v "$TMP_DIR":/app -w /app "$DEFAULT_NODE_IMAGE" sh -lc \
+  "node -e \"let fs=require('fs');let p=require('./package.json');p.dependencies=p.dependencies||{};p.dependencies['@vercel/analytics']='latest';fs.writeFileSync('package.json', JSON.stringify(p,null,2));\" && npm install --no-audit --prefer-offline"
+
+EXIT_CODE=$?
+if [ $EXIT_CODE -ne 0 ]; then
+  echo "[ERRO] Falha ao instalar dependências no diretório temporário (código: $EXIT_CODE)" >&2
+  exit $EXIT_CODE
+fi
+
+echo "[INFO] Executando deploy da Vercel a partir do diretório temporário"
 docker run --rm -it \
   "${DOCKER_ENV_ARGS[@]}" \
-  -v "$PROJECT_DIR":/app -w /app \
+  -v "$TMP_DIR":/app -w /app \
   "$DEFAULT_NODE_IMAGE" sh -lc "npx --yes vercel deploy --prod --yes"
 
 EXIT_CODE=$?
@@ -105,4 +133,4 @@ if [ $EXIT_CODE -ne 0 ]; then
   exit $EXIT_CODE
 fi
 
-echo "[OK] Deploy concluído com sucesso usando imagem oficial do Node."
+echo "[OK] Deploy concluído com sucesso usando diretório temporário."

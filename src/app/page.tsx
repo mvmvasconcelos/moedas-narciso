@@ -147,7 +147,6 @@ export default function HomePage() {
           <div className="mt-12 sm:mt-16 mx-2 sm:mx-0">
             <div className="text-center mb-8 sm:mb-12">
               <div className="inline-block bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl sm:rounded-2xl shadow-lg mb-4 sm:mb-6">
-                <h3 className="text-2xl sm:text-3xl md:text-4xl font-bold">🤔 VOCÊ SABIA?</h3>
               </div>
               <p className="text-lg sm:text-xl text-gray-700 font-medium max-w-3xl mx-auto px-2">
                 Nós já fazemos a diferença! Veja só a impressionante quantidade de materiais que evitamos que fossem para o lixo:
@@ -225,6 +224,8 @@ export default function HomePage() {
                              clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)'
                            }}></div>
                     </div>
+
+              
                   </div>
                 </div>
               </div>
@@ -282,6 +283,34 @@ export default function HomePage() {
           </div>
         </div>
       </footer>
+      {process.env.NODE_ENV === 'production' && <AnalyticsLoader />}
     </div>
   );
+}
+
+function AnalyticsLoader() {
+  const [loaded, setLoaded] = useState<any>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const mod = await import('@vercel/analytics/next');
+        if (mounted && mod && mod.Analytics) {
+          const Comp = mod.Analytics;
+          setLoaded(<Comp />);
+        }
+      } catch (e) {
+        // Não tratar como erro em dev local
+        // eslint-disable-next-line no-console
+        console.info('Vercel Analytics não disponível neste ambiente.');
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  return loaded;
 }
