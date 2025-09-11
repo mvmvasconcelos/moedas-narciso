@@ -359,7 +359,7 @@ export const SaleForm: React.FC<SaleFormProps> = ({ isOpen, onClose, student }) 
                 id="produto"
                 value={formData.produto}
                 onChange={(e) => handleInputChange('produto', e.target.value)}
-                placeholder="Ex: Chocolate, Refrigerante, etc."
+                placeholder="Bola, mola maluca, etc."
                 disabled={isSubmitting}
                 className={formErrors.produto ? 'border-red-500 focus:border-red-500' : ''}
                 aria-invalid={!!formErrors.produto}

@@ -45,6 +45,16 @@ export default function HomePage() {
     }
   };
 
+  // Calcula o peso aproximado (em kg) a partir dos totais: tampas, latas e óleo.
+  // 1 tampa = 0.002 kg, 1 lata = 0.015 kg, 1 litro de óleo = 0.960 kg
+  const approxKg = stats
+    ? Math.ceil(
+        stats.generalStats.total_tampas * 0.002 +
+          stats.generalStats.total_latas * 0.016 +
+          stats.generalStats.total_oleo * 0.96
+      )
+    : null;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-green-50 to-blue-50 relative overflow-hidden">
       {/* Elementos decorativos de fundo */}
@@ -97,26 +107,30 @@ export default function HomePage() {
               
               <div className="bg-gradient-to-r from-green-50 to-amber-50 p-4 sm:p-6 rounded-lg sm:rounded-xl mb-4 sm:mb-6 border-l-4 border-green-500">
                 <p className="text-base sm:text-lg text-justify">
-                  O Moedas Narciso se inicia com o <strong className="text-green-700">recolhimento de materiais recicláveis</strong>, como tampinhas, latinhas e óleo de cozinha usado, um esforço que vai além da coleta tradicional. Em troca desses materiais, os alunos são recompensados com as <strong className="text-amber-700">Moedas Narciso</strong>, nossa moeda de troca própria da escola, que permite uma experiência de troca imediata e envolvente.
+                  Moedas Narciso se inicia com o <strong className="text-green-700">recolhimento de materiais recicláveis</strong>, como tampinhas, latinhas de aluminio e óleo de cozinha usado, um esforço que vai além da coleta tradicional. Em troca desses materiais, os alunos são recompensados com as <strong className="text-amber-700">Moedas Narciso</strong>, a moeda da nossa própria da escola, que permite aos alunos uma conciência monetária desde cedo, juntamente com uma recompensa e experiência de troca imediata.
                 </p>
               </div>
               
               <p className="text-base sm:text-lg mb-4 sm:mb-6 text-justify">
                 Mais do que uma simples troca, o Moedas Narciso é um projeto multifacetado que integra <strong className="text-green-700">educação ambiental</strong>, <strong className="text-blue-700">educação financeira</strong> e <strong className="text-amber-700">ação social</strong>. Os alunos não apenas contribuem para a limpeza do meio ambiente, recolhendo materiais que seriam descartados, mas também vivenciam na prática conceitos de <strong className="text-green-700">sistema monetário, contagem e cálculo</strong>, gerenciando suas próprias "finanças".
               </p>
+
+              <p className="text-base sm:text-lg mb-4 sm:mb-6 text-justify">
+                A iniciativa também promove a <strong className="text-amber-700">solidariedade</strong>, com uma parcela do valor arrecadado sendo destinado à compra de cestas básicas para famílias necessitadas da <strong className="text-blue-700">comunidade</strong>. Assim, o projeto não só beneficia o meio ambiente e a educação dos alunos, mas também fortalece os laços comunitários e o espírito de solidariedade.
+              </p>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
                 <div className="bg-gradient-to-br from-blue-50 to-green-50 p-4 sm:p-6 rounded-lg sm:rounded-xl border border-blue-200">
                   <h4 className="font-bold text-blue-800 mb-2 sm:mb-3 text-base sm:text-lg">🐝 Cooperativa Narciso</h4>
                   <p className="text-gray-700 text-sm sm:text-base">
-                    Eles se tornaram <strong>protagonistas da "Cooperativa Narciso"</strong>, organizando a coleta, a contagem e a separação dos materiais. Com suas Moedas Narciso, podem adquirir itens na <strong>"lojinha" mensal</strong> da escola além de outros benefícios.
+                    Eles se tornaram <strong>protagonistas da "Cooperativa Narciso"</strong>, organizando a coleta, a contagem e a separação dos materiais. Com suas Moedas Narciso, podem adquirir itens na <strong>lojinha mensal</strong> da escola além de outros benefícios.
                   </p>
                 </div>
                 
                 <div className="bg-gradient-to-br from-amber-50 to-orange-50 p-4 sm:p-6 rounded-lg sm:rounded-xl border border-amber-200">
-                  <h4 className="font-bold text-amber-800 mb-2 sm:mb-3 text-base sm:text-lg">💝 Impacto Social</h4>
+                  <h4 className="font-bold text-amber-800 mb-2 sm:mb-3 text-base sm:text-lg">💝 Impacto Social Já É Realidade</h4>
                   <p className="text-gray-700 text-sm sm:text-base">
-                    Parte do valor arrecadado é revertido para a <strong>compra de cestas básicas para famílias necessitadas</strong> da comunidade. Os alunos também podem usar suas moedas para comprar a tradicional galinhada da escola!
+                    Como parte do valor arrecadado é revertido para a <strong>compra de cestas básicas</strong> para famílias necessitadas da comunidade. Em apenas <span className="underline decoration-amber-700 underline-offset-2 text-gray-700">4 meses de projeto</span>, duas já foram beneficiadas, mostrando o impacto rápido e positivo que o Moedas Narciso está gerando.
                   </p>
                 </div>
               </div>
@@ -225,9 +239,21 @@ export default function HomePage() {
               <div className="text-center mt-8 sm:mt-12 px-2 sm:px-0">
                 <div className="bg-gradient-to-r from-green-100 to-amber-100 p-4 sm:p-6 rounded-xl sm:rounded-2xl max-w-2xl mx-auto border border-green-200">
                   <p className="text-base sm:text-lg font-semibold text-gray-700">
-                    🎉 Esse material todo já se transformou em <span className="text-green-700 font-bold">{stats.generalStats.total_coins.toLocaleString()} Moedas Narciso</span> para nossos alunos!
+                    Isso são aproximadamente <span className="text-green-700 font-bold">{approxKg?.toLocaleString()} quilos</span> de materiais que, ao invés de acabar descartado no meio ambiente, foram transformados em <span className="text-green-700 font-bold">{stats.generalStats.total_coins.toLocaleString()} Moedas Narciso</span> para os nossos alunos e em <span className="text-green-700 font-bold">duas cestas básicas</span> para a comunidade!
                   </p>
                 </div>
+              </div>
+            )}
+            {/* Link para apresentação em PDF */}
+            {stats && (
+              <div className="text-lg sm:text-xl text-gray-700 font-medium max-w-3xl mx-auto px-2 mt-6 sm:mt-8 text-center underline decoration-gray-400 underline-offset-2">
+                <a
+                  href="https://drive.google.com/file/d/1oe0epei9Ajc7HUqkm1YPcIDViDsKWCb4/view?usp=drive_link"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Clique aqui para ler a nossa apresentação em PDF.
+                </a>
               </div>
             )}
           </div>
