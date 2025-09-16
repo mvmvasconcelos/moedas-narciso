@@ -92,8 +92,10 @@ fi
 echo "[INFO] Usando imagem oficial $DEFAULT_NODE_IMAGE para executar npx vercel (opção 3)"
 # Em vez de instalar no repositório local, criamos um diretório temporário,
 # injetamos a dependência @vercel/analytics e rodamos o deploy a partir dele.
-TMP_DIR="$(mktemp -d)"
-echo "[INFO] Criando diretório temporário: $TMP_DIR"
+# Preferir criar o diretório temporário dentro do projeto para evitar problemas
+# de mount em alguns ambientes Docker (ex: Docker Desktop/WSL que não compartilham /tmp)
+TMP_DIR="$(mktemp -d "${PROJECT_DIR}/.vercel_tmp.XXXXXX")"
+echo "[INFO] Criando diretório temporário dentro do projeto para evitar problemas de mount: $TMP_DIR"
 
 cleanup() {
   echo "[INFO] Limpando diretório temporário"
