@@ -738,6 +738,44 @@ export class DataService {
       };
     }
   }
+
+  /**
+   * Ajusta o saldo de moedas do aluno aplicando um delta (positivo ou negativo).
+   * Retorna o saldo antes e depois do ajuste.
+   * Nota: esta implementação é simples e assume que não haverá concorrência de múltiplos
+   * operadores simultâneos. Se no futuro for necessário, recomenda-se migrar para uma
+   * função RPC/transacional no banco.
+   */
+  static async adjustStudentCoins(studentId: string, delta: number) {
+    try {
+      if (!studentId) throw new Error('studentId é obrigatório');
+      if (!Number.isFinite(delta)) throw new Error('Delta inválido');
+
+      // Buscar saldo atual
+      const { data: studentData, error: studentError } = await supabase
+        .from('students')
+        .select('narciso_coins')
+        .eq('id', studentId)
+        .single();
+
+      if (studentError) throw studentError;
+      const before = (studentData?.narciso_coins ?? 0) as number;
+      const after = before + Math.trunc(delta);
+
+      // Atualizar o saldo (permitir saldo negativo conforme regra definida)
+      const { error: updateError } = await supabase
+        .from('students')
+        .update({ narciso_coins: after, updated_at: new Date() })
+        .eq('id', studentId);
+
+      if (updateError) throw updateError;
+
+      return { before, after };
+    } catch (error) {
+      console.error('Erro ao ajustar saldo do aluno:', error);
+      throw error;
+    }
+  }
   
   // Método para verificar se a view v_exchange_history existe
   static async checkExchangeHistoryView() {

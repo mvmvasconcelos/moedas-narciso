@@ -28,6 +28,7 @@ import { useToast } from "@/hooks/use-toast";
 import { DataService } from "@/lib/dataService";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Camera, X, Upload } from "lucide-react";
+import BalanceAdjustmentModal from "./BalanceAdjustmentModal";
 
 const studentFormSchema = z.object({
   name: z.string().min(2, { message: "Nome deve ter pelo menos 2 caracteres." }),
@@ -56,6 +57,7 @@ export function StudentForm({ student, onSuccess }: StudentFormProps) {
   const [currentPhotoUrl, setCurrentPhotoUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [showAdjustment, setShowAdjustment] = useState(false);
 
   const defaultGender = student?.gender || (Object.keys(GENDER_LABELS)[3] as GenderType); // Default to 'prefiroNaoInformar'
 
@@ -250,9 +252,15 @@ export function StudentForm({ student, onSuccess }: StudentFormProps) {
     }
   }
 
+  const handleAdjustmentApplied = (newBalance: number) => {
+    // O modal de ajuste já mostra a confirmação; apenas solicitar recarga dos dados
+    onSuccess();
+  };
+
   return (
+    <>
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 min-w-0">
         <FormField
           control={form.control}
           name="name"
@@ -272,8 +280,8 @@ export function StudentForm({ student, onSuccess }: StudentFormProps) {
           <FormLabel>Foto de Perfil (Opcional)</FormLabel>
           
           {/* Preview da foto atual ou nova */}
-          <div className="flex items-center space-x-4">
-            <Avatar className="h-20 w-20">
+            <div className="flex items-center space-x-4">
+            <Avatar className="h-20 w-20 flex-shrink-0">
               {(previewUrl || currentPhotoUrl) ? (
                 <AvatarImage 
                   src={previewUrl || currentPhotoUrl || ''} 
@@ -289,9 +297,9 @@ export function StudentForm({ student, onSuccess }: StudentFormProps) {
               )}
             </Avatar>
             
-            <div className="flex-1 space-y-2">
+            <div className="flex-1 min-w-0 space-y-2">
               {/* Botões de ação */}
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 <Button
                   type="button"
                   variant="outline"
@@ -302,6 +310,17 @@ export function StudentForm({ student, onSuccess }: StudentFormProps) {
                   <Upload className="h-4 w-4 mr-2" />
                   {currentPhotoUrl ? 'Alterar Foto' : 'Adicionar Foto'}
                 </Button>
+                {student?.id && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="ml-2"
+                    onClick={() => setShowAdjustment(true)}
+                  >
+                    Ajustar saldo
+                  </Button>
+                )}
                 
                 {(previewUrl || currentPhotoUrl) && (
                   <Button
@@ -408,5 +427,15 @@ export function StudentForm({ student, onSuccess }: StudentFormProps) {
         </Button>
       </form>
     </Form>
+    {showAdjustment && student?.id && (
+      <BalanceAdjustmentModal
+        studentId={student.id}
+        studentName={student.name}
+        currentBalance={student.narcisoCoins || 0}
+        onClose={() => setShowAdjustment(false)}
+        onApplied={(newBalance) => { setShowAdjustment(false); handleAdjustmentApplied(newBalance); }}
+      />
+    )}
+    </>
   );
 }
