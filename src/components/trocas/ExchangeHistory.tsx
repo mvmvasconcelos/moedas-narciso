@@ -363,7 +363,7 @@ export function ExchangeHistory() {
         totalMaterialAntes,
         totalMaterial,
         pendente,
-        moedasRemovidas: selectedExchange.coins_earned || 0,
+  moedasRemovidas: (selectedExchange as any).coins_earned || 0,
         quantidadeRemovida: selectedExchange.quantity || 0,
         data: selectedExchange.date
       });
@@ -395,10 +395,10 @@ export function ExchangeHistory() {
         setIsDeleteAlertOpen(false);
       }, 1500);
       // Toast extra para garantir feedback
-      toast({
+        toast({
         title: "Registro excluído",
-        description: result && result.newCoinsValue !== undefined
-          ? `Troca excluída e saldo do aluno atualizado para ${result.newCoinsValue} moedas.`
+        description: result && typeof result === 'object' && 'newCoinsValue' in result && (result as any).newCoinsValue !== undefined
+          ? `Troca excluída e saldo do aluno atualizado para ${(result as any).newCoinsValue} moedas.`
           : "O registro de troca foi excluído com sucesso.",
       });
       if (hasTriggers) {
@@ -406,7 +406,6 @@ export function ExchangeHistory() {
           title: "Atenção: Triggers detectados",
           description: "Foram detectados triggers no banco que podem interferir nos totais. Verifique os valores após a exclusão.",
           duration: 8000,
-          variant: "warning"
         });
       }
     } catch (error) {
@@ -438,7 +437,8 @@ export function ExchangeHistory() {
         toast({
           title: "Triggers detectados no banco",
           description: "Existem triggers no banco de dados que podem interferir com operações de exclusão.",
-          variant: "warning"
+          variant: "destructive",
+          duration: 8000
         });
       }
     } catch (error) {
@@ -693,10 +693,9 @@ export function ExchangeHistory() {
               <div>
                 <Label htmlFor="edit-student">Aluno</Label>
                 <Select
-                  id="edit-student"
-                  value={editedStudentId}
-                  onValueChange={setEditedStudentId}
-                >
+                    value={editedStudentId}
+                    onValueChange={setEditedStudentId}
+                  >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecionar aluno" />
                   </SelectTrigger>
@@ -712,7 +711,6 @@ export function ExchangeHistory() {
               <div>
                 <Label htmlFor="edit-material">Material</Label>
                 <Select
-                  id="edit-material"
                   value={editedMaterial}
                   onValueChange={setEditedMaterial}
                 >

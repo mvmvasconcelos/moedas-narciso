@@ -27,8 +27,8 @@ interface AuthContextType {
   classes: Class[];
   login: (email: string, pass: string) => Promise<void>;
   logout: () => Promise<void>;
-  addStudent: (studentData: Omit<Student, 'id' | 'narcisoCoins' | 'exchanges' | 'pendingExchanges'>) => void;
-  updateStudent: (studentData: Partial<Omit<Student, 'id' | 'narcisoCoins' | 'exchanges' | 'pendingExchanges'>> & { id: string; gender?: GenderType }) => void;
+  addStudent: (studentData: any) => Promise<any>;
+  updateStudent: (studentData: any) => Promise<any>;
   deleteStudent: (studentId: string) => void;
   registerExchange: (studentId: string, material: MaterialType, quantity: number) => Promise<boolean>;
   getOverallStats: () => Stats;

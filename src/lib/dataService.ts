@@ -106,10 +106,10 @@ export class DataService {
         }
 
   const mapped = ({
-        id: row.id,
-        name: row.name,
-        className: row.class_name || 'Sem turma',
-        gender: row.gender,
+  id: row.id,
+  name: row.name,
+  className: row.class_name || 'Sem turma',
+  gender: (row.gender as any) ?? 'prefiroNaoInformar',
         photo_url: row.photo_url || null, // Campo agora disponível na view
         exchanges: {
           [MATERIAL_TYPES.LIDS]: getFirstAvailable(row, 'exchange_tampas', 'total_tampas', 'lids_total', 'tampas'),
@@ -137,7 +137,7 @@ export class DataService {
       });
 
   // ...log removido...
-      return students;
+  return students;
     } catch (error) {
   // ...log removido...
       throw error;
@@ -386,7 +386,7 @@ export class DataService {
         id: row.id,
         name: row.name,
         className: row.class_name || 'Sem turma',
-        gender: undefined,
+        gender: 'prefiroNaoInformar' as any,
         photo_url: null,
         exchanges: {
           tampas: 0,
@@ -552,7 +552,8 @@ export class DataService {
           total_latas: 0,
           total_oleo: 0,
           total_coins: 0
-        }
+        },
+        currentPeriod: null
       };
     } catch (error) {
       console.error('Erro ao carregar estatísticas:', error);
