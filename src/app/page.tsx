@@ -1,9 +1,8 @@
-"use client";
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/hooks/use-auth';
-import Image from 'next/image';
+'use client';
 import { useEffect, useState } from 'react';
 import { DataService } from '@/lib/dataService';
+import PublicPageHeader from '@/components/layout/PublicPageHeader';
+import PublicPageFooter from '@/components/layout/PublicPageFooter';
 
 interface DashboardStats {
   generalStats: {
@@ -15,8 +14,6 @@ interface DashboardStats {
 }
 
 export default function HomePage() {
-  const { isAuthenticated } = useAuth();
-  const router = useRouter();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -36,14 +33,6 @@ export default function HomePage() {
 
     loadStats();
   }, []);
-
-  const handleAccessSystem = () => {
-    if (isAuthenticated) {
-      router.push('/dashboard');
-    } else {
-      router.push('/sistema');
-    }
-  };
 
   // Calcula o peso aproximado (em kg) a partir dos totais: tampas, latas e óleo.
   // 1 tampa = 0.002 kg, 1 lata = 0.015 kg, 1 litro de óleo = 0.960 kg
@@ -68,30 +57,7 @@ export default function HomePage() {
       {/* Conteúdo Principal */}
       <main className="relative z-10 px-3 sm:px-4 py-6 sm:py-8">
         <div className="max-w-5xl mx-auto">
-          {/* Header com Logo */}
-          <div className="text-center mb-12 sm:mb-16">
-            <div className="flex justify-center mb-6 sm:mb-8">
-              <div className="relative">
-                <Image 
-                  src="/images/logo.png" 
-                  alt="Logo Moedas Narciso" 
-                  width={160} 
-                  height={160}
-                  className="sm:w-[200px] sm:h-[200px] drop-shadow-lg hover:scale-105 transition-transform duration-300"
-                  priority
-                />
-                <div className="absolute -inset-3 sm:-inset-4 bg-gradient-to-r from-yellow-400 to-amber-400 rounded-full opacity-20 blur-lg sm:blur-xl"></div>
-              </div>
-            </div>
-            
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold bg-gradient-to-r from-green-700 via-amber-600 to-green-800 bg-clip-text text-transparent mb-3 sm:mb-4 leading-tight px-2">
-              Projeto Moedas Narciso
-            </h1>
-            <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-gray-700 font-semibold mb-2 px-2">
-              EMEF Narciso Mariante de Campos
-            </h2>
-            <div className="w-24 sm:w-32 h-1 bg-gradient-to-r from-green-500 to-amber-500 mx-auto rounded-full"></div>
-          </div>
+          <PublicPageHeader />
           
           {/* Card principal com conteúdo */}
           <div className="bg-white/90 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-2xl p-4 sm:p-6 md:p-8 lg:p-12 border border-white/20 relative overflow-hidden mx-2 sm:mx-0">
@@ -261,28 +227,7 @@ export default function HomePage() {
         </div>
       </main>
 
-      {/* Rodapé */}
-      <footer className="relative z-10 bg-gradient-to-r from-green-800 via-amber-700 to-green-800 text-white py-6 sm:py-8 mt-12 sm:mt-16">
-        <div className="max-w-6xl mx-auto px-3 sm:px-4">
-          <div className="text-center">
-            
-            
-            <div className="bg-white/10 backdrop-blur-sm rounded-full px-4 sm:px-6 py-2 sm:py-3 inline-block">
-              <button 
-                onClick={handleAccessSystem}
-                className="text-amber-200 hover:text-amber-100 font-bold text-base sm:text-lg transition-colors duration-200 hover:scale-105 transform inline-block"
-              >
-                🚀 Acessar Sistema
-              </button>
-            </div>
-            
-            <div className="mt-4 sm:mt-6 text-xs sm:text-sm text-green-100">
-              <p>EMEF Narciso Mariante de Campos</p>
-              <p>Linha Tangerinas - Venâncio Aires - RS</p>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <PublicPageFooter />
       {process.env.NODE_ENV === 'production' && <AnalyticsLoader />}
     </div>
   );

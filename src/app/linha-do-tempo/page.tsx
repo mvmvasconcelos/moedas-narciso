@@ -1,8 +1,10 @@
-"use client";
+'use client';
 import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { DataService } from '@/lib/dataService';
 import { timelineMock } from '@/lib/timelineMock';
+import PublicPageHeader from '@/components/layout/PublicPageHeader';
+import PublicPageFooter from '@/components/layout/PublicPageFooter';
 
 const MONTHS = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
 
@@ -70,6 +72,7 @@ export default function TimelinePage() {
       </div>
 
       <main className="relative z-10 px-3 sm:px-4 py-6 sm:py-8">
+        <PublicPageHeader />
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-8">
             <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-green-700 via-amber-600 to-green-800 bg-clip-text text-transparent">Linha do Tempo</h1>
@@ -226,6 +229,7 @@ export default function TimelinePage() {
           opacity: 1;
         }
       `}</style>
+      <PublicPageFooter />
     </div>
   );
 }
