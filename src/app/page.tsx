@@ -46,12 +46,24 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-green-50 to-blue-50 relative overflow-hidden">
-      {/* Elementos decorativos de fundo */}
+      {/* Elementos decorativos de fundo (hexágonos, compatível com /linha-do-tempo) */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-4 -right-4 w-24 h-24 bg-yellow-300 rounded-full opacity-20 animate-pulse"></div>
-        <div className="absolute top-1/4 -left-8 w-32 h-32 bg-green-300 rounded-full opacity-15 animate-pulse delay-1000"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-16 h-16 bg-blue-300 rounded-full opacity-25 animate-pulse delay-500"></div>
-        <div className="absolute bottom-12 left-12 w-20 h-20 bg-amber-300 rounded-full opacity-20 animate-pulse delay-700"></div>
+        <div
+          className="absolute -top-4 -right-4 w-24 h-24 bg-yellow-300 opacity-20 animate-pulse"
+          style={{ clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)' }}
+        ></div>
+        <div
+          className="absolute top-1/4 -left-8 w-32 h-32 bg-green-300 opacity-15 animate-pulse delay-1000"
+          style={{ clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)' }}
+        ></div>
+        <div
+          className="absolute bottom-1/4 right-1/4 w-16 h-16 bg-blue-300 opacity-25 animate-pulse delay-500"
+          style={{ clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)' }}
+        ></div>
+        <div
+          className="absolute bottom-12 left-12 w-20 h-20 bg-amber-300 opacity-20 animate-pulse delay-700"
+          style={{ clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)' }}
+        ></div>
       </div>
 
       {/* Conteúdo Principal */}
@@ -61,9 +73,15 @@ export default function HomePage() {
           
           {/* Card principal com conteúdo */}
           <div className="bg-white/90 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-2xl p-4 sm:p-6 md:p-8 lg:p-12 border border-white/20 relative overflow-hidden mx-2 sm:mx-0">
-            {/* Decoração do card */}
-            <div className="absolute top-0 right-0 w-20 h-20 sm:w-32 sm:h-32 bg-gradient-to-br from-yellow-200 to-amber-200 rounded-bl-full opacity-30"></div>
-            <div className="absolute bottom-0 left-0 w-16 h-16 sm:w-24 sm:h-24 bg-gradient-to-tr from-green-200 to-emerald-200 rounded-tr-full opacity-30"></div>
+            {/* Decoração do card (hexágonos) */}
+            <div
+              className="absolute top-0 right-0 w-20 h-20 sm:w-32 sm:h-32 bg-gradient-to-br from-yellow-200 to-amber-200 opacity-30"
+              style={{ clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)' }}
+            ></div>
+            <div
+              className="absolute bottom-0 left-0 w-16 h-16 sm:w-24 sm:h-24 bg-gradient-to-tr from-green-200 to-emerald-200 opacity-30"
+              style={{ clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)' }}
+            ></div>
             
             <div className="relative z-10 leading-relaxed text-gray-700">
                             
@@ -103,8 +121,22 @@ export default function HomePage() {
               
               <div className="text-center bg-gradient-to-r from-green-600 to-amber-600 text-white p-4 sm:p-6 rounded-lg sm:rounded-xl mt-6 sm:mt-8">
                 <p className="text-base sm:text-lg lg:text-xl font-semibold">
-                  🌟 Este site serve como uma janela para o nosso sucesso e o envolvimento de toda a família Narciso! 🌟
+                  🌟 Assista a um resumo da nossa apresentação! 🌟
                 </p>
+              </div>
+
+              {/* Player do YouTube responsivo - centralizado e com largura compatível com os outros blocos */}
+              <div className="max-w-3xl mx-auto my-6">
+                <div className="w-full aspect-video">
+                  <iframe
+                    className="w-full h-full rounded-lg shadow-lg"
+                    src="https://www.youtube.com/embed/m0D_5nJ13TE"
+                    title="Apresentação Moedas Narciso"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  ></iframe>
+                </div>
               </div>
             </div>
           </div>
@@ -113,6 +145,7 @@ export default function HomePage() {
           <div className="mt-12 sm:mt-16 mx-2 sm:mx-0">
             <div className="text-center mb-8 sm:mb-12">
               <div className="inline-block bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl sm:rounded-2xl shadow-lg mb-4 sm:mb-6">
+                <span className="font-bold text-xl sm:text-2xl">🤔 Você sabia? 🤔</span>
               </div>
               <p className="text-lg sm:text-xl text-gray-700 font-medium max-w-3xl mx-auto px-2">
                 Nós já fazemos a diferença! Veja só a impressionante quantidade de materiais que evitamos que fossem para o lixo:

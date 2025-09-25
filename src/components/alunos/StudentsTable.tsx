@@ -5,7 +5,6 @@ import type { Student } from "@/lib/constants";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import {
-  Table,
   TableBody,
   TableCell,
   TableHead,
@@ -30,7 +29,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
+// Usaremos um container nativo para permitir overflow-x quando a tela for estreita
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { StudentPhotoSmall } from "@/components/alunos/StudentPhoto";
@@ -145,21 +144,25 @@ function StudentsTableBase({ onEditStudent }: StudentsTableProps) {
 
   return (
     <>
-      <ScrollArea className="h-[calc(100vh-20rem)] rounded-md border">
-        <Table>
+      <div className="h-[calc(100vh-20rem)] rounded-md border overflow-hidden">
+        {/* Contêiner que permite rolagem horizontal */}
+        <div className="w-full overflow-x-auto h-full">
+          {/* Contêiner interno que permite rolagem vertical */}
+          <div className="overflow-y-auto h-full">
+            <table className="min-w-max caption-bottom text-sm" style={{ width: 'auto', minWidth: 'max-content' }}>
           <TableHeader className="sticky top-0 bg-card z-10">
             <TableRow>
               <TableHead className="w-12">Foto</TableHead>
               <TableHead
                 onClick={() => toggleSort("name")}
-                className={sortableHeaderClass}
+                className={cn(sortableHeaderClass, "whitespace-nowrap")}
               >
                 Nome
                 <SortIcon field="name" />
               </TableHead>
               <TableHead
                 onClick={() => toggleSort("className")}
-                className={sortableHeaderClass}
+                className={cn(sortableHeaderClass, "whitespace-nowrap")}
               >
                 Turma
                 <SortIcon field="className" />
@@ -205,18 +208,18 @@ function StudentsTableBase({ onEditStudent }: StudentsTableProps) {
           <TableBody>
             {sortedStudents.map((student) => (
               <TableRow key={student.id}>
-                <TableCell className="p-2">
+                <TableCell className="p-2 whitespace-nowrap">
                   <StudentPhotoSmall 
                     photoUrl={student.photo_url}
                     name={student.name}
                   />
                 </TableCell>
-                <TableCell className="font-medium">{student.name}</TableCell>
-                <TableCell>{student.className}</TableCell>
-                <TableCell className="text-center font-semibold text-green-600">
+                <TableCell className="font-medium whitespace-nowrap">{student.name}</TableCell>
+                <TableCell className="whitespace-nowrap">{student.className}</TableCell>
+                <TableCell className="text-center font-semibold text-green-600 whitespace-nowrap">
                   {student.currentCoinBalance ?? student.narcisoCoins ?? 0}
                 </TableCell>
-                <TableCell className="text-center font-semibold text-primary">
+                <TableCell className="text-center font-semibold text-primary whitespace-nowrap">
                   {student.narcisoCoins || 0}
                 </TableCell>
                 <TableCell className="text-center hidden md:table-cell">
@@ -253,8 +256,10 @@ function StudentsTableBase({ onEditStudent }: StudentsTableProps) {
               </TableRow>
             ))}
           </TableBody>
-        </Table>
-      </ScrollArea>
+            </table>
+          </div>
+        </div>
+      </div>
 
       {studentToDelete && (
         <AlertDialog open onOpenChange={() => setStudentToDelete(null)}>
