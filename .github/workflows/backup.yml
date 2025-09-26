@@ -27,6 +27,7 @@ jobs:
           sudo apt-get install -y postgresql-client curl jq gzip python3
 
       - name: Criar dump e comprimir
+        id: create_dump
         run: |
           TIMESTAMP=$(date -u +"%Y%m%dT%H%M%SZ")
           FILENAME="${PG_DATABASE}_${TIMESTAMP}.sql.gz"
@@ -34,11 +35,14 @@ jobs:
           export PGPASSWORD="${PG_PASSWORD}"
           pg_dump -h "${PG_HOST}" -p "${PG_PORT}" -U "${PG_USER}" -d "${PG_DATABASE}" -F p | gzip > "${FILENAME}"
           ls -lh "${FILENAME}"
+          # exportar o nome do arquivo como output do step e gravar em arquivo para artifact
+          echo "file=${FILENAME}" >> $GITHUB_OUTPUT
+          echo "${FILENAME}" > backup_name.txt
 
       - name: Upload para Supabase Storage
+        env:
+          FILENAME: ${{ steps.create_dump.outputs.file }}
         run: |
-          TIMESTAMP=$(date -u +"%Y%m%dT%H%M%SZ")
-          FILENAME="${PG_DATABASE}_${TIMESTAMP}.sql.gz"
           PREFIX=${BACKUP_PREFIX:-"backups/"}
           OBJECT_PATH="${PREFIX}${PG_DATABASE}/${FILENAME}"
           echo "Upload para ${SUPABASE_URL}/storage/v1/object/${BACKUP_BUCKET}/${OBJECT_PATH}"
@@ -48,6 +52,12 @@ jobs:
             -F "file=@${FILENAME}" \
             "${SUPABASE_URL}/storage/v1/object/${BACKUP_BUCKET}/${OBJECT_PATH}" \
             | jq .
+
+      - name: Publicar nome do backup como artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: backup-name
+          path: backup_name.txt
 
       - name: Rotação — manter apenas N backups
         run: |
