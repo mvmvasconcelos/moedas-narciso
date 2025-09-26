@@ -57,7 +57,7 @@ jobs:
             -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
             -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" \
             "${SUPABASE_URL}/storage/v1/object/list/${BACKUP_BUCKET}?prefix=${PREFIX}&limit=1000")
-          names=$(echo "$resp" | jq -r '.data[].name' | sort)
+          names=$(echo "$resp" | jq -r '.data // [] | .[].name' | sort)
           total=$(echo "$names" | wc -l)
           echo "Total de backups encontrados: $total"
           keep=${RETENTION_COUNT:-5}
