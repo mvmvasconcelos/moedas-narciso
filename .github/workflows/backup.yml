@@ -54,7 +54,7 @@ jobs:
             | jq .
 
       - name: Publicar nome do backup como artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: backup-name
           path: backup_name.txt
