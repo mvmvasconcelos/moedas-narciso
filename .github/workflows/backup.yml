@@ -1,0 +1,81 @@
+name: Weekly Supabase DB Backup
+
+on:
+  schedule:
+    - cron: '0 3 * * 0' # domingo 03:00 UTC
+  workflow_dispatch: {}
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      PG_HOST: ${{ secrets.PG_HOST }}
+      PG_PORT: ${{ secrets.PG_PORT }}
+      PG_DATABASE: ${{ secrets.PG_DATABASE }}
+      PG_USER: ${{ secrets.PG_USER }}
+      PG_PASSWORD: ${{ secrets.PG_PASSWORD }}
+      BACKUP_BUCKET: ${{ secrets.BACKUP_BUCKET }}
+      BACKUP_PREFIX: ${{ secrets.BACKUP_PREFIX }}
+      RETENTION_COUNT: ${{ secrets.RETENTION_COUNT }}
+
+    steps:
+      - name: Preparar runner (instalar ferramentas)
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y postgresql-client curl jq gzip python3
+
+      - name: Criar dump e comprimir
+        run: |
+          TIMESTAMP=$(date -u +"%Y%m%dT%H%M%SZ")
+          FILENAME="${PG_DATABASE}_${TIMESTAMP}.sql.gz"
+          echo "Gerando dump -> ${FILENAME}"
+          export PGPASSWORD="${PG_PASSWORD}"
+          pg_dump -h "${PG_HOST}" -p "${PG_PORT}" -U "${PG_USER}" -d "${PG_DATABASE}" -F p | gzip > "${FILENAME}"
+          ls -lh "${FILENAME}"
+
+      - name: Upload para Supabase Storage
+        run: |
+          TIMESTAMP=$(date -u +"%Y%m%dT%H%M%SZ")
+          FILENAME="${PG_DATABASE}_${TIMESTAMP}.sql.gz"
+          PREFIX=${BACKUP_PREFIX:-"backups/"}
+          OBJECT_PATH="${PREFIX}${PG_DATABASE}/${FILENAME}"
+          echo "Upload para ${SUPABASE_URL}/storage/v1/object/${BACKUP_BUCKET}/${OBJECT_PATH}"
+          curl -s -X POST \
+            -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
+            -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" \
+            -F "file=@${FILENAME}" \
+            "${SUPABASE_URL}/storage/v1/object/${BACKUP_BUCKET}/${OBJECT_PATH}" \
+            | jq .
+
+      - name: Rotação — manter apenas N backups
+        run: |
+          PREFIX=${BACKUP_PREFIX:-"backups/"}${PG_DATABASE}/
+          echo "Listando objetos com prefix ${PREFIX}"
+          resp=$(curl -s -X GET \
+            -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
+            -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" \
+            "${SUPABASE_URL}/storage/v1/object/list/${BACKUP_BUCKET}?prefix=${PREFIX}&limit=1000")
+          names=$(echo "$resp" | jq -r '.data[].name' | sort)
+          total=$(echo "$names" | wc -l)
+          echo "Total de backups encontrados: $total"
+          keep=${RETENTION_COUNT:-5}
+          to_delete=$(echo "$names" | head -n -${keep} || true)
+          if [ -z "$to_delete" ]; then
+            echo "Nada para deletar (<= $keep backups)."
+            exit 0
+          fi
+          echo "Arquivos a deletar:"
+          echo "$to_delete"
+          while read -r obj; do
+            if [ -n "$obj" ]; then
+              enc=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.stdin.read().strip(), safe=''))" <<< "$obj")
+              echo "Deletando: $obj"
+              curl -s -X DELETE \
+                -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
+                -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" \
+                "${SUPABASE_URL}/storage/v1/object/${BACKUP_BUCKET}/${enc}" \
+                | jq .
+            fi
+          done <<< "$to_delete"
