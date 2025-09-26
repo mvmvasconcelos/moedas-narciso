@@ -17,6 +17,7 @@ import {
   AlertDialogTitle 
 } from '@/components/ui/alert-dialog';
 import { DataService, type Sale } from '@/lib/dataService';
+import { Loader2 } from 'lucide-react';
 import { getCurrentUser, getTeacherProfile } from '@/lib/supabase';
 import { useAuth } from '@/hooks/use-auth';
 
@@ -197,7 +198,7 @@ export const SaleForm: React.FC<SaleFormProps> = ({ isOpen, onClose, student }) 
     if (!student) return;
 
     setIsSubmitting(true);
-    closeAlert();
+
 
     try {
       const total = calculateTotal();
@@ -291,9 +292,15 @@ export const SaleForm: React.FC<SaleFormProps> = ({ isOpen, onClose, student }) 
                 <AlertDialogAction 
                   onClick={handleConfirmSubmit} 
                   disabled={isSubmitting}
-                  className="bg-green-600 hover:bg-green-700"
+                  className={`bg-green-600 hover:bg-green-700 ${isSubmitting ? 'animate-pulse transform scale-95 opacity-90' : ''}`}
                 >
-                  {isSubmitting ? 'Processando...' : 'Confirmar'}
+                  {isSubmitting ? (
+                    <span className="flex items-center gap-2">
+                      <Loader2 className="animate-spin h-4 w-4" /> Processando...
+                    </span>
+                  ) : (
+                    'Confirmar'
+                  )}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
