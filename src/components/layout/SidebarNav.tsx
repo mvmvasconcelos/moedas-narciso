@@ -27,7 +27,7 @@ const navItems = [
 
 export function SidebarNav() {
   const pathname = usePathname();
-  const { logout, teacherName } = useAuth();
+    const { logout, teacherName, userRole } = useAuth();
   const { setOpenMobile, isMobile } = useSidebar(); // Get sidebar control functions
 
   const handleMenuItemClick = () => {
@@ -48,35 +48,36 @@ export function SidebarNav() {
       </SidebarHeader>
       <SidebarContent className="p-2">
         <SidebarMenu>
-          {navItems.map((item) => {            const Icon = item.icon;            // Lógica ajustada para destacar corretamente os itens de menu ativos
-            const isActive = 
-              (item.href === "/dashboard" && pathname === "/dashboard") ||
-              (item.href === "/trocas" && pathname.startsWith("/trocas")) ||
-              (item.href === "/historico" && pathname.startsWith("/historico")) ||
-              (item.href !== "/dashboard" && item.href !== "/trocas" && item.href !== "/historico" && pathname.startsWith(item.href));
+          {navItems
+            .filter((item) => !((item.href === "/ranking" || item.href === "/lojinha") && userRole === "student_helper"))
+            .map((item) => {
+              const Icon = item.icon;
+              // Lógica ajustada para destacar corretamente os itens de menu ativos
+              const isActive =
+                (item.href === "/dashboard" && pathname === "/dashboard") ||
+                (item.href === "/trocas" && pathname.startsWith("/trocas")) ||
+                (item.href === "/historico" && pathname.startsWith("/historico")) ||
+                (item.href !== "/dashboard" && item.href !== "/trocas" && item.href !== "/historico" && pathname.startsWith(item.href));
 
-            return (
-              <SidebarMenuItem key={item.href}>
-                <Link href={item.href} passHref legacyBehavior>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={isActive}
-                    tooltip={{children: item.label, side: 'right', align: 'center' }}
-                    className={cn(
-                        "justify-start",
-                        isActive && "bg-sidebar-accent text-sidebar-accent-foreground"
-                    )}
-                    onClick={handleMenuItemClick} // Add onClick handler here
-                  >
-                    <a>
-                      <Icon className="h-5 w-5" />
-                      <span className="group-data-[collapsible=icon]:hidden">{item.label}</span>
-                    </a>
-                  </SidebarMenuButton>
-                </Link>
-              </SidebarMenuItem>
-            );
-          })}
+              return (
+                <SidebarMenuItem key={item.href}>
+                  <Link href={item.href} passHref legacyBehavior>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive}
+                      tooltip={{ children: item.label, side: "right", align: "center" }}
+                      className={cn("justify-start", isActive && "bg-sidebar-accent text-sidebar-accent-foreground")}
+                      onClick={handleMenuItemClick}
+                    >
+                      <a>
+                        <Icon className="h-5 w-5" />
+                        <span className="group-data-[collapsible=icon]:hidden">{item.label}</span>
+                      </a>
+                    </SidebarMenuButton>
+                  </Link>
+                </SidebarMenuItem>
+              );
+            })}
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter className="mt-auto border-t p-2 flex flex-col gap-2">
