@@ -89,3 +89,19 @@ jobs:
                 | jq .
             fi
           done <<< "$to_delete"
+
+      - name: Listar objetos publicados e salvar JSON
+        run: |
+          PREFIX=${BACKUP_PREFIX:-"backups/"}${PG_DATABASE}/
+          echo "Listando objetos com prefix ${PREFIX} e salvando em backup_list.json"
+          curl -s -X GET \
+            -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
+            -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" \
+            "${SUPABASE_URL}/storage/v1/object/list/${BACKUP_BUCKET}?prefix=${PREFIX}&limit=1000" \
+            > backup_list.json
+
+      - name: Publicar lista de backups como artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backup-list
+          path: backup_list.json
