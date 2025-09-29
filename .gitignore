@@ -46,4 +46,4 @@ firestore-debug.log.env.local
 
 
 .vercel_tmp.*
-scripts/supabase_link
+*supabase_link
