@@ -85,25 +85,7 @@ export class DataService {
       };
 
       const students = (data || []).map((row: Record<string, any>, idx: number) => {
-        // Logar a primeira linha retornada para diagnóstico em tempo de execução
-        if (idx === 0) {
-          try {
-            console.log('[DataService.getStudents] sample row keys:', Object.keys(row));
-            console.log('[DataService.getStudents] sample row preview:', {
-              exchange_tampas: row.exchange_tampas,
-              exchange_latas: row.exchange_latas,
-              exchange_oleo: row.exchange_oleo,
-              pending_tampas: row.pending_tampas,
-              pending_latas: row.pending_latas,
-              pending_oleo: row.pending_oleo,
-              total_tampas: row.total_tampas,
-              lids_total: row.lids_total,
-              tampas: row.tampas,
-            });
-          } catch (err) {
-            console.log('[DataService.getStudents] error logging sample row', err);
-          }
-        }
+
 
   const mapped = ({
   id: row.id,
@@ -125,13 +107,7 @@ export class DataService {
         currentCoinBalance: getFirstAvailable(row, 'current_coin_balance', 'currentCoinBalance', 'current_coin_balance') // Saldo atual após vendas
         });
 
-        if (idx === 0) {
-          try {
-            console.log('[DataService.getStudents] mapped student sample:', mapped);
-          } catch (err) {
-            console.log('[DataService.getStudents] error logging mapped student', err);
-          }
-        }
+
 
         return mapped;
       });
