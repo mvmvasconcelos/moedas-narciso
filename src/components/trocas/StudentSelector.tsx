@@ -18,6 +18,17 @@ export function StudentSelector({ onStudentSelect }: StudentSelectorProps) {
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
   const [filteredStudents, setFilteredStudents] = useState<Student[]>([]);
 
+  // Fallback: extrair turmas dos alunos se classes estiver vazio (problema RLS)
+  const classesFromStudents = useMemo(() => {
+    if (classes && classes.length > 0) return [];
+    
+    const uniqueClassNames = [...new Set(students.map(s => s.className))];
+    return uniqueClassNames.map((name, index) => ({
+      id: `fallback-${index}`,
+      name: name
+    }));
+  }, [classes, students]);
+
   /**
    * Ordena as turmas para garantir uma ordem pedagógica consistente:
    * 1. Turmas de "Pré" aparecem primeiro (Pré Manhã, depois Pré Tarde)
@@ -25,9 +36,10 @@ export function StudentSelector({ onStudentSelect }: StudentSelectorProps) {
    * 3. Turmas sem padrão reconhecido ficam por último
    */
   const sortedClasses = useMemo(() => {
-    if (!classes || classes.length === 0) return [];
+    const classesToUse = (classes && classes.length > 0) ? classes : classesFromStudents;
+    if (!classesToUse || classesToUse.length === 0) return [];
     
-    return [...classes].sort((a, b) => {
+    return [...classesToUse].sort((a, b) => {
       const getOrderWeight = (className: string): number => {
         const nameLower = className.toLowerCase();
         
