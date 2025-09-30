@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import csv
+import os
 import psycopg2
 import sys
 from typing import Dict, List, Tuple
@@ -130,8 +131,12 @@ def compare_data(csv_data: Dict, db_data: Dict) -> None:
             print(f"  - {name}")
 
 if __name__ == "__main__":
-    # Connection string do Supabase
-    conn_str = "postgresql://postgres.dvnzjlkbldfssegeoaxj:MoedasNarciso@aws-0-sa-east-1.pooler.supabase.com:5432/postgres?sslmode=require"
+    # Connection string do Supabase - usar variável de ambiente
+    conn_str = os.environ.get('DATABASE_URL')
+    if not conn_str:
+        print("ERRO: Variável de ambiente DATABASE_URL não encontrada!")
+        print("Configure a string de conexão do banco de dados.")
+        exit(1)
     
     try:
         print("Carregando dados do CSV...")
