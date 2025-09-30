@@ -1,9 +1,10 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import type { Student, Class } from "@/lib/constants";
+import type { Student, Class, MaterialType } from "@/lib/constants";
+import { MATERIAL_TYPES, MATERIAL_LABELS } from "@/lib/constants";
 import { useAuth } from "@/hooks/use-auth";
-import { UsersIcon } from "lucide-react";
+import { UsersIcon, PackageIcon, ArchiveIcon, DropletIcon } from "lucide-react";
 import { useEffect, useState, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -11,12 +12,26 @@ import { StudentPhoto } from "@/components/alunos/StudentPhoto";
 
 interface StudentSelectorProps {
   onStudentSelect: (student: Student) => void;
+  selectedStudent?: Student | null;
+  onMaterialSelect?: (materialType: MaterialType) => void;
 }
 
-export function StudentSelector({ onStudentSelect }: StudentSelectorProps) {
+export function StudentSelector({ 
+  onStudentSelect, 
+  selectedStudent = null,
+  onMaterialSelect
+}: StudentSelectorProps) {
   const { classes, students } = useAuth();
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
+  const [internalSelectedStudent, setInternalSelectedStudent] = useState<Student | null>(null);
   const [filteredStudents, setFilteredStudents] = useState<Student[]>([]);
+
+  // Sincronizar selectedStudent com selectedStudent prop (para resetar quando necessário)
+  useEffect(() => {
+    if (selectedStudent === null && internalSelectedStudent !== null) {
+      setInternalSelectedStudent(null);
+    }
+  }, [selectedStudent, internalSelectedStudent]);
 
   // Fallback: extrair turmas dos alunos se classes estiver vazio (problema RLS)
   const classesFromStudents = useMemo(() => {
@@ -99,7 +114,20 @@ export function StudentSelector({ onStudentSelect }: StudentSelectorProps) {
   }
 
   function handleStudentSelect(student: Student) {
-    onStudentSelect(student);
+    if (internalSelectedStudent?.id === student.id) {
+      // Se clicar no mesmo aluno, deseleciona
+      setInternalSelectedStudent(null);
+    } else {
+      // Seleciona novo aluno
+      setInternalSelectedStudent(student);
+      onStudentSelect(student);
+    }
+  }
+
+  function handleMaterialSelect(materialType: MaterialType) {
+    if (onMaterialSelect) {
+      onMaterialSelect(materialType);
+    }
   }
 
   return (
@@ -107,9 +135,13 @@ export function StudentSelector({ onStudentSelect }: StudentSelectorProps) {
       <CardContent className="space-y-6 pt-6">
         {/* Seleção de Turma */}
         <div>
-          <h3 className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 mb-2">
-            Selecione a Turma
-          </h3>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+              {internalSelectedStudent ? `Material - ${internalSelectedStudent.name}` : 
+               selectedClass ? `Alunos da turma ${selectedClass}` : 
+               'Selecione a Turma'}
+            </h3>
+          </div>
           
           {/* Grid de todas as turmas (visível se NENHUMA turma selecionada) */}
           <div
@@ -135,14 +167,14 @@ export function StudentSelector({ onStudentSelect }: StudentSelectorProps) {
             ))}
           </div>
 
-          {/* Botão da turma selecionada (visível se UMA turma ESTÁ selecionada) */}
+          {/* Botão da turma selecionada (visível se turma selecionada mas aluno NÃO) */}
           <div
             className={cn(
               "flex justify-center mt-1 transition-all duration-500 ease-in-out overflow-hidden",
-              selectedClass ? "opacity-100 max-h-40 visible" : "opacity-0 max-h-0 invisible"
+              selectedClass && !internalSelectedStudent ? "opacity-100 max-h-40 visible" : "opacity-0 max-h-0 invisible"
             )}
           >
-            {selectedClass && sortedClasses.find(cls => cls.name === selectedClass) && (
+            {selectedClass && !internalSelectedStudent && sortedClasses.find(cls => cls.name === selectedClass) && (
               <Button
                 key={sortedClasses.find(cls => cls.name === selectedClass)!.id} 
                 type="button"
@@ -157,13 +189,37 @@ export function StudentSelector({ onStudentSelect }: StudentSelectorProps) {
               </Button>
             )}
           </div>
+
+          {/* Botão do aluno selecionado (visível se aluno ESTÁ selecionado) */}
+          <div
+            className={cn(
+              "flex justify-center mt-1 transition-all duration-500 ease-in-out overflow-hidden",
+              internalSelectedStudent ? "opacity-100 max-h-40 visible" : "opacity-0 max-h-0 invisible"
+            )}
+          >
+            {internalSelectedStudent && (
+              <Button
+                key={internalSelectedStudent.id}
+                type="button"
+                variant="destructive"
+                onClick={() => handleStudentSelect(internalSelectedStudent)}
+                className={cn(
+                  "w-full max-w-xs sm:max-w-sm h-auto py-3 px-4 flex flex-col items-center whitespace-normal text-center leading-snug"
+                )}
+              >
+                <UsersIcon className="h-5 w-5 mb-1 flex-shrink-0" />
+                <span className="text-sm">{internalSelectedStudent.name}</span>
+                <span className="text-xs opacity-75">{internalSelectedStudent.className}</span>
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Seleção de Aluno */}
         <div
           className={cn(
             "mt-4 transition-all duration-500 ease-in-out",
-            selectedClass ? "opacity-100 max-h-[1000px] visible" : "opacity-0 max-h-0 invisible"
+            selectedClass && !internalSelectedStudent ? "opacity-100 max-h-[1000px] visible" : "opacity-0 max-h-0 invisible"
           )}
         >
           <h3 className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 mb-2">
@@ -198,6 +254,51 @@ export function StudentSelector({ onStudentSelect }: StudentSelectorProps) {
                 Nenhum aluno encontrado nesta turma.
               </p>
             ) : null}
+          </div>
+        </div>
+
+        {/* Seleção de Material */}
+        <div
+          className={cn(
+            "mt-4 transition-all duration-500 ease-in-out",
+            internalSelectedStudent ? "opacity-100 max-h-[1000px] visible" : "opacity-0 max-h-0 invisible"
+          )}
+        >
+          <h3 className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 mb-2">
+            Selecione o Material
+          </h3>
+
+          {/* Grid de Materiais */}
+          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 mt-1">
+            <Button 
+              variant="outline" 
+              className="h-auto py-6 flex flex-col space-y-2 hover:bg-primary hover:text-primary-foreground"
+              onClick={() => handleMaterialSelect(MATERIAL_TYPES.LIDS)}
+            >
+              <PackageIcon className="h-8 w-8 mb-2" />
+              <span className="text-lg font-medium">Tampinhas</span>
+              <span className="text-xs text-muted-foreground">Registrar troca de tampinhas plásticas</span>
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              className="h-auto py-6 flex flex-col space-y-2 hover:bg-primary hover:text-primary-foreground"
+              onClick={() => handleMaterialSelect(MATERIAL_TYPES.CANS)}
+            >
+              <ArchiveIcon className="h-8 w-8 mb-2" />
+              <span className="text-lg font-medium">Latinhas</span>
+              <span className="text-xs text-muted-foreground">Registrar troca de latinhas</span>
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              className="h-auto py-6 flex flex-col space-y-2 hover:bg-primary hover:text-primary-foreground"
+              onClick={() => handleMaterialSelect(MATERIAL_TYPES.OIL)}
+            >
+              <DropletIcon className="h-8 w-8 mb-2" />
+              <span className="text-lg font-medium">Óleo</span>
+              <span className="text-xs text-muted-foreground">Registrar troca de óleo usado</span>
+            </Button>
           </div>
         </div>
       </CardContent>

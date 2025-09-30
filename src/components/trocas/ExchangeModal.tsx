@@ -333,7 +333,7 @@ export function ExchangeModal({ isOpen, onClose, student, materialType }: Exchan
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
           {modalState === 'form' && (
             <>
               <DialogHeader className="pb-3">
@@ -341,8 +341,8 @@ export function ExchangeModal({ isOpen, onClose, student, materialType }: Exchan
                   <MaterialIcon className="mr-2 h-5 w-5 text-primary" />
                   Trocar {MATERIAL_LABELS[materialType].replace(" (unidades)", "")}
                 </DialogTitle>
-                <DialogDescription className="text-sm">
-                  Registre a quantidade de {MATERIAL_LABELS[materialType].toLowerCase()} trazida por {student.name}.
+                <DialogDescription className="text-sm break-words">
+                  Registre a quantidade de {MATERIAL_LABELS[materialType].toLowerCase()} trazida por <span className="font-medium">{student.name}</span>.
                 </DialogDescription>
               </DialogHeader>
 
@@ -374,7 +374,7 @@ export function ExchangeModal({ isOpen, onClose, student, materialType }: Exchan
                       className="flex-shrink-0"
                     />
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-medium text-base truncate">{currentStudent.name}</h3>
+                      <h3 className="font-medium text-base break-words leading-tight">{currentStudent.name}</h3>
                       <p className="text-xs text-muted-foreground mb-1">{currentStudent.className}</p>
                       <div className="flex items-center mb-2">
                         <CoinsIcon className="mr-1 h-3 w-3 text-primary" />

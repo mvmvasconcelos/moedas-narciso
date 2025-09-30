@@ -106,30 +106,61 @@ Modal de Troca:
 
 ## Plano de Implementação
 
-### Etapa 1: Preparar Componente MaterialSelector
-- [ ] Extrair UI de seleção de material do `/trocas/page.tsx` atual
-- [ ] Criar `/src/components/trocas/MaterialSelector.tsx`
-- [ ] Testar componente isoladamente
+### Etapa 1: Preparar Componente MaterialSelector ✅
+- [x] Extrair UI de seleção de material do `/trocas/page.tsx` atual
+- [x] Criar `/src/components/trocas/MaterialSelector.tsx`
+- [x] Componente criado com props: `student`, `onMaterialSelect`, `onBack`
 
-### Etapa 2: Modificar StudentSelector
-- [ ] Adicionar props para controlar modo (turmas vs alunos)
-- [ ] Adicionar botão "Voltar"
-- [ ] Testar funcionalidade
+### Etapa 2: Modificar StudentSelector ✅
+- [x] Adicionar props para controlar modo (turmas vs alunos)
+- [x] Adicionar botão "Voltar"
+- [x] Props adicionadas: `selectedClassName`, `onBack`, `showBackButton`
 
-### Etapa 3: Refatorar Página Principal
-- [ ] Remover lógica de query parameter
-- [ ] Implementar estados de navegação
-- [ ] Integrar todos os componentes
-- [ ] Testar fluxo completo
+### Etapa 3: Refatorar Página Principal ✅
+- [x] Remover lógica de query parameter
+- [x] Implementar estados de navegação
+- [x] Integrar todos os componentes
+- [x] Novo fluxo: selectClass → selectStudent → selectMaterial
 
-### Etapa 4: Ajustar ExchangeModal
-- [ ] Modificar comportamento de fechamento
-- [ ] Testar retorno para seleção de material
+### Etapa 4: Ajustar ExchangeModal ✅
+- [x] Comportamento de fechamento já estava correto
+- [x] Modal fecha e retorna para seleção de material (conforme planejado)
 
-### Etapa 5: Testes e Validação
-- [ ] Testar todos os caminhos do fluxo
-- [ ] Validar responsividade
-- [ ] Testes com dados reais
+### Etapa 5: Testes e Validação ✅ TESTADO E AJUSTADO
+- [x] **Testar fluxo completo**: Turma → Aluno → Material → Troca → Sucesso → Volta para material
+- [x] **Testar navegação**: Interface unificada funcionando perfeitamente
+- [x] **Ajustar modal**: Aumentado tamanho e quebra de linha para nomes longos
+- [x] **Validar com dados reais**: Testado com aluno "VALENTIN HENRIQUE GREFENHAGEN DO NASCIMENTO"
+
+## Status da Implementação: 🎉 COMPLETA - INTERFACE REALMENTE UNIFICADA
+
+### Novo Fluxo Implementado com Interface Totalmente Unificada:
+1. ✅ **Página inicial** `/trocas` mostra seleção de turmas
+2. ✅ **Clica na turma** → colapsa turmas e mostra alunos da turma (animação suave)
+3. ✅ **Clica no aluno** → colapsa alunos e mostra materiais (mesma animação)
+4. ✅ **Clica novamente no aluno selecionado** → volta para lista de alunos
+5. ✅ **Clica novamente na turma selecionada** → volta para lista de turmas
+6. ✅ **Após sucesso da troca** → volta para seleção de material do mesmo aluno
+
+### Correções Implementadas:
+- ❌ **Problema 1**: Ainda mostrava tela separada com botão "Voltar"
+- ✅ **Solução 1**: Removida lógica de estados externos da página principal
+- ✅ **Resultado 1**: `StudentSelector` agora gerencia 100% da navegação interna
+
+- ❌ **Problema 2**: Modal muito pequeno para nomes longos de alunos
+- ✅ **Solução 2**: Modal expandido (`sm:max-w-lg`) e quebra de linha (`break-words`)
+- ✅ **Resultado 2**: Nomes longos agora são exibidos corretamente no modal
+
+### Comportamento da Interface:
+- 🎯 **Consistência Visual**: Mesma animação e estilo em todas as etapas
+- 🔄 **Navegação Intuitiva**: Clicar no item selecionado volta ao estado anterior
+- 📱 **Responsivo**: Layout adaptável para diferentes tamanhos de tela
+
+### Arquivos Modificados:
+- ✅ **Expandido**: `/src/components/trocas/StudentSelector.tsx` (adicionada seção de materiais)
+- ✅ **Refatorado**: `/src/app/trocas/page.tsx` (interface unificada)
+- ✅ **Mantido**: `/src/components/trocas/ExchangeModal.tsx` (já funcionava corretamente)
+- ❌ **Removido**: `/src/components/trocas/MaterialSelector.tsx` (não mais necessário)
 
 ## Código de Referência
 
@@ -159,6 +190,60 @@ const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
 const [selectedMaterial, setSelectedMaterial] = useState<MaterialType | null>(null);
 ```
 
+## Nova Melhoria: Sistema de Cores por Material 🎨
+
+### Problema Identificado pelos Usuários:
+- ❌ **Confusão entre materiais**: Risco de cadastrar tipo errado de material
+- ❌ **Interface genérica**: Todos os botões e modais têm a mesma aparência
+- ❌ **Falta de feedback visual**: Usuário não tem certeza do tipo selecionado
+
+### Solução: Implementar Sistema de Cores Consistente
+
+#### Paleta de Cores (baseada nos hexágonos da homepage):
+- 🔵 **Tampinhas**: Tons de azul (`#3B82F6` - blue-500)
+- ⚫ **Latinhas**: Tons de cinza (`#6B7280` - gray-500) 
+- 🟠 **Óleo**: Tons de laranja (`#F97316` - orange-500)
+
+### Plano de Implementação:
+
+#### Etapa 1: Definir Classes CSS Customizadas
+- [ ] **Criar variantes de cores** para cada material no sistema de design
+- [ ] **Botões de material**: Cores de fundo, bordas e hover específicas
+- [ ] **Modal**: Header colorido conforme material selecionado
+
+#### Etapa 2: Atualizar Botões de Material (StudentSelector)
+- [ ] **Tampinhas**: `bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100`
+- [ ] **Latinhas**: `bg-gray-50 border-gray-300 text-gray-700 hover:bg-gray-100`
+- [ ] **Óleo**: `bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100`
+
+#### Etapa 3: Personalizar Modal (ExchangeModal)
+- [ ] **Header do modal**: Background gradient conforme material
+- [ ] **Ícone do material**: Cor matching no header
+- [ ] **Botão de confirmação**: Cor específica do material
+- [ ] **Indicadores visuais**: Bordas e acentos coloridos
+
+#### Etapa 4: Melhorias Adicionais de UX
+- [ ] **Texto do material no modal**: Destacado com cor específica
+- [ ] **Feedback de quantidade**: Indicator colorido para sobra de material
+- [ ] **Animações**: Transições suaves entre cores
+- [ ] **Acessibilidade**: Contraste adequado e indicadores não apenas visuais
+
+#### Etapa 5: Validação e Testes
+- [ ] **Teste com usuários**: Validar redução de confusão
+- [ ] **Teste de acessibilidade**: Cores funcionam para daltônicos
+- [ ] **Responsividade**: Cores mantêm consistência em diferentes telas
+
+### Benefícios Esperados:
+- ✅ **Redução de erros**: Identificação visual imediata do material
+- ✅ **Melhor UX**: Interface mais intuitiva e profissional  
+- ✅ **Confiança do usuário**: Feedback visual claro do que está fazendo
+- ✅ **Consistência**: Alinhamento com identidade visual da homepage
+
+### Arquivos a Modificar:
+- `/src/components/trocas/StudentSelector.tsx` (botões de material)
+- `/src/components/trocas/ExchangeModal.tsx` (modal de troca)
+- Possível criação de arquivo de estilos para variantes customizadas
+
 ---
 *Documento criado em: 29 de setembro de 2025*
-*Última atualização: 29 de setembro de 2025 - Definições implementadas*
+*Última atualização: 30 de setembro de 2025 - Sistema de cores planejado*
