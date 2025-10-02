@@ -325,24 +325,66 @@ export function ExchangeModal({ isOpen, onClose, student, materialType }: Exchan
     }
   }, [isOpen, form, materialType]);
 
-  const MaterialIcon =
-    materialType === MATERIAL_TYPES.LIDS ? PackageIcon :
+  const MaterialIcon = 
+      materialType === MATERIAL_TYPES.LIDS ? PackageIcon :
       materialType === MATERIAL_TYPES.CANS ? ArchiveIcon :
         DropletIcon;
 
-  return (
+  // Função para obter classes de cor baseadas no tipo de material
+  const getMaterialColors = (material: MaterialType) => {
+    switch (material) {
+      case MATERIAL_TYPES.LIDS:
+        return {
+          headerBg: 'bg-gradient-to-r from-blue-500 to-blue-600',
+          headerText: 'text-white',
+          iconColor: 'text-blue-100',
+          buttonBg: 'bg-blue-600 hover:bg-blue-700',
+          borderColor: 'border-blue-200',
+          textAccent: 'text-blue-700'
+        };
+      case MATERIAL_TYPES.CANS:
+        return {
+          headerBg: 'bg-gradient-to-r from-gray-500 to-gray-600',
+          headerText: 'text-white',
+          iconColor: 'text-gray-100',
+          buttonBg: 'bg-gray-600 hover:bg-gray-700',
+          borderColor: 'border-gray-300',
+          textAccent: 'text-gray-700'
+        };
+      case MATERIAL_TYPES.OIL:
+        return {
+          headerBg: 'bg-gradient-to-r from-orange-500 to-orange-600',
+          headerText: 'text-white',
+          iconColor: 'text-orange-100',
+          buttonBg: 'bg-orange-600 hover:bg-orange-700',
+          borderColor: 'border-orange-200',
+          textAccent: 'text-orange-700'
+        };
+      default:
+        return {
+          headerBg: 'bg-gradient-to-r from-primary to-primary',
+          headerText: 'text-white',
+          iconColor: 'text-white',
+          buttonBg: 'bg-primary hover:bg-primary/90',
+          borderColor: 'border-border',
+          textAccent: 'text-primary'
+        };
+    }
+  };
+
+  const materialColors = getMaterialColors(materialType);  return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
           {modalState === 'form' && (
             <>
-              <DialogHeader className="pb-3">
-                <DialogTitle className="flex items-center">
-                  <MaterialIcon className="mr-2 h-5 w-5 text-primary" />
+              <DialogHeader className={`pb-3 px-6 py-4 -mx-6 -mt-6 mb-6 rounded-t-lg ${materialColors.headerBg}`}>
+                <DialogTitle className={`flex items-center ${materialColors.headerText}`}>
+                  <MaterialIcon className={`mr-2 h-5 w-5 ${materialColors.iconColor}`} />
                   Trocar {MATERIAL_LABELS[materialType].replace(" (unidades)", "")}
                 </DialogTitle>
-                <DialogDescription className="text-sm break-words">
-                  Registre a quantidade de {MATERIAL_LABELS[materialType].toLowerCase()} trazida por <span className="font-medium">{student.name}</span>.
+                <DialogDescription className={`text-sm break-words ${materialColors.headerText} opacity-90`}>
+                  Registre a quantidade de <span className="font-medium">{MATERIAL_LABELS[materialType].toLowerCase()}</span> trazida por <span className="font-medium">{student.name}</span>.
                 </DialogDescription>
               </DialogHeader>
 
@@ -380,13 +422,17 @@ export function ExchangeModal({ isOpen, onClose, student, materialType }: Exchan
                         <CoinsIcon className="mr-1 h-3 w-3 text-primary" />
                         <span className="text-xs font-medium">{currentStudent.narcisoCoins || 0} Moedas</span>
                       </div>
-                      <div className="p-2 bg-orange-50 border border-orange-200 rounded-md">
+                      <div className={`p-2 border rounded-md ${materialColors.borderColor}`} style={{
+                        backgroundColor: materialType === MATERIAL_TYPES.LIDS ? '#eff6ff' : 
+                                       materialType === MATERIAL_TYPES.CANS ? '#f9fafb' : 
+                                       '#fff7ed'
+                      }}>
                         <div className="text-center">
-                          <div className="text-xs font-medium text-orange-800 flex items-center justify-center">
-                            <MaterialIcon className="mr-1 h-3 w-3" />
+                          <div className={`text-xs font-medium ${materialColors.textAccent} flex items-center justify-center`}>
+                            <MaterialIcon className={`mr-1 h-3 w-3 ${materialColors.textAccent}`} />
                             {MATERIAL_LABELS[materialType].toLowerCase().replace(" (unidades)", "")} sobrando
                           </div>
-                          <div className="text-base font-bold text-orange-800 mt-1">
+                          <div className={`text-base font-bold ${materialColors.textAccent} mt-1`}>
                             {currentStudent.pendingExchanges?.[materialType] || 0}
                           </div>
                         </div>
@@ -441,7 +487,7 @@ export function ExchangeModal({ isOpen, onClose, student, materialType }: Exchan
                     <Button
                       type="submit"
                       disabled={form.formState.isSubmitting || !watchedMaterialQuantity || (typeof watchedMaterialQuantity === 'number' && watchedMaterialQuantity <= 0)}
-                      className="px-4"
+                      className={`px-4 ${materialColors.buttonBg} text-white border-0`}
                     >
                       <SaveIcon className="mr-2 h-4 w-4" />
                       Registrar
@@ -454,12 +500,12 @@ export function ExchangeModal({ isOpen, onClose, student, materialType }: Exchan
 
           {modalState === 'confirmation' && (
             <>
-              <DialogHeader>
-                <DialogTitle className="flex items-center text-blue-600 text-xl">
-                  <AlertCircle className="h-8 w-8 mr-3" />
-                  Confirmar Troca
+              <DialogHeader className={`pb-3 px-6 py-4 -mx-6 -mt-6 mb-6 rounded-t-lg ${materialColors.headerBg}`}>
+                <DialogTitle className={`flex items-center ${materialColors.headerText} text-xl`}>
+                  <AlertCircle className={`h-8 w-8 mr-3 ${materialColors.iconColor}`} />
+                  Confirmar troca de {MATERIAL_LABELS[materialType].toLowerCase()}
                 </DialogTitle>
-                <DialogDescription>
+                <DialogDescription className={`${materialColors.headerText} opacity-90`}>
                   Confirme os detalhes da troca antes de prosseguir.
                 </DialogDescription>
               </DialogHeader>
@@ -468,7 +514,11 @@ export function ExchangeModal({ isOpen, onClose, student, materialType }: Exchan
                   <p>
                     <strong>Tem certeza que deseja confirmar a troca de:</strong>
                   </p>
-                  <div className="bg-blue-50 p-3 rounded-md border border-blue-200">
+                  <div className={`p-3 rounded-md border ${materialColors.borderColor}`} style={{
+                    backgroundColor: materialType === MATERIAL_TYPES.LIDS ? '#eff6ff' : 
+                                   materialType === MATERIAL_TYPES.CANS ? '#f9fafb' : 
+                                   '#fff7ed'
+                  }}>
                     <div>
                       <p className="text-lg">
                         {confirmationData.textoTroca}
@@ -496,7 +546,7 @@ export function ExchangeModal({ isOpen, onClose, student, materialType }: Exchan
                 </Button>
                 <Button
                   onClick={confirmAndExecuteTrade}
-                  className={`bg-green-600 hover:bg-green-700 text-white px-6 transition-transform duration-150 ${isConfirming ? 'animate-pulse transform scale-95 opacity-90' : ''}`}
+                  className={`${materialColors.buttonBg} text-white px-6 transition-transform duration-150 border-0 ${isConfirming ? 'animate-pulse transform scale-95 opacity-90' : ''}`}
                   disabled={isConfirming}
                   aria-busy={isConfirming}
                   aria-disabled={isConfirming}

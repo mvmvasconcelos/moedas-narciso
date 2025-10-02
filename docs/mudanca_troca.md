@@ -206,32 +206,34 @@ const [selectedMaterial, setSelectedMaterial] = useState<MaterialType | null>(nu
 
 ### Plano de Implementação:
 
-#### Etapa 1: Definir Classes CSS Customizadas
-- [ ] **Criar variantes de cores** para cada material no sistema de design
-- [ ] **Botões de material**: Cores de fundo, bordas e hover específicas
-- [ ] **Modal**: Header colorido conforme material selecionado
+#### Etapa 1: Definir Classes CSS Customizadas ✅
+- [x] **Criar variantes de cores** para cada material no sistema de design
+- [x] **Função getMaterialColors()** com paleta específica para cada material
+- [x] **Sistema de cores consistente** implementado
 
-#### Etapa 2: Atualizar Botões de Material (StudentSelector)
-- [ ] **Tampinhas**: `bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100`
-- [ ] **Latinhas**: `bg-gray-50 border-gray-300 text-gray-700 hover:bg-gray-100`
-- [ ] **Óleo**: `bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100`
+#### Etapa 2: Atualizar Botões de Material (StudentSelector) ✅
+- [x] **Tampinhas**: `bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100`
+- [x] **Latinhas**: `bg-gray-50 border-gray-300 text-gray-700 hover:bg-gray-100`
+- [x] **Óleo**: `bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100`
+- [x] **Ícones coloridos** e transições suaves implementadas
 
-#### Etapa 3: Personalizar Modal (ExchangeModal)
-- [ ] **Header do modal**: Background gradient conforme material
-- [ ] **Ícone do material**: Cor matching no header
-- [ ] **Botão de confirmação**: Cor específica do material
-- [ ] **Indicadores visuais**: Bordas e acentos coloridos
+#### Etapa 3: Personalizar Modal (ExchangeModal) ✅
+- [x] **Header do modal**: Background gradient conforme material
+- [x] **Ícone do material**: Cor matching no header  
+- [x] **Botão de confirmação**: Cor específica do material
+- [x] **Card de informações**: Cores específicas para sobra de material
+- [x] **Modal de confirmação**: Header e elementos coloridos
 
-#### Etapa 4: Melhorias Adicionais de UX
-- [ ] **Texto do material no modal**: Destacado com cor específica
-- [ ] **Feedback de quantidade**: Indicator colorido para sobra de material
-- [ ] **Animações**: Transições suaves entre cores
-- [ ] **Acessibilidade**: Contraste adequado e indicadores não apenas visuais
+#### Etapa 4: Melhorias Adicionais de UX ✅
+- [x] **Texto do material no modal**: Destacado com cor específica
+- [x] **Feedback de quantidade**: Indicator colorido para sobra de material
+- [x] **Animações**: Transições suaves implementadas (duration-200)
+- [x] **Cores de fundo dinâmicas**: Background específico por material
 
-#### Etapa 5: Validação e Testes
-- [ ] **Teste com usuários**: Validar redução de confusão
-- [ ] **Teste de acessibilidade**: Cores funcionam para daltônicos
-- [ ] **Responsividade**: Cores mantêm consistência em diferentes telas
+#### Etapa 5: Validação e Testes ⏳ PRONTO PARA TESTAR
+- [ ] **Teste com usuários**: Validar redução de confusão entre materiais
+- [ ] **Teste de acessibilidade**: Verificar contraste e usabilidade
+- [ ] **Responsividade**: Validar cores em mobile/desktop
 
 ### Benefícios Esperados:
 - ✅ **Redução de erros**: Identificação visual imediata do material

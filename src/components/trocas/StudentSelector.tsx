@@ -272,32 +272,32 @@ export function StudentSelector({
           <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 mt-1">
             <Button 
               variant="outline" 
-              className="h-auto py-6 flex flex-col space-y-2 hover:bg-primary hover:text-primary-foreground"
+              className="h-auto py-6 flex flex-col space-y-2 bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 hover:text-blue-800 hover:border-blue-300 transition-all duration-200"
               onClick={() => handleMaterialSelect(MATERIAL_TYPES.LIDS)}
             >
-              <PackageIcon className="h-8 w-8 mb-2" />
+              <PackageIcon className="h-8 w-8 mb-2 text-blue-600" />
               <span className="text-lg font-medium">Tampinhas</span>
-              <span className="text-xs text-muted-foreground">Registrar troca de tampinhas plásticas</span>
+              <span className="text-xs text-blue-600">Registrar troca de tampinhas plásticas</span>
             </Button>
             
             <Button 
               variant="outline" 
-              className="h-auto py-6 flex flex-col space-y-2 hover:bg-primary hover:text-primary-foreground"
+              className="h-auto py-6 flex flex-col space-y-2 bg-gray-50 border-gray-300 text-gray-700 hover:bg-gray-100 hover:text-gray-800 hover:border-gray-400 transition-all duration-200"
               onClick={() => handleMaterialSelect(MATERIAL_TYPES.CANS)}
             >
-              <ArchiveIcon className="h-8 w-8 mb-2" />
+              <ArchiveIcon className="h-8 w-8 mb-2 text-gray-600" />
               <span className="text-lg font-medium">Latinhas</span>
-              <span className="text-xs text-muted-foreground">Registrar troca de latinhas</span>
+              <span className="text-xs text-gray-600">Registrar troca de latinhas</span>
             </Button>
             
             <Button 
               variant="outline" 
-              className="h-auto py-6 flex flex-col space-y-2 hover:bg-primary hover:text-primary-foreground"
+              className="h-auto py-6 flex flex-col space-y-2 bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100 hover:text-orange-800 hover:border-orange-300 transition-all duration-200"
               onClick={() => handleMaterialSelect(MATERIAL_TYPES.OIL)}
             >
-              <DropletIcon className="h-8 w-8 mb-2" />
+              <DropletIcon className="h-8 w-8 mb-2 text-orange-600" />
               <span className="text-lg font-medium">Óleo</span>
-              <span className="text-xs text-muted-foreground">Registrar troca de óleo usado</span>
+              <span className="text-xs text-orange-600">Registrar troca de óleo usado</span>
             </Button>
           </div>
         </div>
