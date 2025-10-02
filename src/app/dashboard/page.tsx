@@ -111,29 +111,19 @@ export default function DashboardPage() {
         />
       </div>
       
-      {/* Seção de botões para registrar trocas */}
+      {/* Seção de botão único para registrar trocas */}
       <div className="mt-8">
         <h2 className="text-xl font-bold mb-4">Registrar Nova Troca</h2>
-        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
-          <Button asChild variant="outline" className="h-auto py-6 flex flex-col space-y-2">
-            <Link href={`/trocas?material=${MATERIAL_TYPES.LIDS}`}>
-              <PackageIcon className="h-8 w-8 mb-2" />
-              <span className="text-lg font-medium">Tampinhas</span>
-              <span className="text-xs text-muted-foreground">Registrar troca de tampinhas plásticas</span>
-            </Link>
-          </Button>
-          <Button asChild variant="outline" className="h-auto py-6 flex flex-col space-y-2">
-            <Link href={`/trocas?material=${MATERIAL_TYPES.CANS}`}>
-              <ArchiveIcon className="h-8 w-8 mb-2" />
-              <span className="text-lg font-medium">Latinhas</span>
-              <span className="text-xs text-muted-foreground">Registrar troca de latinhas</span>
-            </Link>
-          </Button>
-          <Button asChild variant="outline" className="h-auto py-6 flex flex-col space-y-2">
-            <Link href={`/trocas?material=${MATERIAL_TYPES.OIL}`}>
-              <DropletIcon className="h-8 w-8 mb-2" />
-              <span className="text-lg font-medium">Óleo</span>
-              <span className="text-xs text-muted-foreground">Registrar troca de óleo usado</span>
+        <div className="grid gap-4">
+          <Button asChild variant="outline" className="h-auto py-6 flex items-center space-x-4">
+            <Link href="/trocas" aria-label="Ir para página de trocas">
+              <div className="flex items-center">
+                <PlusCircleIcon className="h-8 w-8 mr-4" />
+                <div className="flex flex-col items-start">
+                  <span className="text-lg font-medium">Registrar Troca</span>
+                  <span className="text-xs text-muted-foreground">Ir para a página de trocas para registrar qualquer material</span>
+                </div>
+              </div>
             </Link>
           </Button>
         </div>
